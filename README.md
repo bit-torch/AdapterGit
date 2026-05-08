@@ -1,1 +1,1 @@
-# AdapterGIt
+# AdapterGit
