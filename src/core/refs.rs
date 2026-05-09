@@ -32,11 +32,7 @@ pub fn write_head(repo: &Path, target: &str) -> Result<(), Box<dyn std::error::E
     let dir = head.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(dir)?;
 
-    if target.starts_with("ref: ") {
-        fs::write(&head, format!("{}\n", target))?;
-    } else {
-        fs::write(&head, format!("{}\n", target))?;
-    }
+    fs::write(&head, format!("{}\n", target))?;
     Ok(())
 }
 

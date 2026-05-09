@@ -113,6 +113,7 @@ impl Index {
             let flags = u16::from_be_bytes([data[pos], data[pos + 1]]);
             pos += 2;
 
+            let mode = std::str::from_utf8(&data[pos..pos + 6])?.to_string();
             pos += 7;
 
             let name_start = pos;
@@ -132,7 +133,7 @@ impl Index {
             entries.insert(
                 path.clone(),
                 IndexEntry {
-                    mode: "100644".to_string(),
+                    mode,
                     sha1,
                     flags: flags & 0x0FFF,
                     path,
