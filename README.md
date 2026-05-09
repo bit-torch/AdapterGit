@@ -1,10 +1,10 @@
 # AdapterGit - Git for AI, not for editors
 
-https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg](https://github.com/bit-torch/AdapterGit)
-https://img.shields.io/badge/rust-1.70%2B-orange.svg](https://www.rust-lang.org/)
-https://img.shields.io/badge/binary-static%20musl-green.svg](https://github.com/bit-torch/AdapterGit/releases)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/bit-torch/AdapterGit)
+[![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![Static Binary](https://img.shields.io/badge/binary-static%20musl-green.svg)](https://github.com/bit-torch/AdapterGit/releases)
 
-> **AdapterGit (agit)** - 让 Git 在 AI 时代不再卡死。为自动化、脚本、CI/CD 和公共电脑环境设计的无 TUI Git 实现。
+**AdapterGit (agit)** - 让 Git 在 AI 时代不再卡死。为自动化、脚本、CI/CD 和公共电脑环境设计的无 TUI Git 实现。
 
 ## 🎯 痛点解决
 
@@ -312,26 +312,26 @@ agit/
 
 ## 🙏 致谢
 
-- 基于 https://github.com/Byron/gitoxide 构建，一个优秀的纯 Rust Git 实现
-- 受 https://gitbutler.com/ 和 https://github.com/extrawurst/gitui 启发
+- 基于 [gitoxide](https://github.com/Byron/gitoxide) 构建，一个优秀的纯 Rust Git 实现
+- 受 [GitButler](https://gitbutler.com/) 和 [gitui](https://github.com/extrawurst/gitui) 启发
 - 感谢所有在公共电脑上被 Git 折磨过的开发者
 
 ## 🐛 问题反馈
 
 发现 bug 或有新想法？欢迎：
-- https://github.com/bit-torch/AdapterGit/issues
-- https://github.com/bit-torch/AdapterGit/pulls
-- 在 https://github.com/bit-torch/AdapterGit/discussions 中讨论
+- [提交 Issue](https://github.com/bit-torch/AdapterGit/issues)
+- [提交 PR](https://github.com/bit-torch/AdapterGit/pulls)
+- [参与讨论](https://github.com/bit-torch/AdapterGit/discussions)
 
 ## 🌟 星星历史
 
-https://api.star-history.com/svg?repos=bit-torch/AdapterGit&type=Date](https://star-history.com/#bit-torch/AdapterGit&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=bit-torch/AdapterGit&type=Date)](https://star-history.com/#bit-torch/AdapterGit&Date)
 
 ---
 
 ## 📢 一句话介绍
 
-**agit - 让你在 2026 年还能愉快地用 Git。**
+**agit - 让你在 AI 时代还能愉快地用 Git,不再被TUI编辑器限制。**
 
 无论你是：
 - 🤖 在写 AI Agent
