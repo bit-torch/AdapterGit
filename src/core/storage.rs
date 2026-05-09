@@ -109,7 +109,7 @@ mod tests {
 
         assert!(dir.exists());
         assert!(file.exists());
-        assert!(fs::read(&file).unwrap().len() > 0);
+        assert!(!fs::read(&file).unwrap().is_empty());
 
         let _ = fs::remove_dir_all(&repo);
     }

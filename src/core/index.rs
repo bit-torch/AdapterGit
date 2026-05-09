@@ -76,7 +76,7 @@ impl Index {
 
             let current_len = data.len();
             let padding_needed = (8 - (current_len % 8)) % 8;
-            data.extend(std::iter::repeat(0).take(padding_needed));
+            data.extend(std::iter::repeat_n(0, padding_needed));
         }
 
         let sha1 = crate::core::hash::hash_bytes(&data);

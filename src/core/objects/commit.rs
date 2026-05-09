@@ -81,14 +81,14 @@ impl Commit {
 
         for line in raw_str.split('\n') {
             header_end += line.len() + 1;
-            if line.starts_with("tree ") {
-                tree = line[5..].to_string();
-            } else if line.starts_with("parent ") {
-                parents.push(line[7..].to_string());
-            } else if line.starts_with("author ") {
-                author = line[7..].to_string();
-            } else if line.starts_with("committer ") {
-                committer = line[10..].to_string();
+            if let Some(stripped) = line.strip_prefix("tree ") {
+                tree = stripped.to_string();
+            } else if let Some(stripped) = line.strip_prefix("parent ") {
+                parents.push(stripped.to_string());
+            } else if let Some(stripped) = line.strip_prefix("author ") {
+                author = stripped.to_string();
+            } else if let Some(stripped) = line.strip_prefix("committer ") {
+                committer = stripped.to_string();
             } else if line.is_empty() {
                 break;
             }
