@@ -24,11 +24,19 @@
 - 自动添加 `[AI-committed]` 标记
 - 危险操作防护，防止 AI 误操作
 
-### 📦 **单文件便携**
-- 静态编译，无任何依赖
-- 10MB 单文件，拷了就走
-- 无需安装，无需 root 权限
-- 跨平台支持（Linux/macOS/Windows）
+### 📦 **双版本策略**
+agit 提供两个版本，均从底层原生实现 Git 核心逻辑，无任何外部 Git 依赖：
+
+| | **Full 版本** | **Lite 版本** |
+|---|---|---|
+| 形态 | 已打包的可安装应用程序安装包 | 单文件便携二进制 |
+| 安装方式 | 安装包一键安装（.msi / .deb / .dmg） | 下载即用，无需安装 |
+| 体积 | ~20MB 安装包 | ~10MB 单文件 |
+| 适用场景 | 个人开发机、企业批量部署 | AI Agent、CI/CD、临时环境、U 盘携带 |
+| 系统集成 | 注册 PATH、右键菜单、文件关联 | 纯绿色，无系统痕迹 |
+| Git 核心实现 | ✅ 原生 Rust 实现 | ✅ 原生 Rust 实现 |
+
+**两个版本都完整实现了原生 Git 底层逻辑**（SHA-1、zlib、Blob/Tree/Commit 对象、引用系统、索引、网络协议），仅分发形态不同。
 
 ### ⚡ **永不卡死**
 - 自动跳过所有编辑器
@@ -45,14 +53,29 @@
 ## 🚀 快速开始
 
 ### 下载即用
+
+#### 🪶 Lite 版本（单文件便携）
 ```bash
-# Linux
-curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-x86_64-unknown-linux-musl -o agit
+# Linux / macOS
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-x86_64-unknown-linux-musl -o agit
 chmod +x agit
 ./agit --help
 
-# 或直接运行（无需安装）
+# 直接运行，无需安装
 ./agit init
+```
+
+#### 📦 Full 版本（安装包）
+```bash
+# Linux (.deb)
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit_0.1.0_amd64.deb
+sudo dpkg -i agit_0.1.0_amd64.deb
+
+# macOS (.dmg)
+# 下载 .dmg 文件，双击安装即可
+
+# Windows (.msi)
+# 下载 .msi 安装包，双击运行安装向导
 ```
 
 ### 从源码构建
@@ -113,29 +136,70 @@ alias gai='agit --ai'
 
 ## 🔧 安装指南
 
-### 一键安装
+### 🪶 Lite 版本安装
 ```bash
-
 # 使用 cargo
-cargo install agit
+cargo install agit --features lite
+
+# 或直接下载单文件
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite -o agit
+chmod +x agit
+sudo mv agit /usr/local/bin/  # 可选，移到 PATH
 ```
 
-### 手动安装
-1. 从 https://github.com/bit-torch/AdapterGit/releases 页面下载对应平台的二进制文件
-2. 添加可执行权限：`chmod +x agit`
-3. 移动到 PATH 目录：`sudo mv agit /usr/local/bin/`（可选）
+### 📦 Full 版本安装
+```bash
+# 使用 cargo
+cargo install agit
+
+# Linux (deb)
+sudo dpkg -i agit_0.1.0_amd64.deb
+
+# Linux (rpm)
+sudo rpm -i agit-0.1.0-1.x86_64.rpm
+
+# macOS
+# 下载 .dmg 双击安装，或使用 Homebrew：
+brew install bit-torch/tap/agit
+
+# Windows
+# 下载 .msi 安装包，双击运行安装向导
+# 或使用 winget：
+winget install bit-torch.agit
+```
+
+### 手动安装（两种版本通用）
+1. 从 https://github.com/bit-torch/AdapterGit/releases 页面选择对应版本下载
+2. Lite 版本：`chmod +x agit` 后直接运行
+3. Full 版本：运行安装包或添加可执行权限后移到 PATH 目录
 
 ## 📊 对比表
 
-| 特性 | agit | 原生 Git |
-|------|------|----------|
-| AI 调用安全 | ✅ 永不卡 TUI | ❌ 会卡编辑器 |
-| 单文件便携 | ✅ 10MB 静态二进制 | ❌ 需要完整安装 |
-| 结构化输出 | ✅ JSON / YAML | ❌ 纯文本 |
-| 公共电脑友好 | ✅ 无需安装 | ❌ 需要 sudo |
-| 零配置运行 | ✅ 开箱即用 | ❌ 需要 git config |
-| 完整 Git 功能 | ⚠️ 常用子集 | ✅ 全部功能 |
-| 交互式操作 | ❌ 不支持 | ✅ 完整支持 |
+### agit vs 原生 Git
+
+| 特性 | agit Full | agit Lite | 原生 Git |
+|------|-----------|-----------|----------|
+| AI 调用安全 | ✅ 永不卡 TUI | ✅ 永不卡 TUI | ❌ 会卡编辑器 |
+| 分发形态 | 📦 安装包（.msi/.deb/.dmg） | 🪶 单文件二进制 | ❌ 需要完整安装 |
+| 单文件便携 | ❌ 需安装 | ✅ ~10MB 单文件 | ❌ 需安装 |
+| 系统集成 | ✅ PATH/右键/文件关联 | ❌ 纯绿色无痕迹 | ✅ 完整集成 |
+| 结构化输出 | ✅ JSON / YAML | ✅ JSON / YAML | ❌ 纯文本 |
+| 零配置运行 | ✅ 开箱即用 | ✅ 开箱即用 | ❌ 需要 git config |
+| 原生 Git 核心 | ✅ 纯 Rust 实现 | ✅ 纯 Rust 实现 | ✅ C 实现 |
+| 交互式操作 | ❌ 不支持 | ❌ 不支持 | ✅ 完整支持 |
+
+### Full vs Lite 版本选择指南
+
+| 场景 | 推荐版本 |
+|------|----------|
+| 个人开发机日常使用 | 📦 Full |
+| 企业批量部署 | 📦 Full |
+| AI Agent / 自动化脚本 | 🪶 Lite |
+| CI/CD 流水线 | 🪶 Lite |
+| Docker 容器 | 🪶 Lite |
+| U 盘携带 / 公共电脑 | 🪶 Lite |
+| 需要右键菜单集成 | 📦 Full |
+| 临时环境快速使用 | 🪶 Lite |
 
 ## 🎨 AI 模式详解
 
@@ -183,10 +247,19 @@ agit diff --json
 │  │  对象存储 │ 引用管理 │ Diff 算法   │  │
 │  │  Pack 文件 │ 协议层 │ 索引系统    │  │
 │  └───────────────────────────────────┘  │
+└─────────────────┬───────────────────────┘
+                  │ 统一核心 → 双版本分发
+┌─────────────────▼───────────────────────┐
+│              版本分发层                   │
+│  ┌─────────────────┬─────────────────┐  │
+│  │  📦 Full 版本    │  🪶 Lite 版本   │  │
+│  │  .msi/.deb/.dmg │  单文件二进制     │  │
+│  │  安装包分发      │  下载即用        │  │
+│  └─────────────────┴─────────────────┘  │
 └─────────────────────────────────────────┘
 ```
 
-**完全从底层原生实现 Git 核心协议和算法，无外部依赖。**
+**Full 和 Lite 共享同一套原生 Rust 实现的 Git 核心，仅分发形态不同。**
 
 ## 📁 支持的命令
 
