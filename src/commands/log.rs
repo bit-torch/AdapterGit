@@ -47,7 +47,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
         println!(
             "\x1b[33mcommit {}\x1b[0m",
-            current_sha1
+            short_hash
         );
         if commit.parents.len() > 1 {
             let parents: Vec<&str> = commit.parents.iter().map(|p| &p[..7]).collect();
