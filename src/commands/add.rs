@@ -3,7 +3,7 @@ use crate::core::objects::blob::Blob;
 use crate::core::repo;
 use crate::core::storage;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 fn is_executable(path: &Path) -> bool {
     #[cfg(unix)]
@@ -66,9 +66,7 @@ fn add_file(
     let sha1 = blob.hash();
 
     if !storage::object_exists(repo_root, &sha1) {
-        let data = blob.serialize();
         storage::write_object(repo_root, "blob", &blob.content)?;
-        let _ = data;
     }
 
     let relative = path

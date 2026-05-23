@@ -2,6 +2,7 @@
 
 mod ai;
 mod cli;
+mod commands;
 mod config;
 mod core;
 mod output;
@@ -20,31 +21,85 @@ fn main() {
         AI_MODE.store(true, Ordering::SeqCst);
     }
 
-    match cli.command {
+    let result = match &cli.command {
         None => {
             println!("agit - AI-native Git tool (Pure Rust)");
             println!("Run 'agit --help' for usage information.");
+            Ok(())
         }
-        Some(Commands::Init) => {
-            println!("not implemented yet: init");
-        }
-        Some(Commands::Add { files }) => {
-            println!("not implemented yet: add {:?}", files);
-        }
-        Some(Commands::Commit { message, ai }) => {
-            println!(
-                "not implemented yet: commit (message: {:?}, ai: {})",
-                message, ai
-            );
-        }
-        Some(Commands::Status) => {
-            println!("not implemented yet: status");
-        }
-        Some(Commands::Log) => {
-            println!("not implemented yet: log");
-        }
+        Some(Commands::Init) => commands::init::run(),
+        Some(Commands::Add { files }) => commands::add::run(files),
+        Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
+        Some(Commands::Status) => commands::status::run(),
+        Some(Commands::Log) => commands::log::run(),
         Some(Commands::Clone { url }) => {
             println!("not implemented yet: clone {}", url);
+            Ok(())
         }
+        Some(Commands::CatFile {
+            show_type,
+            pretty_print,
+            object,
+        }) => cat_file(object, *show_type, *pretty_print),
+    };
+
+    if let Err(e) = result {
+        eprintln!("error: {}", e);
+        std::process::exit(1);
     }
+}
+
+fn cat_file(
+    object: &str,
+    show_type: bool,
+    pretty_print: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let repo_root = core::repo::find_repo_root()?;
+    let (obj_type, content) = core::storage::read_object(&repo_root, object)?;
+
+    if show_type {
+        println!("{}", obj_type);
+        return Ok(());
+    }
+
+    if pretty_print {
+        match obj_type.as_str() {
+            "blob" => {
+                print!("{}", String::from_utf8_lossy(&content));
+            }
+            "tree" => {
+                let tree_data = format_tree_data(&content);
+                let tree = core::objects::tree::Tree::deserialize(&tree_data)?;
+                for entry in &tree.entries {
+                    let type_str = if entry.mode == "40000" {
+                        "tree"
+                    } else {
+                        "blob"
+                    };
+                    println!(
+                        "{} {} {}\t{}",
+                        entry.mode, type_str, entry.sha1, entry.name
+                    );
+                }
+            }
+            "commit" => {
+                print!("{}", String::from_utf8_lossy(&content));
+            }
+            _ => {
+                print!("{}", String::from_utf8_lossy(&content));
+            }
+        }
+        return Ok(());
+    }
+
+    print!("{}", String::from_utf8_lossy(&content));
+    Ok(())
+}
+
+fn format_tree_data(content: &[u8]) -> Vec<u8> {
+    let header = format!("tree {}\0", content.len());
+    let mut data = Vec::with_capacity(header.len() + content.len());
+    data.extend_from_slice(header.as_bytes());
+    data.extend_from_slice(content);
+    data
 }

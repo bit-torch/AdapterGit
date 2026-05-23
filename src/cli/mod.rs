@@ -52,4 +52,16 @@ pub enum Commands {
         #[arg(help = "Repository URL to clone")]
         url: String,
     },
+
+    #[command(about = "Provide content of repository objects")]
+    CatFile {
+        #[arg(short = 't', group = "action", help = "Show object type")]
+        show_type: bool,
+
+        #[arg(short = 'p', group = "action", help = "Pretty-print object content")]
+        pretty_print: bool,
+
+        #[arg(help = "Object SHA-1")]
+        object: String,
+    },
 }
