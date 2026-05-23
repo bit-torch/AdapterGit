@@ -1,12 +1,13 @@
+use crate::ai;
+use crate::config;
 use crate::core::index::Index;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
 use crate::core::refs;
 use crate::core::repo;
 use crate::core::storage;
-use std::sync::atomic::Ordering;
 
-pub fn run(message: Option<String>, ai: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
 
     let index = Index::load(&repo_root)?;
@@ -15,13 +16,16 @@ pub fn run(message: Option<String>, ai: bool) -> Result<(), Box<dyn std::error::
         return Ok(());
     }
 
+    let cfg = config::load();
     let (timestamp, time_str) = repo::get_current_timestamp();
-
-    let author = format!("agit <agit@localhost> {} {}", timestamp, time_str);
-    let committer = format!("agit <agit@localhost> {} {}", timestamp, time_str);
+    let author = format!(
+        "{} <{}> {} {}",
+        cfg.user_name, cfg.user_email, timestamp, time_str
+    );
+    let committer = author.clone();
 
     let mut msg = message.unwrap_or_else(|| "Update".to_string());
-    let is_ai = ai || crate::AI_MODE.load(Ordering::SeqCst);
+    let is_ai = ai_flag || ai::is_ai_mode();
     if is_ai {
         msg = format!("[AI-committed] {}", msg);
     }

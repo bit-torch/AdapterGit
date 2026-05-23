@@ -46,8 +46,11 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let msg_first_line = commit.message.lines().next().unwrap_or("");
 
         println!(
-            "\x1b[33mcommit {}\x1b[0m",
-            short_hash
+            "{}",
+            crate::output::colorize(
+                &format!("commit {}", short_hash),
+                "33"
+            )
         );
         if commit.parents.len() > 1 {
             let parents: Vec<&str> = commit.parents.iter().map(|p| &p[..7]).collect();

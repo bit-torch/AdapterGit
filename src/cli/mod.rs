@@ -64,4 +64,19 @@ pub enum Commands {
         #[arg(help = "Object SHA-1")]
         object: String,
     },
+
+    #[command(about = "List the contents of a tree object")]
+    LsTree {
+        #[arg(help = "Tree SHA-1")]
+        tree_sha1: String,
+    },
+
+    #[command(about = "Show various types of objects")]
+    Show {
+        #[arg(help = "Object SHA-1 or reference")]
+        object: String,
+    },
+
+    #[command(about = "Show changes between commits, commit and working tree, etc")]
+    Diff,
 }

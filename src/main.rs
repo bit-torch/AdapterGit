@@ -10,16 +10,14 @@ mod utils;
 
 use clap::Parser;
 use cli::{Cli, Commands};
-use std::sync::atomic::{AtomicBool, Ordering};
-
-static AI_MODE: AtomicBool = AtomicBool::new(false);
 
 fn main() {
     let cli = Cli::parse();
 
-    if cli.ai {
-        AI_MODE.store(true, Ordering::SeqCst);
-    }
+    ai::set_ai_mode(cli.ai);
+    output::set_json_mode(cli.json);
+    output::set_yaml_mode(cli.yaml);
+    output::set_no_color(cli.no_color);
 
     let result = match &cli.command {
         None => {
@@ -41,6 +39,9 @@ fn main() {
             pretty_print,
             object,
         }) => cat_file(object, *show_type, *pretty_print),
+        Some(Commands::LsTree { tree_sha1 }) => commands::ls_tree::run(tree_sha1),
+        Some(Commands::Show { object }) => commands::show::run(object),
+        Some(Commands::Diff) => commands::diff::run(),
     };
 
     if let Err(e) = result {
