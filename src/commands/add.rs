@@ -91,7 +91,7 @@ fn add_directory(
         let entry = entry?;
         let path = entry.path();
 
-        if path.file_name().map_or(false, |n| n == ".git") {
+        if path.file_name().is_some_and(|n| n == ".git") {
             continue;
         }
 

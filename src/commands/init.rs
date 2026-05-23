@@ -21,10 +21,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     fs::write(
         git_dir.join("config"),
-        format!(
-            "[core]\n\trepositoryformatversion = 0\n\tfilemode = false\n\tbare = false\n\
-             [user]\n\tname = agit\n\temail = agit@localhost\n"
-        ),
+        "[core]\n\trepositoryformatversion = 0\n\tfilemode = false\n\tbare = false\n\
+         [user]\n\tname = agit\n\temail = agit@localhost\n",
     )?;
     fs::write(
         git_dir.join("description"),
