@@ -23,7 +23,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let head_tree_map = build_head_tree_map(&repo_root, &head_sha1);
     let mut diff_output = Vec::new();
 
-    for (path, index_entry) in &index.entries {
+    for (path, _index_entry) in &index.entries {
         let old_content = head_tree_map
             .get(path)
             .and_then(|sha1| read_blob_content(&repo_root, sha1))

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static JSON_MODE: AtomicBool = AtomicBool::new(false);

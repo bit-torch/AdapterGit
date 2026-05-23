@@ -49,7 +49,16 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let commit_sha1 = commit.hash();
     storage::write_object(&repo_root, "commit", &commit.serialize_raw())?;
 
-    refs::write_ref(&repo_root, "refs/heads/main", &commit_sha1)?;
+    let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
+        .unwrap_or_default();
+    let branch_ref = if let Some(ref_path) = head_content.trim().strip_prefix("ref: ") {
+        ref_path.trim().to_string()
+    } else {
+        "refs/heads/main".to_string()
+    };
+    refs::write_ref(&repo_root, &branch_ref, &commit_sha1)?;
+
+    let branch_name = branch_ref.strip_prefix("refs/heads/").unwrap_or("main");
 
     let parent_info = if commit.parents.is_empty() {
         " (root-commit)".to_string()
@@ -58,7 +67,7 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     };
     println!(
         "[{} {:.7}]{} {}",
-        if is_ai { "ai" } else { "main" },
+        if is_ai { "ai" } else { branch_name },
         commit_sha1,
         parent_info,
         msg.trim_end()

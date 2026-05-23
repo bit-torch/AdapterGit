@@ -9,7 +9,7 @@ mod output;
 mod utils;
 
 use clap::Parser;
-use cli::{Cli, Commands};
+use cli::{Cli, Commands, RemoteAction};
 
 fn main() {
     let cli = Cli::parse();
@@ -30,10 +30,7 @@ fn main() {
         Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Log) => commands::log::run(),
-        Some(Commands::Clone { url }) => {
-            println!("not implemented yet: clone {}", url);
-            Ok(())
-        }
+        Some(Commands::Clone { url }) => commands::clone::run(url),
         Some(Commands::CatFile {
             show_type,
             pretty_print,
@@ -42,6 +39,17 @@ fn main() {
         Some(Commands::LsTree { tree_sha1 }) => commands::ls_tree::run(tree_sha1),
         Some(Commands::Show { object }) => commands::show::run(object),
         Some(Commands::Diff) => commands::diff::run(),
+        Some(Commands::Fetch { url }) => {
+            commands::fetch::run(url.as_deref())
+        }
+        Some(Commands::Push { remote, branch }) => {
+            commands::push::run(remote.as_deref(), branch.as_deref())
+        }
+        Some(Commands::Pull) => commands::pull::run(),
+        Some(Commands::Remote { action }) => match action {
+            RemoteAction::Add { name, url } => commands::remote::run_add(name, url),
+            RemoteAction::List => commands::remote::run_list(),
+        },
     };
 
     if let Err(e) = result {

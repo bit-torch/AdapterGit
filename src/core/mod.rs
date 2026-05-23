@@ -2,6 +2,8 @@ pub mod compression;
 pub mod hash;
 pub mod index;
 pub mod objects;
+pub mod protocol;
 pub mod refs;
+pub mod remote_utils;
 pub mod repo;
 pub mod storage;

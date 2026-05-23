@@ -1,8 +1,13 @@
 pub mod add;
+pub mod clone;
 pub mod commit;
 pub mod diff;
+pub mod fetch;
 pub mod init;
 pub mod log;
 pub mod ls_tree;
+pub mod pull;
+pub mod push;
+pub mod remote;
 pub mod show;
 pub mod status;
