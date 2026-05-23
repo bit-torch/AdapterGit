@@ -85,9 +85,16 @@ fn get_head_tree(repo: &Path, sha1: &str) -> BTreeMap<String, String> {
     let mut result = BTreeMap::new();
     if let Ok((obj_type, content)) = storage::read_object(repo, sha1) {
         if obj_type == "commit" {
-            if let Ok(commit) = Commit::deserialize(&format_commit_data(&content)) {
+            if let Ok(commit) =
+                Commit::deserialize(&crate::core::objects::format_object_data("commit", &content))
+            {
                 if let Ok((_, tree_data)) = storage::read_object(repo, &commit.tree) {
-                    if let Ok(tree) = Tree::deserialize(&format_tree_data(&tree_data)) {
+                    if let Ok(tree) =
+                        Tree::deserialize(&crate::core::objects::format_object_data(
+                            "tree",
+                            &tree_data,
+                        ))
+                    {
                         for entry in &tree.entries {
                             result.insert(entry.name.clone(), entry.sha1.clone());
                         }
@@ -97,22 +104,6 @@ fn get_head_tree(repo: &Path, sha1: &str) -> BTreeMap<String, String> {
         }
     }
     result
-}
-
-fn format_commit_data(content: &[u8]) -> Vec<u8> {
-    let header = format!("commit {}\0", content.len());
-    let mut data = Vec::with_capacity(header.len() + content.len());
-    data.extend_from_slice(header.as_bytes());
-    data.extend_from_slice(content);
-    data
-}
-
-fn format_tree_data(content: &[u8]) -> Vec<u8> {
-    let header = format!("tree {}\0", content.len());
-    let mut data = Vec::with_capacity(header.len() + content.len());
-    data.extend_from_slice(header.as_bytes());
-    data.extend_from_slice(content);
-    data
 }
 
 fn get_staged_changes(index: &Index, head_tree: &BTreeMap<String, String>) -> Vec<String> {

@@ -68,7 +68,7 @@ fn cat_file(
                 print!("{}", String::from_utf8_lossy(&content));
             }
             "tree" => {
-                let tree_data = format_tree_data(&content);
+                let tree_data = core::objects::format_object_data("tree", &content);
                 let tree = core::objects::tree::Tree::deserialize(&tree_data)?;
                 for entry in &tree.entries {
                     let type_str = if entry.mode == "40000" {
@@ -94,12 +94,4 @@ fn cat_file(
 
     print!("{}", String::from_utf8_lossy(&content));
     Ok(())
-}
-
-fn format_tree_data(content: &[u8]) -> Vec<u8> {
-    let header = format!("tree {}\0", content.len());
-    let mut data = Vec::with_capacity(header.len() + content.len());
-    data.extend_from_slice(header.as_bytes());
-    data.extend_from_slice(content);
-    data
 }

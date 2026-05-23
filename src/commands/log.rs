@@ -28,7 +28,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
 
-        let commit_data = format_commit_data(&content);
+        let commit_data = crate::core::objects::format_object_data("commit", &content);
         let commit = match Commit::deserialize(&commit_data) {
             Ok(c) => c,
             Err(_) => break,
@@ -65,12 +65,4 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
-}
-
-fn format_commit_data(content: &[u8]) -> Vec<u8> {
-    let header = format!("commit {}\0", content.len());
-    let mut data = Vec::with_capacity(header.len() + content.len());
-    data.extend_from_slice(header.as_bytes());
-    data.extend_from_slice(content);
-    data
 }
