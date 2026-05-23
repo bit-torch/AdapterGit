@@ -1,4 +1,6 @@
 use std::collections::BTreeMap;
+use std::fs;
+use std::path::Path;
 
 pub struct Index {
     pub entries: BTreeMap<String, IndexEntry>,
@@ -16,6 +18,22 @@ impl Index {
         Index {
             entries: BTreeMap::new(),
         }
+    }
+
+    pub fn load(repo: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let index_path = repo.join(".git").join("index");
+        if !index_path.exists() {
+            return Ok(Index::new());
+        }
+        let data = fs::read(&index_path)?;
+        Index::deserialize(&data)
+    }
+
+    pub fn save(&self, repo: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        let index_path = repo.join(".git").join("index");
+        let data = self.serialize();
+        fs::write(&index_path, &data)?;
+        Ok(())
     }
 
     pub fn add_entry(&mut self, mode: &str, sha1: &str, path: &str) {
