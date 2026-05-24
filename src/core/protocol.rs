@@ -3,7 +3,7 @@ use std::net::TcpStream;
 
 enum TransportStream {
     Plain(TcpStream),
-    Tls(native_tls::TlsStream<TcpStream>),
+    Tls(Box<native_tls::TlsStream<TcpStream>>),
 }
 
 impl Read for TransportStream {
@@ -95,10 +95,12 @@ fn parse_pkt_line(line: &str) -> Option<Vec<u8>> {
     if len < 4 || line.len() < len {
         return None;
     }
-    Some(line[4..len].as_bytes().to_vec())
+    Some(line.as_bytes()[4..len].to_vec())
 }
 
-pub fn parse_packfile(data: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+pub type ObjectList = Vec<(String, Vec<u8>)>;
+
+pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Error>> {
     if data.len() < 12 {
         return Err("Packfile too short".into());
     }
@@ -120,17 +122,16 @@ pub fn parse_packfile(data: &[u8]) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std
         let obj_type = (byte >> 4) & 0x07;
         let mut _decompressed_size = (byte & 0x0F) as usize;
         let mut shift = 4;
-        while byte & 0x80 != 0 {
+        let mut more_bytes = byte & 0x80 != 0;
+        while more_bytes {
             if pos >= data.len() {
                 break;
             }
-            let byte = data[pos];
+            let next_byte = data[pos];
             pos += 1;
-            _decompressed_size |= ((byte & 0x7F) as usize) << shift;
+            _decompressed_size |= ((next_byte & 0x7F) as usize) << shift;
             shift += 7;
-            if byte & 0x80 == 0 {
-                break;
-            }
+            more_bytes = next_byte & 0x80 != 0;
         }
 
         let type_str = match obj_type {
@@ -213,7 +214,7 @@ fn is_zlib_end(data: &[u8]) -> bool {
     }
     let flg = data[1];
     let fcheck = flg & 0x1F;
-    if ((b as u16 * 256 + flg as u16) % 31) != 0 {
+    if !(b as u16 * 256 + flg as u16).is_multiple_of(31) {
         return false;
     }
     let _ = fcheck;
@@ -275,7 +276,7 @@ impl HttpTransport {
                 .danger_accept_invalid_certs(true)
                 .build()?;
             let tls = connector.connect(&self.host, tcp)?;
-            Ok(TransportStream::Tls(tls))
+            Ok(TransportStream::Tls(Box::new(tls)))
         } else {
             Ok(TransportStream::Plain(tcp))
         }
@@ -328,7 +329,7 @@ impl HttpTransport {
     pub fn clone_full(
         &self,
         want_sha1: &str,
-    ) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+    ) -> Result<ObjectList, Box<dyn std::error::Error>> {
         let mut body = Vec::new();
         body.extend_from_slice(&pkt_line_encode(
             format!("want {} multi_ack_detailed no-done side-band-64k thin-pack ofs-delta agent=agit/0.1.0\n", want_sha1).as_bytes(),
@@ -355,7 +356,7 @@ impl HttpTransport {
         &self,
         wants: &[String],
         haves: &[String],
-    ) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+    ) -> Result<ObjectList, Box<dyn std::error::Error>> {
         let mut body = Vec::new();
         for want in wants {
             body.extend_from_slice(&pkt_line_encode(

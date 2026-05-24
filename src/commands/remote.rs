@@ -15,7 +15,7 @@ pub fn run_add(name: &str, url: &str) -> Result<(), Box<dyn std::error::Error>> 
         return Ok(());
     }
 
-    config.push_str("\n");
+    config.push('\n');
     config.push_str(&section);
 
     fs::write(&config_path, &config)?;

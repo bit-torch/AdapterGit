@@ -23,7 +23,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let head_tree_map = build_head_tree_map(&repo_root, &head_sha1);
     let mut diff_output = Vec::new();
 
-    for (path, _index_entry) in &index.entries {
+    for path in index.entries.keys() {
         let old_content = head_tree_map
             .get(path)
             .and_then(|sha1| read_blob_content(&repo_root, sha1))
@@ -137,11 +137,7 @@ fn generate_unified_diff(
     } else {
         a_path
     };
-    let new_label = if old.is_empty() {
-        b_path
-    } else {
-        b_path
-    };
+    let new_label = b_path;
 
     let file_header = if old.is_empty() {
         format!(

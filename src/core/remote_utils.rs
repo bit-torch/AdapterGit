@@ -1,4 +1,5 @@
 use crate::core::objects::commit::Commit;
+use crate::core::protocol::ObjectList;
 use crate::core::objects::tree::Tree;
 use std::fs;
 use std::path::Path;
@@ -137,7 +138,7 @@ pub fn collect_local_objects_for_push(
     repo: &Path,
     local_tip: &str,
     remote_tip: Option<&str>,
-) -> Result<Vec<(String, Vec<u8>)>, Box<dyn std::error::Error>> {
+) -> Result<ObjectList, Box<dyn std::error::Error>> {
     let mut objects = Vec::new();
     let mut current = local_tip.to_string();
     let remote_sha1s: std::collections::HashSet<String> = if let Some(rt) = remote_tip {

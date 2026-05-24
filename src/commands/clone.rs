@@ -41,10 +41,10 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     remote_utils::write_objects(&repo_dir, &objects)?;
 
     for (ref_name, ref_sha1) in &refs_list {
-        if ref_name.starts_with("refs/heads/") || ref_name.starts_with("refs/tags/") {
-            if object_exists_in_list(ref_sha1, &objects) {
-                refs::write_ref(&repo_dir, ref_name, ref_sha1)?;
-            }
+        if (ref_name.starts_with("refs/heads/") || ref_name.starts_with("refs/tags/"))
+            && object_exists_in_list(ref_sha1, &objects)
+        {
+            refs::write_ref(&repo_dir, ref_name, ref_sha1)?;
         }
     }
 
@@ -62,7 +62,7 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn repo_name_from_url(url: &str) -> String {
-    let path = url.split('/').last().unwrap_or("repo");
+    let path = url.split('/').next_back().unwrap_or("repo");
     path.strip_suffix(".git").unwrap_or(path).to_string()
 }
 

@@ -27,7 +27,7 @@ pub fn run(url: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let objects = transport.fetch_objects(&[want_sha1.clone()], &haves)?;
+    let objects = transport.fetch_objects(std::slice::from_ref(&want_sha1), &haves)?;
 
     if objects.is_empty() {
         println!("Already up to date.");

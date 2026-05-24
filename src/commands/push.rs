@@ -97,10 +97,10 @@ fn generate_pack(objects: &[(String, Vec<u8>)]) -> Result<Vec<u8>, Box<dyn std::
         let size = raw_content.len();
         let mut size_bytes = Vec::new();
         let mut remaining = size;
-        size_bytes.push(((type_code << 4) | (remaining as u8 & 0x0F)) as u8);
+        size_bytes.push((type_code << 4) | (remaining as u8 & 0x0F));
         remaining >>= 4;
         while remaining > 0 {
-            size_bytes.push((0x80 | (remaining as u8 & 0x7F)) as u8);
+            size_bytes.push(0x80 | (remaining as u8 & 0x7F));
             remaining >>= 7;
         }
         if size_bytes.len() > 1 {
