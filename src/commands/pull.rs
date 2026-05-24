@@ -47,48 +47,60 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn collect_all_ancestors(
-    repo: &std::path::Path,
-    sha1: &str,
-) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let mut result = Vec::new();
-    let mut current = sha1.to_string();
-    loop {
-        let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
-            Ok(v) => v,
-            Err(_) => break,
-        };
-        if obj_type != "commit" {
-            break;
-        }
-        let commit_data =
-            crate::core::objects::format_object_data("commit", &content);
-        let commit =
-            crate::core::objects::commit::Commit::deserialize(&commit_data)?;
-        result.push(current.clone());
-        if commit.parents.is_empty() {
-            break;
-        }
-        current = commit.parents[0].clone();
-    }
-    Ok(result)
-}
-
 fn find_common_ancestor(
     repo: &std::path::Path,
     a: &str,
     b: &str,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-    let ancestors_a = collect_all_ancestors(repo, a)?;
-    let ancestors_b: std::collections::HashSet<String> =
-        collect_all_ancestors(repo, b)?.into_iter().collect();
+    let mut a_seen = std::collections::HashSet::new();
+    let mut b_seen = std::collections::HashSet::new();
+    let mut a_queue = vec![a.to_string()];
+    let mut b_queue = vec![b.to_string()];
 
-    for sha1 in &ancestors_a {
-        if ancestors_b.contains(sha1) {
-            return Ok(Some(sha1.clone()));
+    loop {
+        if let Some(sha1) = a_queue.pop() {
+            if b_seen.contains(&sha1) {
+                return Ok(Some(sha1));
+            }
+            if !a_seen.insert(sha1.clone()) {
+                continue;
+            }
+            push_parents(repo, &sha1, &mut a_queue)?;
+        }
+        if let Some(sha1) = b_queue.pop() {
+            if a_seen.contains(&sha1) {
+                return Ok(Some(sha1));
+            }
+            if !b_seen.insert(sha1.clone()) {
+                continue;
+            }
+            push_parents(repo, &sha1, &mut b_queue)?;
+        }
+        if a_queue.is_empty() && b_queue.is_empty() {
+            break;
         }
     }
     Ok(None)
+}
+
+fn push_parents(
+    repo: &std::path::Path,
+    sha1: &str,
+    queue: &mut Vec<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (obj_type, content) = match crate::core::storage::read_object(repo, sha1) {
+        Ok(v) => v,
+        Err(_) => return Ok(()),
+    };
+    if obj_type != "commit" {
+        return Ok(());
+    }
+    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+    for parent in commit.parents {
+        queue.push(parent);
+    }
+    Ok(())
 }
 
 fn fast_forward(

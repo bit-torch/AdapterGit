@@ -273,7 +273,6 @@ impl HttpTransport {
 
         if self.use_ssl {
             let connector = native_tls::TlsConnector::builder()
-                .danger_accept_invalid_certs(true)
                 .build()?;
             let tls = connector.connect(&self.host, tcp)?;
             Ok(TransportStream::Tls(Box::new(tls)))
