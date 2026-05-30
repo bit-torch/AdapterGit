@@ -97,15 +97,20 @@ fn generate_pack(objects: &[(String, Vec<u8>)]) -> Result<Vec<u8>, Box<dyn std::
         let size = raw_content.len();
         let mut size_bytes = Vec::new();
         let mut remaining = size;
-        size_bytes.push((type_code << 4) | (remaining as u8 & 0x0F));
+        let mut first_byte = (type_code << 4) | (remaining as u8 & 0x0F);
         remaining >>= 4;
-        while remaining > 0 {
-            size_bytes.push(0x80 | (remaining as u8 & 0x7F));
-            remaining >>= 7;
+        if remaining > 0 {
+            first_byte |= 0x80;
         }
-        if size_bytes.len() > 1 {
-            let last = size_bytes.len() - 1;
-            size_bytes[last] &= 0x7F;
+        size_bytes.push(first_byte);
+        while remaining > 0 {
+            let byte = if remaining > 0x7F {
+                0x80 | (remaining as u8 & 0x7F)
+            } else {
+                remaining as u8 & 0x7F
+            };
+            size_bytes.push(byte);
+            remaining >>= 7;
         }
 
         let compressed = crate::core::compression::compress(raw_content)?;
