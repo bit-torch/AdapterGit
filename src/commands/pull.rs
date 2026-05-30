@@ -1,3 +1,4 @@
+use crate::core::index::Index;
 use crate::core::refs;
 use crate::core::remote_utils;
 use crate::core::repo;
@@ -8,6 +9,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let branch = remote_utils::get_current_branch(&repo_root)?;
     let remote_url = remote_utils::get_remote_url(&repo_root)?;
+
+    let index = Index::load(&repo_root)?;
+    let working_clean = check_working_tree_clean(&repo_root, &index)?;
+    if !working_clean {
+        return Err("Cannot pull: working tree has uncommitted changes. Please commit or stash them.".into());
+    }
 
     println!("Pulling from {} for branch '{}'...", remote_url, branch);
 
@@ -44,6 +51,59 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         merge_changes(&repo_root, &branch, &local_sha1, &remote_sha1)?;
     }
 
+    Ok(())
+}
+
+fn check_working_tree_clean(
+    repo: &std::path::Path,
+    index: &Index,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    use crate::core::objects::blob::Blob;
+    for (path, entry) in index.entries.iter() {
+        let full_path = repo.join(path);
+        if full_path.exists() {
+            let content = fs::read(&full_path).unwrap_or_default();
+            let blob = Blob::new(content);
+            if blob.hash() != entry.sha1 {
+                return Ok(false);
+            }
+        }
+    }
+    let mut untracked = Vec::new();
+    collect_untracked(repo, repo, index, &mut untracked)?;
+    Ok(untracked.is_empty())
+}
+
+fn collect_untracked(
+    repo: &std::path::Path,
+    current: &std::path::Path,
+    index: &Index,
+    untracked: &mut Vec<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if !current.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(current)? {
+        let entry = entry?;
+        let path = entry.path();
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+
+        if file_name == ".git" {
+            continue;
+        }
+
+        let relative = path
+            .strip_prefix(repo)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        if path.is_dir() {
+            collect_untracked(repo, &path, index, untracked)?;
+        } else if path.is_file() && !index.entries.contains_key(&relative) {
+            untracked.push(relative);
+        }
+    }
     Ok(())
 }
 

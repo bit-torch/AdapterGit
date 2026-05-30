@@ -35,18 +35,25 @@ pub fn run(url: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     remote_utils::write_objects(&repo_root, &objects)?;
+    let old_remote_sha1 = refs::read_ref(
+        &repo_root,
+        &format!("refs/remotes/origin/{}", branch),
+    )
+    .ok();
+
     refs::write_ref(
         &repo_root,
         &format!("refs/remotes/origin/{}", branch),
         &want_sha1,
     )?;
 
-    let head_sha1 = refs::read_head(&repo_root)?;
-
     println!(
         "From {}\n   {}..{}  {} -> {}",
         remote_url,
-        &head_sha1[..7],
+        old_remote_sha1
+            .as_deref()
+            .map(|s| &s[..7])
+            .unwrap_or("        "),
         &want_sha1[..7],
         branch,
         branch
