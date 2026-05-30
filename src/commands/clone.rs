@@ -19,7 +19,7 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
             refs_list
                 .iter()
                 .find(|(_, name)| {
-                    *name == format!("refs/heads/{}", ref_name_from_head(sha1, &refs_list))
+                    *name == *ref_name_from_head(sha1, &refs_list)
                 })
                 .map(|(s, _)| s.clone())
         })
