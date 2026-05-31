@@ -76,12 +76,26 @@ pub fn apply_tree_by_sha1(
 
 pub fn get_remote_url(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
     let config = fs::read_to_string(repo.join(".git").join("config")).unwrap_or_default();
+    let mut current_section = "";
+    let mut first_url: Option<String> = None;
+
     for line in config.lines() {
-        if let Some(trimmed) = line.trim().strip_prefix("url = ") {
-            return Ok(trimmed.to_string());
+        let trimmed = line.trim();
+        if let Some(name) = trimmed.strip_prefix("[remote \"").and_then(|s| s.strip_suffix("\"]")) {
+            current_section = name;
+        } else if trimmed.starts_with('[') {
+            current_section = "";
+        } else if let Some(url) = trimmed.strip_prefix("url = ") {
+            if current_section == "origin" {
+                return Ok(url.to_string());
+            }
+            if first_url.is_none() {
+                first_url = Some(url.to_string());
+            }
         }
     }
-    Err("No remote URL configured".into())
+
+    first_url.ok_or_else(|| "No remote URL configured".into())
 }
 
 pub fn get_current_branch(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
@@ -140,24 +154,27 @@ pub fn collect_local_objects_for_push(
     remote_tip: Option<&str>,
 ) -> Result<ObjectList, Box<dyn std::error::Error>> {
     let mut objects = Vec::new();
-    let mut current = local_tip.to_string();
+    let mut seen = std::collections::HashSet::new();
+    let mut queue = vec![local_tip.to_string()];
     let remote_sha1s: std::collections::HashSet<String> = if let Some(rt) = remote_tip {
         collect_all_ancestors(repo, rt)?.into_iter().collect()
     } else {
         std::collections::HashSet::new()
     };
 
-    loop {
+    while let Some(current) = queue.pop() {
+        if !seen.insert(current.clone()) {
+            continue;
+        }
+        if remote_sha1s.contains(&current) {
+            continue;
+        }
         let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
             Ok(v) => v,
-            Err(_) => break,
+            Err(_) => continue,
         };
         if obj_type != "commit" {
-            break;
-        }
-
-        if remote_sha1s.contains(&current) {
-            break;
+            continue;
         }
 
         let full_object =
@@ -169,10 +186,11 @@ pub fn collect_local_objects_for_push(
 
         collect_tree_objects(repo, &commit.tree, &mut objects)?;
 
-        if commit.parents.is_empty() {
-            break;
+        for parent in commit.parents {
+            if !seen.contains(&parent) && !remote_sha1s.contains(&parent) {
+                queue.push(parent.clone());
+            }
         }
-        current = commit.parents[0].clone();
     }
 
     Ok(objects)
@@ -183,22 +201,28 @@ fn collect_all_ancestors(
     sha1: &str,
 ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let mut result = Vec::new();
-    let mut current = sha1.to_string();
-    loop {
-        result.push(current.clone());
+    let mut queue = vec![sha1.to_string()];
+    let mut seen = std::collections::HashSet::new();
+
+    while let Some(current) = queue.pop() {
+        if !seen.insert(current.clone()) {
+            continue;
+        }
         let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
             Ok(v) => v,
-            Err(_) => break,
+            Err(_) => continue,
         };
         if obj_type != "commit" {
-            break;
+            continue;
         }
         let commit_data = crate::core::objects::format_object_data("commit", &content);
         let commit = Commit::deserialize(&commit_data)?;
-        if commit.parents.is_empty() {
-            break;
+        result.push(current);
+        for parent in commit.parents {
+            if !seen.contains(&parent) {
+                queue.push(parent.clone());
+            }
         }
-        current = commit.parents[0].clone();
     }
     Ok(result)
 }

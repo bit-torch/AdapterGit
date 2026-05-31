@@ -202,29 +202,43 @@ fn generate_unified_diff_deleted(
 }
 
 fn compute_hunk(old: &[&str], new: &[&str]) -> String {
-    let mut result = String::new();
-    let max_len = old.len().max(new.len());
-    for i in 0..max_len {
-        let old_line = old.get(i);
-        let new_line = new.get(i);
-        match (old_line, new_line) {
-            (Some(o), Some(n)) if o == n => {
-                result.push_str(&format!(" {}\n", o));
+    let m = old.len();
+    let n = new.len();
+    let mut dp = vec![vec![0usize; n + 1]; m + 1];
+    for i in 0..m {
+        for j in 0..n {
+            if old[i] == new[j] {
+                dp[i + 1][j + 1] = dp[i][j] + 1;
+            } else {
+                dp[i + 1][j + 1] = dp[i + 1][j].max(dp[i][j + 1]);
             }
-            (Some(o), Some(n)) => {
-                result.push_str(&format!("-{}\n", o));
-                result.push_str(&format!("+{}\n", n));
-            }
-            (Some(o), None) => {
-                result.push_str(&format!("-{}\n", o));
-            }
-            (None, Some(n)) => {
-                result.push_str(&format!("+{}\n", n));
-            }
-            (None, None) => {}
         }
     }
-    result
+
+    let mut result = Vec::new();
+    let mut i = m;
+    let mut j = n;
+    while i > 0 || j > 0 {
+        if i > 0 && j > 0 && old[i - 1] == new[j - 1] {
+            result.push(format!(" {}", old[i - 1]));
+            i -= 1;
+            j -= 1;
+        } else if j > 0 && (i == 0 || dp[i][j - 1] >= dp[i - 1][j]) {
+            result.push(format!("+{}", new[j - 1]));
+            j -= 1;
+        } else {
+            result.push(format!("-{}", old[i - 1]));
+            i -= 1;
+        }
+    }
+    result.reverse();
+
+    let mut output = String::new();
+    for line in result {
+        output.push_str(&line);
+        output.push('\n');
+    }
+    output
 }
 
 fn collect_untracked(

@@ -2,6 +2,7 @@ use crate::core::index::Index;
 use crate::core::refs;
 use crate::core::remote_utils;
 use crate::core::repo;
+use std::collections::VecDeque;
 use std::fs;
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
@@ -114,11 +115,11 @@ fn find_common_ancestor(
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let mut a_seen = std::collections::HashSet::new();
     let mut b_seen = std::collections::HashSet::new();
-    let mut a_queue = vec![a.to_string()];
-    let mut b_queue = vec![b.to_string()];
+    let mut a_queue: VecDeque<String> = VecDeque::from([a.to_string()]);
+    let mut b_queue: VecDeque<String> = VecDeque::from([b.to_string()]);
 
     loop {
-        if let Some(sha1) = a_queue.pop() {
+        if let Some(sha1) = a_queue.pop_front() {
             if b_seen.contains(&sha1) {
                 return Ok(Some(sha1));
             }
@@ -127,7 +128,7 @@ fn find_common_ancestor(
             }
             push_parents(repo, &sha1, &mut a_queue)?;
         }
-        if let Some(sha1) = b_queue.pop() {
+        if let Some(sha1) = b_queue.pop_front() {
             if a_seen.contains(&sha1) {
                 return Ok(Some(sha1));
             }
@@ -146,7 +147,7 @@ fn find_common_ancestor(
 fn push_parents(
     repo: &std::path::Path,
     sha1: &str,
-    queue: &mut Vec<String>,
+    queue: &mut VecDeque<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (obj_type, content) = match crate::core::storage::read_object(repo, sha1) {
         Ok(v) => v,
@@ -158,7 +159,7 @@ fn push_parents(
     let commit_data = crate::core::objects::format_object_data("commit", &content);
     let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
     for parent in commit.parents {
-        queue.push(parent);
+        queue.push_back(parent);
     }
     Ok(())
 }

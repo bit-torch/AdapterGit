@@ -51,8 +51,11 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
 
     let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
         .unwrap_or_default();
-    let branch_ref = if let Some(ref_path) = head_content.trim().strip_prefix("ref: ") {
+    let head_trimmed = head_content.trim();
+    let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()
+    } else if head_trimmed.len() == 40 && head_trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("You are in 'detached HEAD' state. Please create a branch first.".into());
     } else {
         "refs/heads/main".to_string()
     };
