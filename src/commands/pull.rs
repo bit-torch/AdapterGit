@@ -14,7 +14,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let index = Index::load(&repo_root)?;
     let working_clean = check_working_tree_clean(&repo_root, &index)?;
     if !working_clean {
-        return Err("Cannot pull: working tree has uncommitted changes. Please commit or stash them.".into());
+        return Err(
+            "Cannot pull: working tree has uncommitted changes. Please commit or stash them."
+                .into(),
+        );
     }
 
     println!("Pulling from {} for branch '{}'...", remote_url, branch);
@@ -68,6 +71,8 @@ fn check_working_tree_clean(
             if blob.hash() != entry.sha1 {
                 return Ok(false);
             }
+        } else {
+            return Ok(false);
         }
     }
     let mut untracked = Vec::new();
@@ -171,13 +176,10 @@ fn fast_forward(
     new_sha1: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     refs::write_ref(repo, &format!("refs/heads/{}", branch), new_sha1)?;
-    remote_utils::apply_tree_by_sha1(repo, "", new_sha1)?;
+    let tree_sha1 = remote_utils::resolve_commit_to_tree(repo, new_sha1)?;
+    remote_utils::apply_tree_by_sha1(repo, "", &tree_sha1)?;
 
-    println!(
-        "Fast-forward\n {} -> {}",
-        &old_sha1[..7],
-        &new_sha1[..7]
-    );
+    println!("Fast-forward\n {} -> {}", &old_sha1[..7], &new_sha1[..7]);
 
     Ok(())
 }
@@ -214,11 +216,7 @@ fn merge_changes(
 
     remote_utils::apply_tree_by_sha1(repo, "", tree_sha1.as_str())?;
 
-    println!(
-        "Merge made.\n {} -> {}",
-        &local_sha1[..7],
-        &merge_sha1[..7]
-    );
+    println!("Merge made.\n {} -> {}", &local_sha1[..7], &merge_sha1[..7]);
 
     Ok(())
 }
