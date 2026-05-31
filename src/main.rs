@@ -39,9 +39,7 @@ fn main() {
         Some(Commands::LsTree { tree_sha1 }) => commands::ls_tree::run(tree_sha1),
         Some(Commands::Show { object }) => commands::show::run(object),
         Some(Commands::Diff) => commands::diff::run(),
-        Some(Commands::Fetch { url }) => {
-            commands::fetch::run(url.as_deref())
-        }
+        Some(Commands::Fetch { url }) => commands::fetch::run(url.as_deref()),
         Some(Commands::Push { remote, branch }) => {
             commands::push::run(remote.as_deref(), branch.as_deref())
         }
@@ -85,10 +83,7 @@ fn cat_file(
                     } else {
                         "blob"
                     };
-                    println!(
-                        "{} {} {}\t{}",
-                        entry.mode, type_str, entry.sha1, entry.name
-                    );
+                    println!("{} {} {}\t{}", entry.mode, type_str, entry.sha1, entry.name);
                 }
             }
             "commit" => {

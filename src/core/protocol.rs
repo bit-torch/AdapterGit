@@ -154,7 +154,12 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
         };
 
         pos += consumed;
-        raw_objects.push(RawObj { obj_start, obj_type, decompressed, consumed: consumed + 1 });
+        raw_objects.push(RawObj {
+            obj_start,
+            obj_type,
+            decompressed,
+            consumed: consumed + 1,
+        });
     }
 
     let mut resolved: Vec<(String, Vec<u8>, usize)> = Vec::with_capacity(num_objects);
@@ -188,11 +193,13 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
                     continue;
                 };
                 if let Some((_, base_obj, _)) = resolved.iter().find(|&&(_, _, o)| o == base_pos) {
-                    let base_content = &base_obj[base_obj.iter().position(|&b| b == 0).unwrap_or(0) + 1..];
+                    let base_content =
+                        &base_obj[base_obj.iter().position(|&b| b == 0).unwrap_or(0) + 1..];
                     if let Ok(resolved_content) = apply_delta(base_content, &raw.decompressed) {
                         let type_str = detect_type_from_header(base_obj);
                         let header = format!("{} {}\0", type_str, resolved_content.len());
-                        let mut obj_data = Vec::with_capacity(header.len() + resolved_content.len());
+                        let mut obj_data =
+                            Vec::with_capacity(header.len() + resolved_content.len());
                         obj_data.extend_from_slice(header.as_bytes());
                         obj_data.extend_from_slice(&resolved_content);
                         let sha1 = crate::core::hash::hash_bytes(&obj_data);
@@ -205,12 +212,16 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
                 if ref_sha1_start + 20 <= data.len() {
                     let ref_bytes = &data[ref_sha1_start..ref_sha1_start + 20];
                     let base_sha1 = bytes_to_hex(ref_bytes);
-                    if let Some((_, base_obj, _)) = resolved.iter().find(|(s, _, _)| s == &base_sha1) {
-                        let base_content = &base_obj[base_obj.iter().position(|&b| b == 0).unwrap_or(0) + 1..];
+                    if let Some((_, base_obj, _)) =
+                        resolved.iter().find(|(s, _, _)| s == &base_sha1)
+                    {
+                        let base_content =
+                            &base_obj[base_obj.iter().position(|&b| b == 0).unwrap_or(0) + 1..];
                         if let Ok(resolved_content) = apply_delta(base_content, &raw.decompressed) {
                             let type_str = detect_type_from_header(base_obj);
                             let header = format!("{} {}\0", type_str, resolved_content.len());
-                            let mut obj_data = Vec::with_capacity(header.len() + resolved_content.len());
+                            let mut obj_data =
+                                Vec::with_capacity(header.len() + resolved_content.len());
                             obj_data.extend_from_slice(header.as_bytes());
                             obj_data.extend_from_slice(&resolved_content);
                             let sha1 = crate::core::hash::hash_bytes(&obj_data);
@@ -269,17 +280,45 @@ fn apply_delta(base: &[u8], delta: &[u8]) -> Result<Vec<u8>, Box<dyn std::error:
             let mut size: usize = 0;
             let mut byte_count = 0;
 
-            if cmd & 0x01 != 0 { offset |= (delta[pos] as usize) << (8 * byte_count); pos += 1; byte_count += 1; }
-            if cmd & 0x02 != 0 { offset |= (delta[pos] as usize) << (8 * byte_count); pos += 1; byte_count += 1; }
-            if cmd & 0x04 != 0 { offset |= (delta[pos] as usize) << (8 * byte_count); pos += 1; byte_count += 1; }
-            if cmd & 0x08 != 0 { offset |= (delta[pos] as usize) << (8 * byte_count); pos += 1; }
+            if cmd & 0x01 != 0 {
+                offset |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+                byte_count += 1;
+            }
+            if cmd & 0x02 != 0 {
+                offset |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+                byte_count += 1;
+            }
+            if cmd & 0x04 != 0 {
+                offset |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+                byte_count += 1;
+            }
+            if cmd & 0x08 != 0 {
+                offset |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+            }
 
             byte_count = 0;
-            if cmd & 0x10 != 0 { size |= (delta[pos] as usize) << (8 * byte_count); pos += 1; byte_count += 1; }
-            if cmd & 0x20 != 0 { size |= (delta[pos] as usize) << (8 * byte_count); pos += 1; byte_count += 1; }
-            if cmd & 0x40 != 0 { size |= (delta[pos] as usize) << (8 * byte_count); pos += 1; }
+            if cmd & 0x10 != 0 {
+                size |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+                byte_count += 1;
+            }
+            if cmd & 0x20 != 0 {
+                size |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+                byte_count += 1;
+            }
+            if cmd & 0x40 != 0 {
+                size |= (delta[pos] as usize) << (8 * byte_count);
+                pos += 1;
+            }
 
-            if size == 0 { size = 0x10000; }
+            if size == 0 {
+                size = 0x10000;
+            }
             if offset + size > base.len() {
                 break;
             }
@@ -346,8 +385,7 @@ impl HttpTransport {
         tcp.set_read_timeout(Some(std::time::Duration::from_secs(60)))?;
 
         if self.use_ssl {
-            let connector = native_tls::TlsConnector::builder()
-                .build()?;
+            let connector = native_tls::TlsConnector::builder().build()?;
             let tls = connector.connect(&self.host, tcp)?;
             Ok(TransportStream::Tls(Box::new(tls)))
         } else {
@@ -355,10 +393,7 @@ impl HttpTransport {
         }
     }
 
-    fn http_get(
-        &self,
-        path: &str,
-    ) -> Result<(u16, Vec<u8>), Box<dyn std::error::Error>> {
+    fn http_get(&self, path: &str) -> Result<(u16, Vec<u8>), Box<dyn std::error::Error>> {
         let mut stream = self.connect()?;
         let request = format!(
             "GET {} HTTP/1.1\r\nHost: {}\r\nUser-Agent: agit/0.1.0\r\nAccept: */*\r\nConnection: close\r\n\r\n",
@@ -399,10 +434,7 @@ impl HttpTransport {
         Ok(parse_refs_data(&body))
     }
 
-    pub fn clone_full(
-        &self,
-        want_sha1: &str,
-    ) -> Result<ObjectList, Box<dyn std::error::Error>> {
+    pub fn clone_full(&self, want_sha1: &str) -> Result<ObjectList, Box<dyn std::error::Error>> {
         let mut body = Vec::new();
         body.extend_from_slice(&pkt_line_encode(
             format!("want {} multi_ack_detailed no-done side-band-64k thin-pack ofs-delta agent=agit/0.1.0\n", want_sha1).as_bytes(),
@@ -411,8 +443,11 @@ impl HttpTransport {
         body.extend_from_slice(&pkt_line_encode(b"done\n"));
         body.extend_from_slice(&pkt_line_flush());
 
-        let (status, response) =
-            self.http_post(&self.url_for_upload_pack(), "application/x-git-upload-pack-request", &body)?;
+        let (status, response) = self.http_post(
+            &self.url_for_upload_pack(),
+            "application/x-git-upload-pack-request",
+            &body,
+        )?;
         if status != 200 {
             return Err(format!("HTTP {}: upload-pack failed", status).into());
         }
@@ -437,16 +472,17 @@ impl HttpTransport {
             ));
         }
         for have in haves {
-            body.extend_from_slice(&pkt_line_encode(
-                format!("have {}\n", have).as_bytes(),
-            ));
+            body.extend_from_slice(&pkt_line_encode(format!("have {}\n", have).as_bytes()));
         }
         body.extend_from_slice(&pkt_line_flush());
         body.extend_from_slice(&pkt_line_encode(b"done\n"));
         body.extend_from_slice(&pkt_line_flush());
 
-        let (status, response) =
-            self.http_post(&self.url_for_upload_pack(), "application/x-git-upload-pack-request", &body)?;
+        let (status, response) = self.http_post(
+            &self.url_for_upload_pack(),
+            "application/x-git-upload-pack-request",
+            &body,
+        )?;
         if status != 200 {
             return Err(format!("HTTP {}: upload-pack failed", status).into());
         }
@@ -472,10 +508,18 @@ impl HttpTransport {
         body.extend_from_slice(&pkt_line_flush());
         body.extend_from_slice(pack_data);
 
-        let (status, response) =
-            self.http_post(&self.url_for_receive_pack(), "application/x-git-receive-pack-request", &body)?;
+        let (status, response) = self.http_post(
+            &self.url_for_receive_pack(),
+            "application/x-git-receive-pack-request",
+            &body,
+        )?;
         if status != 200 {
-            return Err(format!("HTTP {}: receive-pack failed: {}", status, String::from_utf8_lossy(&response)).into());
+            return Err(format!(
+                "HTTP {}: receive-pack failed: {}",
+                status,
+                String::from_utf8_lossy(&response)
+            )
+            .into());
         }
 
         Ok(())

@@ -73,9 +73,7 @@ fn current_branch(repo: &Path) -> Option<String> {
     let head_content = fs::read_to_string(repo.join(".git").join("HEAD")).ok()?;
     let head_content = head_content.trim();
     if let Some(ref_path) = head_content.strip_prefix("ref: ") {
-        ref_path
-            .strip_prefix("refs/heads/")
-            .map(|s| s.to_string())
+        ref_path.strip_prefix("refs/heads/").map(|s| s.to_string())
     } else {
         None
     }
@@ -85,16 +83,13 @@ fn get_head_tree(repo: &Path, sha1: &str) -> BTreeMap<String, String> {
     let mut result = BTreeMap::new();
     if let Ok((obj_type, content)) = storage::read_object(repo, sha1) {
         if obj_type == "commit" {
-            if let Ok(commit) =
-                Commit::deserialize(&crate::core::objects::format_object_data("commit", &content))
-            {
+            if let Ok(commit) = Commit::deserialize(&crate::core::objects::format_object_data(
+                "commit", &content,
+            )) {
                 if let Ok((_, tree_data)) = storage::read_object(repo, &commit.tree) {
-                    if let Ok(tree) =
-                        Tree::deserialize(&crate::core::objects::format_object_data(
-                            "tree",
-                            &tree_data,
-                        ))
-                    {
+                    if let Ok(tree) = Tree::deserialize(&crate::core::objects::format_object_data(
+                        "tree", &tree_data,
+                    )) {
                         for entry in &tree.entries {
                             result.insert(entry.name.clone(), entry.sha1.clone());
                         }

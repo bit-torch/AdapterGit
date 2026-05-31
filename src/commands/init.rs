@@ -6,7 +6,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let git_dir = cwd.join(".git");
 
     if git_dir.exists() {
-        println!("Reinitialized existing Git repository in {}", git_dir.display());
+        println!(
+            "Reinitialized existing Git repository in {}",
+            git_dir.display()
+        );
         return Ok(());
     }
 
@@ -33,7 +36,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     if !info_dir.exists() {
         fs::create_dir(&info_dir)?;
     }
-    fs::write(info_dir.join("exclude"), "# git ls-files --others --exclude-standard\n")?;
+    fs::write(
+        info_dir.join("exclude"),
+        "# git ls-files --others --exclude-standard\n",
+    )?;
 
     println!(
         "Initialized empty Git repository in {}/.git/",

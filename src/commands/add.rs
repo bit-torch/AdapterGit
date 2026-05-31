@@ -69,9 +69,7 @@ fn add_file(
         storage::write_object(repo_root, "blob", &blob.content)?;
     }
 
-    let relative = path
-        .strip_prefix(repo_root)
-        .unwrap_or(path);
+    let relative = path.strip_prefix(repo_root).unwrap_or(path);
     let relative_str = relative.to_string_lossy().replace('\\', "/");
 
     let mode = file_mode(path);

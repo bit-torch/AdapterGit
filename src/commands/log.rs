@@ -9,9 +9,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let head_sha1 = match refs::read_head(&repo_root) {
         Ok(sha1) => sha1,
         Err(_) => {
-            println!(
-                "fatal: your current branch 'main' does not have any commits yet"
-            );
+            println!("fatal: your current branch 'main' does not have any commits yet");
             return Ok(());
         }
     };
@@ -47,10 +45,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
         println!(
             "{}",
-            crate::output::colorize(
-                &format!("commit {}", short_hash),
-                "33"
-            )
+            crate::output::colorize(&format!("commit {}", short_hash), "33")
         );
         if commit.parents.len() > 1 {
             let parents: Vec<&str> = commit.parents.iter().map(|p| &p[..7]).collect();

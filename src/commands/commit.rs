@@ -49,8 +49,8 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let commit_sha1 = commit.hash();
     storage::write_object(&repo_root, "commit", &commit.serialize_raw())?;
 
-    let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
-        .unwrap_or_default();
+    let head_content =
+        std::fs::read_to_string(repo_root.join(".git").join("HEAD")).unwrap_or_default();
     let head_trimmed = head_content.trim();
     let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()

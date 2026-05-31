@@ -48,12 +48,11 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         if !index.entries.contains_key(path) {
             let full_path = repo_root.join(path);
             if !full_path.exists() {
-                let old_content = read_blob_content(&repo_root, &head_tree_map[path])
-                    .unwrap_or_default();
+                let old_content =
+                    read_blob_content(&repo_root, &head_tree_map[path]).unwrap_or_default();
                 let a_path = format!("a/{}", path);
                 let b_path = format!("b/{}", path);
-                let diff =
-                    generate_unified_diff_deleted(&a_path, &b_path, &old_content);
+                let diff = generate_unified_diff_deleted(&a_path, &b_path, &old_content);
                 diff_output.push(diff);
             }
         }
@@ -70,10 +69,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn show_untracked_diff(
-    repo: &Path,
-    index: &Index,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn show_untracked_diff(repo: &Path, index: &Index) -> Result<(), Box<dyn std::error::Error>> {
     let mut untracked = Vec::new();
     collect_untracked(repo, repo, index, &mut untracked)?;
     if untracked.is_empty() {
@@ -90,20 +86,17 @@ fn show_untracked_diff(
     Ok(())
 }
 
-fn build_head_tree_map(
-    repo: &Path,
-    head_sha1: &str,
-) -> BTreeMap<String, String> {
+fn build_head_tree_map(repo: &Path, head_sha1: &str) -> BTreeMap<String, String> {
     let mut result = BTreeMap::new();
     if let Ok((obj_type, content)) = storage::read_object(repo, head_sha1) {
         if obj_type == "commit" {
-            if let Ok(commit) =
-                Commit::deserialize(&crate::core::objects::format_object_data("commit", &content))
-            {
+            if let Ok(commit) = Commit::deserialize(&crate::core::objects::format_object_data(
+                "commit", &content,
+            )) {
                 if let Ok((_, tree_data)) = storage::read_object(repo, &commit.tree) {
-                    if let Ok(tree) =
-                        Tree::deserialize(&crate::core::objects::format_object_data("tree", &tree_data))
-                    {
+                    if let Ok(tree) = Tree::deserialize(&crate::core::objects::format_object_data(
+                        "tree", &tree_data,
+                    )) {
                         for entry in &tree.entries {
                             result.insert(entry.name.clone(), entry.sha1.clone());
                         }
@@ -121,22 +114,13 @@ fn read_blob_content(repo: &Path, sha1: &str) -> Option<Vec<u8>> {
         .map(|(_, content)| content)
 }
 
-fn generate_unified_diff(
-    a_path: &str,
-    b_path: &str,
-    old: &[u8],
-    new: &[u8],
-) -> String {
+fn generate_unified_diff(a_path: &str, b_path: &str, old: &[u8], new: &[u8]) -> String {
     let old_str = String::from_utf8_lossy(old);
     let new_str = String::from_utf8_lossy(new);
     let old_lines: Vec<&str> = old_str.lines().collect();
     let new_lines: Vec<&str> = new_str.lines().collect();
 
-    let old_label = if old.is_empty() {
-        "/dev/null"
-    } else {
-        a_path
-    };
+    let old_label = if old.is_empty() { "/dev/null" } else { a_path };
     let new_label = b_path;
 
     let file_header = if old.is_empty() {
@@ -193,11 +177,7 @@ fn generate_unified_diff(
     output
 }
 
-fn generate_unified_diff_deleted(
-    a_path: &str,
-    b_path: &str,
-    old: &[u8],
-) -> String {
+fn generate_unified_diff_deleted(a_path: &str, b_path: &str, old: &[u8]) -> String {
     generate_unified_diff(a_path, b_path, old, &[])
 }
 

@@ -35,11 +35,8 @@ pub fn run(url: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     remote_utils::write_objects(&repo_root, &objects)?;
-    let old_remote_sha1 = refs::read_ref(
-        &repo_root,
-        &format!("refs/remotes/origin/{}", branch),
-    )
-    .ok();
+    let old_remote_sha1 =
+        refs::read_ref(&repo_root, &format!("refs/remotes/origin/{}", branch)).ok();
 
     refs::write_ref(
         &repo_root,
@@ -62,7 +59,10 @@ pub fn run(url: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn resolve_url(repo: &std::path::Path, url: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+fn resolve_url(
+    repo: &std::path::Path,
+    url: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
     if let Some(u) = url {
         return Ok(u.to_string());
     }

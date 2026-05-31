@@ -18,9 +18,7 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
         .and_then(|(sha1, _)| {
             refs_list
                 .iter()
-                .find(|(_, name)| {
-                    *name == *ref_name_from_head(sha1, &refs_list)
-                })
+                .find(|(_, name)| *name == *ref_name_from_head(sha1, &refs_list))
                 .map(|(s, _)| s.clone())
         })
         .or_else(|| refs_list.first().map(|(s, _)| s.clone()))
@@ -56,7 +54,11 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
         "Initialized empty Git repository in {}/.git/",
         repo_dir.display()
     );
-    println!("Cloned branch '{}' ({} objects)", branch_name, objects.len());
+    println!(
+        "Cloned branch '{}' ({} objects)",
+        branch_name,
+        objects.len()
+    );
 
     Ok(())
 }

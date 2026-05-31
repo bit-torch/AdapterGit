@@ -1,6 +1,6 @@
 use crate::core::objects::commit::Commit;
-use crate::core::protocol::ObjectList;
 use crate::core::objects::tree::Tree;
+use crate::core::protocol::ObjectList;
 use std::fs;
 use std::path::Path;
 
@@ -44,8 +44,7 @@ pub fn apply_tree(
             if !full_path.exists() {
                 fs::create_dir_all(&full_path)?;
             }
-            let tree_data =
-                crate::core::objects::format_object_data("tree", &content);
+            let tree_data = crate::core::objects::format_object_data("tree", &content);
             let subtree = Tree::deserialize(&tree_data)?;
             apply_tree(repo, &path, &subtree)?;
         } else if obj_type == "blob" {
@@ -81,7 +80,10 @@ pub fn get_remote_url(repo: &Path) -> Result<String, Box<dyn std::error::Error>>
 
     for line in config.lines() {
         let trimmed = line.trim();
-        if let Some(name) = trimmed.strip_prefix("[remote \"").and_then(|s| s.strip_suffix("\"]")) {
+        if let Some(name) = trimmed
+            .strip_prefix("[remote \"")
+            .and_then(|s| s.strip_suffix("\"]"))
+        {
             current_section = name;
         } else if trimmed.starts_with('[') {
             current_section = "";
@@ -99,8 +101,7 @@ pub fn get_remote_url(repo: &Path) -> Result<String, Box<dyn std::error::Error>>
 }
 
 pub fn get_current_branch(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    let head_content =
-        fs::read_to_string(repo.join(".git").join("HEAD")).unwrap_or_default();
+    let head_content = fs::read_to_string(repo.join(".git").join("HEAD")).unwrap_or_default();
     let head_content = head_content.trim();
     if let Some(ref_path) = head_content.strip_prefix("ref: ") {
         ref_path
@@ -177,8 +178,7 @@ pub fn collect_local_objects_for_push(
             continue;
         }
 
-        let full_object =
-            crate::core::objects::format_object_data("commit", &content);
+        let full_object = crate::core::objects::format_object_data("commit", &content);
         objects.push((current.clone(), full_object));
 
         let commit_data = crate::core::objects::format_object_data("commit", &content);
@@ -236,7 +236,10 @@ fn collect_tree_objects(
     if obj_type != "tree" {
         return Ok(());
     }
-    objects.push((tree_sha1.to_string(), crate::core::objects::format_object_data("tree", &content)));
+    objects.push((
+        tree_sha1.to_string(),
+        crate::core::objects::format_object_data("tree", &content),
+    ));
 
     let tree_data = crate::core::objects::format_object_data("tree", &content);
     let tree = Tree::deserialize(&tree_data)?;

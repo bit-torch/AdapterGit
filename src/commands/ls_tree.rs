@@ -20,10 +20,7 @@ pub fn run(tree_sha1: &str) -> Result<(), Box<dyn std::error::Error>> {
         } else {
             "blob"
         };
-        println!(
-            "{} {} {}\t{}",
-            entry.mode, type_str, entry.sha1, entry.name
-        );
+        println!("{} {} {}\t{}", entry.mode, type_str, entry.sha1, entry.name);
     }
 
     Ok(())

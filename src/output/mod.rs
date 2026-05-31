@@ -53,8 +53,7 @@ pub fn print_lines_json(lines: &[(&str, &str)]) {
     if !is_json() {
         return;
     }
-    let map: std::collections::BTreeMap<&str, &str> =
-        lines.iter().copied().collect();
+    let map: std::collections::BTreeMap<&str, &str> = lines.iter().copied().collect();
     if let Ok(json) = serde_json::to_string_pretty(&map) {
         println!("{}", json);
     }

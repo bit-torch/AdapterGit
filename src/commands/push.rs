@@ -25,13 +25,10 @@ pub fn run(remote: Option<&str>, branch: Option<&str>) -> Result<(), Box<dyn std
         remote_sha1.as_deref(),
     )?;
 
-    let old_sha1 = remote_sha1
-        .unwrap_or_else(|| "0000000000000000000000000000000000000000".to_string());
+    let old_sha1 =
+        remote_sha1.unwrap_or_else(|| "0000000000000000000000000000000000000000".to_string());
 
-    let ref_update = format!(
-        "{} {} refs/heads/{}",
-        old_sha1, head_sha1, branch_name
-    );
+    let ref_update = format!("{} {} refs/heads/{}", old_sha1, head_sha1, branch_name);
 
     let pack_data = generate_pack(&objects)?;
     transport.push_pack(&ref_update, &pack_data)?;
@@ -52,7 +49,10 @@ pub fn run(remote: Option<&str>, branch: Option<&str>) -> Result<(), Box<dyn std
     Ok(())
 }
 
-fn resolve_url(repo: &std::path::Path, remote: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+fn resolve_url(
+    repo: &std::path::Path,
+    remote: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
     if let Some(remote_name) = remote {
         let refs_path = repo
             .join(".git")
@@ -66,7 +66,10 @@ fn resolve_url(repo: &std::path::Path, remote: Option<&str>) -> Result<String, B
     remote_utils::get_remote_url(repo)
 }
 
-fn resolve_branch(repo: &std::path::Path, branch: Option<&str>) -> Result<String, Box<dyn std::error::Error>> {
+fn resolve_branch(
+    repo: &std::path::Path,
+    branch: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
     if let Some(b) = branch {
         return Ok(b.to_string());
     }

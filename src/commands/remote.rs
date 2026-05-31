@@ -8,7 +8,10 @@ pub fn run_add(name: &str, url: &str) -> Result<(), Box<dyn std::error::Error>> 
 
     let mut config = fs::read_to_string(&config_path).unwrap_or_default();
 
-    let section = format!("[remote \"{}\"]\n\turl = {}\n\tfetch = +refs/heads/*:refs/remotes/{}/*\n", name, url, name);
+    let section = format!(
+        "[remote \"{}\"]\n\turl = {}\n\tfetch = +refs/heads/*:refs/remotes/{}/*\n",
+        name, url, name
+    );
 
     if config.contains(&format!("[remote \"{}\"]", name)) {
         println!("Remote '{}' already exists.", name);
