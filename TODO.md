@@ -6,25 +6,25 @@ AdapterGit 项目待办事项清单。
 
 | ID | 任务 | 优先级 | 状态 | 备注 |
 |----|------|--------|------|------|
-| 1.1 | 初始化 Rust 项目 (`cargo init`) | P0 | ⏳ 待开始 | |
-| 1.2 | 配置 `Cargo.toml` 依赖 | P0 | ⏳ 待开始 | sha1, flate2, clap, serde, anyhow |
-| 1.3 | 创建目录结构 | P0 | ⏳ 待开始 | core/, cli/, ai/, output/, config/, utils/ |
-| 1.4 | 实现基础 CLI 框架 | P0 | ⏳ 待开始 | 命令注册和路由 |
-| 1.5 | 设置日志和错误处理 | P1 | ⏳ 待开始 | anyhow, 自定义错误类型 |
+| 1.1 | 初始化 Rust 项目 (`cargo init`) | P0 | ✅ 已完成 | |
+| 1.2 | 配置 `Cargo.toml` 依赖 | P0 | ✅ 已完成 | clap, serde, serde_json, flate2, sha1, anyhow |
+| 1.3 | 创建目录结构 | P0 | ✅ 已完成 | core/, cli/, ai/, output/, config/, utils/ |
+| 1.4 | 实现基础 CLI 框架 | P0 | ✅ 已完成 | clap derive, 6 命令 + 4 全局参数 |
+| 1.5 | 设置日志和错误处理 | P1 | ✅ 已完成 | AgitError 枚举, 8 种错误变体 |
 
 ## Phase 2: 核心对象系统
 
 | ID | 任务 | 优先级 | 状态 | 备注 |
 |----|------|--------|------|------|
-| 2.1 | SHA-1 哈希实现 | P0 | ⏳ 待开始 | 使用 sha1 crate |
-| 2.2 | zlib 压缩/解压 | P0 | ⏳ 待开始 | 使用 flate2 crate |
-| 2.3 | Blob 对象实现 | P0 | ⏳ 待开始 | |
-| 2.4 | Tree 对象实现 | P0 | ⏳ 待开始 | |
-| 2.5 | Commit 对象实现 | P0 | ⏳ 待开始 | |
+| 2.1 | SHA-1 哈希实现 | P0 | ✅ 已完成 | sha1 crate, hash_bytes + hash_git_object |
+| 2.2 | zlib 压缩/解压 | P0 | ✅ 已完成 | flate2 crate, compress + decompress |
+| 2.3 | Blob 对象实现 | P0 | ✅ 已完成 | new / serialize / deserialize / hash |
+| 2.4 | Tree 对象实现 | P0 | ✅ 已完成 | TreeEntry + Tree, serialize / deserialize |
+| 2.5 | Commit 对象实现 | P0 | ✅ 已完成 | tree / parents / author / committer / message |
 | 2.6 | Tag 对象实现 | P1 | ⏳ 待开始 | |
-| 2.7 | 对象存储 (.git/objects) | P0 | ⏳ 待开始 | loose objects 读写 |
-| 2.8 | 引用系统 (refs/heads, refs/tags) | P0 | ⏳ 待开始 | |
-| 2.9 | 索引文件 (.git/index) | P1 | ⏳ 待开始 | |
+| 2.7 | 对象存储 (.git/objects) | P0 | ✅ 已完成 | write_object / read_object / object_exists |
+| 2.8 | 引用系统 (refs/heads, refs/tags) | P0 | ✅ 已完成 | HEAD 符号/分离引用, 分支 CRUD |
+| 2.9 | 索引文件 (.git/index) | P1 | ✅ 已完成 | DIRC 格式序列化/反序列化 |
 
 ## Phase 3: 基础命令实现
 
@@ -117,6 +117,23 @@ AdapterGit 项目待办事项清单。
 - **P1**: 重要功能，用户体验关键
 - **P2**: 扩展功能，提升可用性
 - **P3**: 未来功能，暂不计划
+
+## 进度汇总
+
+| Phase | 名称 | 进度 | 已完成/总计 |
+|-------|------|------|-------------|
+| 1 | 项目初始化 | ████████████ 100% | 5/5 |
+| 2 | 核心对象系统 | ██████████░░ 89% | 8/9 (Tag 未实现) |
+| 3 | 基础命令实现 | ░░░░░░░░░░░░ 0% | 0/9 (仅 CLI 框架) |
+| 4 | AI 模式和输出 | ░░░░░░░░░░░░ 0% | 0/7 |
+| 5 | 网络功能 | ░░░░░░░░░░░░ 0% | 0/5 |
+| 6 | 配置和扩展 | ░░░░░░░░░░░░ 0% | 0/5 |
+| 7 | 测试和发布 | ░░░░░░░░░░░░ 0% | 0/6 |
+| 8 | Full/Lite 双版本分发 | ░░░░░░░░░░░░ 0% | 0/7 |
+
+**总体进度: 13/53 ≈ 25%**
+
+> 底层核心 (Phase 1-2) 已基本完成，下一阶段是实现命令逻辑 (Phase 3)。
 
 ## 状态说明
 
