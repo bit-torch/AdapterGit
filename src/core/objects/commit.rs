@@ -28,7 +28,7 @@ impl Commit {
         hash_git_object("commit", &data)
     }
 
-    fn serialize_raw(&self) -> Vec<u8> {
+    pub fn serialize_raw(&self) -> Vec<u8> {
         let mut data = Vec::new();
 
         data.extend_from_slice(format!("tree {}\n", self.tree).as_bytes());

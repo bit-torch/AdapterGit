@@ -47,9 +47,75 @@ pub enum Commands {
     #[command(about = "Show commit logs")]
     Log,
 
-    #[command(about = "Clone a repository")]
+    #[command(about = "Clone a repository into a new directory")]
     Clone {
         #[arg(help = "Repository URL to clone")]
         url: String,
     },
+
+    #[command(about = "Provide content of repository objects")]
+    CatFile {
+        #[arg(short = 't', group = "action", help = "Show object type")]
+        show_type: bool,
+
+        #[arg(short = 'p', group = "action", help = "Pretty-print object content")]
+        pretty_print: bool,
+
+        #[arg(help = "Object SHA-1")]
+        object: String,
+    },
+
+    #[command(about = "List the contents of a tree object")]
+    LsTree {
+        #[arg(help = "Tree SHA-1")]
+        tree_sha1: String,
+    },
+
+    #[command(about = "Show various types of objects")]
+    Show {
+        #[arg(help = "Object SHA-1 or reference")]
+        object: String,
+    },
+
+    #[command(about = "Show changes between commits, commit and working tree, etc")]
+    Diff,
+
+    #[command(about = "Download objects and refs from another repository")]
+    Fetch {
+        #[arg(help = "Remote URL or name")]
+        url: Option<String>,
+    },
+
+    #[command(about = "Update remote refs along with associated objects")]
+    Push {
+        #[arg(help = "Remote name")]
+        remote: Option<String>,
+
+        #[arg(help = "Branch to push")]
+        branch: Option<String>,
+    },
+
+    #[command(about = "Fetch from and integrate with another repository")]
+    Pull,
+
+    #[command(about = "Manage set of tracked repositories")]
+    Remote {
+        #[command(subcommand)]
+        action: RemoteAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum RemoteAction {
+    #[command(about = "Add a remote")]
+    Add {
+        #[arg(help = "Remote name")]
+        name: String,
+
+        #[arg(help = "Remote URL")]
+        url: String,
+    },
+
+    #[command(about = "List remotes")]
+    List,
 }

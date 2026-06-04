@@ -30,7 +30,7 @@ impl Tree {
         hash_git_object("tree", &data)
     }
 
-    fn serialize_raw(&self) -> Vec<u8> {
+    pub fn serialize_raw(&self) -> Vec<u8> {
         let mut data = Vec::new();
         for entry in &self.entries {
             data.extend_from_slice(format!("{} {}\0", entry.mode, entry.name).as_bytes());

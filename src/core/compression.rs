@@ -16,6 +16,13 @@ pub fn decompress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     Ok(result)
 }
 
+pub fn decompress_stream(data: &[u8]) -> Result<(Vec<u8>, usize), Box<dyn std::error::Error>> {
+    let mut decoder = ZlibDecoder::new(data);
+    let mut result = Vec::new();
+    decoder.read_to_end(&mut result)?;
+    Ok((result, decoder.total_in() as usize))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
