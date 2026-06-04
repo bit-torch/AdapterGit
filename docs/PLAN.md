@@ -174,28 +174,32 @@ AdapterGit (agit) 是一个专为 AI 时代设计的 Git 工具，完全从底�
 
 ## 里程碑
 
-### v0.1.0 - MVP
-- ✅ init, add, commit, status, log
-- ✅ 基础 AI 模式
-- ✅ JSON 输出
-- ✅ Lite 单文件便携版
+### v0.1.0 - MVP (当前冲刺 🔨)
+- [ ] init, add, commit, status, log (Phase 3, 仅 CLI 框架完成)
+- [ ] 基础 AI 模式 (`--ai` 参数 + 自动标记, 代码未实现)
+- [ ] JSON 输出 (CLI flag 已定义, output 模块为空)
+- [ ] Lite 单文件便携版
+- [x] 项目骨架 + CLI 框架 (Phase 1)
+- [x] 核心对象系统 8/9 (Phase 2, Tag 待补充)
+- [x] CI/CD 流水线配置
 
 ### v0.2.0 - 本地完整功能
-- ✅ 所有本地命令
-- ✅ AI 安全防护
-- ✅ 配置文件
-- ✅ Full 版安装包 (.deb)
+- [ ] 所有本地命令 (cat-file, ls-tree, diff, show)
+- [ ] AI 安全防护 (危险操作拦截)
+- [ ] 配置文件 + 环境变量
+- [ ] Full 版安装包 - Linux (.deb)
+- [ ] CI/CD 双版本自动构建 + GitHub Release
 
 ### v0.3.0 - 网络功能
-- ✅ clone, push, pull, fetch
-- ✅ 远程操作
+- [ ] clone, push, pull, fetch, remote
+- [ ] 静态 musl 编译
 
 ### v1.0.0 - 稳定版
-- ✅ 完整 Git 子集
-- ✅ 全平台 Full 安装包 (.deb/.rpm/.msi/.dmg)
-- ✅ Lite 单文件全平台便携版
-- ✅ CI/CD 双版本自动构建和发布
-- ✅ 文档完善
+- [ ] 完整 Git 子集
+- [ ] 全平台 Full 安装包 (.deb/.rpm/.msi/.dmg)
+- [ ] Lite 单文件全平台便携版
+- [ ] 文档完善
+- [ ] Git 别名, Hooks, Submodule
 
 ## 相关文档
 
