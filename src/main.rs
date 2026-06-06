@@ -8,9 +8,15 @@ mod utils;
 
 use clap::Parser;
 use cli::{Cli, Commands, RemoteAction};
+use std::env;
 
 fn main() {
-    let cli = Cli::parse();
+    // 加载配置（含别名）
+    let cfg = config::load();
+
+    // 别名解析：将别名替换为实际命令
+    let args = resolve_aliases(env::args().collect(), &cfg.aliases);
+    let cli = Cli::parse_from(args);
 
     ai::set_ai_mode(cli.ai);
     output::set_json_mode(cli.json);
@@ -51,5 +57,42 @@ fn main() {
     if let Err(e) = result {
         eprintln!("error: {}", e);
         std::process::exit(1);
+    }
+}
+
+/// 将 args 中的别名替换为实际命令名称。
+///
+/// 例如：`agit co -m "msg"` 中 `co` 为 `commit` 的别名时，
+/// 返回 `agit commit -m "msg"`。
+fn resolve_aliases(
+    args: Vec<String>,
+    aliases: &std::collections::HashMap<String, String>,
+) -> Vec<String> {
+    if args.len() < 2 || aliases.is_empty() {
+        return args;
+    }
+
+    let command_pos = args.iter().position(|a| !a.starts_with('-')).unwrap_or(0);
+
+    if command_pos == 0 || command_pos >= args.len() {
+        return args;
+    }
+
+    let command = &args[command_pos];
+    if let Some(resolved) = aliases.get(command) {
+        let mut resolved_parts: Vec<String> =
+            resolved.split_whitespace().map(|s| s.to_string()).collect();
+        if resolved_parts.is_empty() {
+            return args;
+        }
+
+        let mut new_args: Vec<String> = args[..command_pos].to_vec();
+        new_args.append(&mut resolved_parts);
+        if command_pos + 1 < args.len() {
+            new_args.extend_from_slice(&args[command_pos + 1..]);
+        }
+        new_args
+    } else {
+        args
     }
 }
