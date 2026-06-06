@@ -79,8 +79,20 @@ fn run_agit_ok(repo: &PathBuf, args: &[&str]) -> String {
 fn test_aaa_warmup() {
     // 在 Windows 上首次 spawn 进程可能失败（Rust 已知 bug），
     // 此测试通过提前触发一次 spawn 来预热，使后续测试正常工作。
+    // 即使 spawn 失败也不影响功能——后续测试已验证。
     let repo = setup_repo("warmup");
-    let _ = run_agit(&repo, &["--version"]);
+    let bin = agit_binary();
+    let result = std::panic::catch_unwind(|| {
+        Command::new(&bin)
+            .current_dir(&repo)
+            .arg("--version")
+            .output()
+    });
+    // 忽略首次 spawn 失败（Windows Os code 0 bug）
+    if let Ok(Ok(output)) = result {
+        // Warmup successful, all good
+        let _ = output;
+    }
     let _ = fs::remove_dir_all(&repo);
 }
 
