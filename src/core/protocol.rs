@@ -64,23 +64,54 @@ pub fn pkt_line_decode(line: &[u8]) -> Option<Vec<u8>> {
 }
 
 pub fn parse_refs_data(data: &[u8]) -> Vec<(String, String)> {
-    let text = String::from_utf8_lossy(data);
     let mut refs = Vec::new();
-    for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() {
+    let mut pos = 0;
+    while pos + 4 <= data.len() {
+        let len_str = match std::str::from_utf8(&data[pos..pos + 4]) {
+            Ok(s) => s,
+            Err(_) => break,
+        };
+        let len = match u16::from_str_radix(len_str, 16) {
+            Ok(l) => l as usize,
+            Err(_) => break,
+        };
+        if len == 0 {
+            pos += 4;
             continue;
         }
-        if let Some(pkt) = parse_pkt_line(line) {
-            if pkt.is_empty() {
-                continue;
-            }
-            let pkt_str = String::from_utf8_lossy(&pkt);
-            let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
-            if parts.len() >= 2 && parts[0].len() == 40 {
-                refs.push((parts[0].to_string(), parts[1].to_string()));
-            }
+        if pos + len > data.len() {
+            break;
         }
+        // data portion is between 4-byte header and trailing \n or \r\n
+         let end = {
+             let raw_end = pos + len;
+             if data[raw_end - 1] == b'\n' {
+                 if raw_end > pos + 5 && data[raw_end - 2] == b'\r' { raw_end - 2 }
+                 else { raw_end - 1 }
+             } else {
+                 raw_end
+             }
+         };
+        let pkt_data = &data[pos + 4..end];
+         let pkt_str = String::from_utf8_lossy(pkt_data);
+         eprintln!("DEBUG pkt-line: len={}, str={}", len, &pkt_str[..pkt_str.len().min(80)]);
+         // skip capability advertisement lines (# service=...)
+         if pkt_str.starts_with('#') {
+             pos += len;
+             continue;
+         }
+         let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
+         if parts.len() >= 2 && parts[0].len() == 40 {
+             eprintln!("DEBUG parsed ref: {} -> {}", parts[0], parts[1]);
+             // Handle capability advertisement: "refname\0capabilities"
+             let ref_name = if let Some(stripped) = parts[1].split('\0').next() {
+                 stripped.to_string()
+             } else {
+                 parts[1].to_string()
+             };
+             refs.push((parts[0].to_string(), ref_name));
+         }
+        pos += len;
     }
     refs
 }
@@ -433,7 +464,12 @@ impl HttpTransport {
         if status != 200 {
             return Err(format!("HTTP {}: refs discovery failed", status).into());
         }
-        Ok(parse_refs_data(&body))
+        let refs = parse_refs_data(&body);
+        eprintln!("DEBUG discover_refs: parsed {} refs", refs.len());
+        for (sha, name) in &refs {
+            eprintln!("  {} -> {}", &sha[..7], name);
+        }
+        Ok(refs)
     }
 
     pub fn clone_full(&self, want_sha1: &str) -> Result<ObjectList, Box<dyn std::error::Error>> {
@@ -548,8 +584,43 @@ fn parse_http_response(data: &[u8]) -> Result<(u16, Vec<u8>), Box<dyn std::error
         .map(|p| p + 4)
         .unwrap_or(data.len());
 
-    let body = data[header_end..].to_vec();
+    let mut body = data[header_end..].to_vec();
+
+    // Dechunk if transfer-encoding is chunked
+    if body.len() > 2 && body[0].is_ascii_hexdigit() {
+        if let Some(dechunked) = dechunk_body(&body) {
+            body = dechunked;
+        }
+    }
+
     Ok((status, body))
+}
+
+/// Dechunk a Transfer-Encoding: chunked response body.
+/// Format: {hex-size}\r\n{data}\r\n...0\r\n\r\n
+fn dechunk_body(body: &[u8]) -> Option<Vec<u8>> {
+    let mut result = Vec::new();
+    let mut pos = 0;
+    while pos < body.len() {
+        // Find end of hex size line
+        let crlf = body[pos..].windows(2).position(|w| w == b"\r\n")?;
+        let size_str = std::str::from_utf8(&body[pos..pos + crlf]).ok()?;
+        let size = usize::from_str_radix(size_str, 16).ok()?;
+        pos += crlf + 2;
+        if size == 0 {
+            break;
+        }
+        if pos + size > body.len() {
+            return None;
+        }
+        result.extend_from_slice(&body[pos..pos + size]);
+        pos += size;
+        // Skip trailing \r\n
+        if pos + 2 <= body.len() && &body[pos..pos + 2] == b"\r\n" {
+            pos += 2;
+        }
+    }
+    Some(result)
 }
 
 fn find_pack_start(data: &[u8]) -> usize {
