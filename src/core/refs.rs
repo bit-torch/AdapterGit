@@ -82,12 +82,14 @@ pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Err
 }
 
 /// 创建轻量标签（直接指向某个 commit SHA-1）。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn create_tag(repo: &Path, name: &str, sha1: &str) -> Result<(), Box<dyn std::error::Error>> {
     write_ref(repo, &format!("refs/tags/{}", name), sha1)
 }
 
 /// 列出所有轻量标签名称。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let tags_dir = refs_dir(repo).join("refs").join("tags");
@@ -96,7 +98,8 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
     }
 
     let mut tags = Vec::new();
-    let entries = fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
+    let entries =
+        fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
 
     for entry in entries {
         let entry = entry?;
@@ -108,6 +111,7 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
 }
 
 /// 删除标签。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn delete_tag(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let path = ref_path(repo, &format!("refs/tags/{}", name));
@@ -230,6 +234,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_create_and_list_tags() {
         let repo = setup_repo("taglist");
         setup_git_dir(&repo);
@@ -245,6 +250,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_list_tags_empty() {
         let repo = setup_repo("emptytags");
         setup_git_dir(&repo);
@@ -270,6 +276,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_delete_nonexistent_tag() {
         let repo = setup_repo("delnonex");
         setup_git_dir(&repo);

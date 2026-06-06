@@ -17,3 +17,8 @@ anyhow = "1"
 url = "2"
 native-tls = "0.2"
 toml = "0.8"
+
+[features]
+default = ["tag"]
+# Future: annotated tag object support (tag create/list/delete CLI)
+tag = []

@@ -1,5 +1,6 @@
 pub mod blob;
 pub mod commit;
+#[cfg(feature = "tag")]
 pub mod tag;
 pub mod tree;
 
