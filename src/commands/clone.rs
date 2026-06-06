@@ -111,6 +111,7 @@ fn ref_name_from_head<'a>(sha1: &str, refs_list: &'a [(String, String)]) -> &'a 
     ""
 }
 
+#[allow(dead_code)]
 fn object_exists_in_list(sha1: &str, objects: &[(String, Vec<u8>)]) -> bool {
     objects.iter().any(|(s, _)| s == sha1)
 }
