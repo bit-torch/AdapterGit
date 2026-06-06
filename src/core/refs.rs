@@ -81,6 +81,47 @@ pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Err
     Ok(branches)
 }
 
+/// 创建轻量标签（直接指向某个 commit SHA-1）。
+#[allow(dead_code)]
+pub fn create_tag(
+    repo: &Path,
+    name: &str,
+    sha1: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    write_ref(repo, &format!("refs/tags/{}", name), sha1)
+}
+
+/// 列出所有轻量标签名称。
+#[allow(dead_code)]
+pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let tags_dir = refs_dir(repo).join("refs").join("tags");
+    if !tags_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut tags = Vec::new();
+    let entries =
+        fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
+
+    for entry in entries {
+        let entry = entry?;
+        if entry.file_type()?.is_file() {
+            tags.push(entry.file_name().to_string_lossy().to_string());
+        }
+    }
+    Ok(tags)
+}
+
+/// 删除标签。
+#[allow(dead_code)]
+pub fn delete_tag(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let path = ref_path(repo, &format!("refs/tags/{}", name));
+    if path.exists() {
+        fs::remove_file(&path)?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,6 +230,57 @@ mod tests {
 
         let branches = list_branches(&repo).unwrap();
         assert!(branches.is_empty());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_create_and_list_tags() {
+        let repo = setup_repo("taglist");
+        setup_git_dir(&repo);
+
+        create_tag(&repo, "v1.0.0", "abc123").unwrap();
+        create_tag(&repo, "v2.0.0", "def456").unwrap();
+
+        let mut tags = list_tags(&repo).unwrap();
+        tags.sort();
+        assert_eq!(tags, vec!["v1.0.0", "v2.0.0"]);
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_list_tags_empty() {
+        let repo = setup_repo("emptytags");
+        setup_git_dir(&repo);
+
+        let tags = list_tags(&repo).unwrap();
+        assert!(tags.is_empty());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_delete_tag() {
+        let repo = setup_repo("deltag");
+        setup_git_dir(&repo);
+
+        create_tag(&repo, "v1.0.0", "abc123").unwrap();
+        assert_eq!(list_tags(&repo).unwrap().len(), 1);
+
+        delete_tag(&repo, "v1.0.0").unwrap();
+        assert!(list_tags(&repo).unwrap().is_empty());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_delete_nonexistent_tag() {
+        let repo = setup_repo("delnonex");
+        setup_git_dir(&repo);
+
+        // Should not error on deleting non-existent tag
+        assert!(delete_tag(&repo, "nonexistent").is_ok());
 
         let _ = fs::remove_dir_all(&repo);
     }

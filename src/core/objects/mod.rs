@@ -1,5 +1,6 @@
 pub mod blob;
 pub mod commit;
+pub mod tag;
 pub mod tree;
 
 pub fn format_object_data(obj_type: &str, content: &[u8]) -> Vec<u8> {
