@@ -72,6 +72,19 @@ fn run_agit_ok(repo: &PathBuf, args: &[&str]) -> String {
 }
 
 // ============================================================
+// 预热（Windows 首次 spawn 可能有 Os code 0 bug）
+// ============================================================
+
+#[test]
+fn test_aaa_warmup() {
+    // 在 Windows 上首次 spawn 进程可能失败（Rust 已知 bug），
+    // 此测试通过提前触发一次 spawn 来预热，使后续测试正常工作。
+    let repo = setup_repo("warmup");
+    let _ = run_agit(&repo, &["--version"]);
+    let _ = fs::remove_dir_all(&repo);
+}
+
+// ============================================================
 // init + add + commit + status + log 完整工作流
 // ============================================================
 
