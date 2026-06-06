@@ -2,7 +2,11 @@ use crate::core::objects::tree::Tree;
 use crate::core::repo;
 use crate::core::storage;
 
-pub fn run(object: &str, show_type: bool, pretty_print: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(
+    object: &str,
+    show_type: bool,
+    pretty_print: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
     let (obj_type, content) = storage::read_object(&repo_root, object)?;
 
