@@ -11,6 +11,7 @@ use crate::core::hash::hash_git_object;
 ///
 /// <message>
 /// ```
+#[allow(dead_code)]
 pub struct Tag {
     /// 标签指向的对象 SHA-1（通常是一个 commit）
     pub object: String,
@@ -24,6 +25,7 @@ pub struct Tag {
     pub message: String,
 }
 
+#[allow(dead_code)]
 impl Tag {
     pub fn new(
         object: &str,

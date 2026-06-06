@@ -72,9 +72,8 @@ pub fn get_current_branch(repo: &Path) -> Result<Option<String>, Box<dyn std::er
     let content = content.trim();
     if let Some(ref_path) = content.strip_prefix("ref: refs/heads/") {
         Ok(Some(ref_path.trim().to_string()))
-    } else if content.len() == 40 && content.chars().all(|c| c.is_ascii_hexdigit()) {
-        Ok(None) // detached HEAD
     } else {
+        // detached HEAD (SHA-1) or unrecognized format
         Ok(None)
     }
 }

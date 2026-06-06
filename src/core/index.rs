@@ -187,6 +187,7 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 }
 
 /// 将 mode 字符串（八进制，如 "100644"）转为 u32（高位 16-bit 为零）。
+#[allow(dead_code)]
 fn parse_mode_to_u32(mode: &str) -> u32 {
     u32::from_str_radix(mode, 8).unwrap_or(0o100644)
 }

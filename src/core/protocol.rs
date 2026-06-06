@@ -123,6 +123,7 @@ pub fn parse_refs_data(data: &[u8]) -> Vec<(String, String)> {
     refs
 }
 
+#[allow(dead_code)]
 fn parse_pkt_line(line: &str) -> Option<Vec<u8>> {
     if line.len() < 4 {
         return None;
