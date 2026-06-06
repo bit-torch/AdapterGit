@@ -172,7 +172,7 @@ fn find_merge_base(
 
 /// 3-way merge: 比较 base/ours/theirs 的 tree，生成合并结果。
 /// 返回是否产生了冲突。
-fn three_way_merge(
+pub(crate) fn three_way_merge(
     repo: &Path,
     base_sha: &str,
     ours_sha: &str,
@@ -427,31 +427,39 @@ fn remove_empty_dirs(repo: &Path, dir: &Path) -> Result<(), Box<dyn std::error::
 }
 
 fn restore_working_tree(repo: &Path, tree_sha: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let mut new_index = index::Index::new();
+    restore_tree_recursive(repo, tree_sha, Path::new(""), &mut new_index)?;
+    new_index.save(repo)?;
+    Ok(())
+}
+
+/// 递归恢复 tree 内容到工作目录和 index。
+fn restore_tree_recursive(
+    repo: &Path,
+    tree_sha: &str,
+    prefix: &Path,
+    idx: &mut index::Index,
+) -> Result<(), Box<dyn std::error::Error>> {
     let (_, body) = storage::read_object(repo, tree_sha)?;
     let tree_data = with_header("tree", &body);
     let tree = Tree::deserialize(&tree_data)?;
-    let mut new_index = index::Index::new();
 
     for entry in &tree.entries {
-        let entry_path = Path::new(&entry.name);
-        match entry.mode.as_str() {
-            "40000" => {
-                fs::create_dir_all(repo.join(entry_path))?;
+        let entry_path = prefix.join(&entry.name);
+        if entry.mode == "40000" {
+            fs::create_dir_all(repo.join(&entry_path))?;
+            restore_tree_recursive(repo, &entry.sha1, &entry_path, idx)?;
+        } else {
+            let (_, blob_body) = storage::read_object(repo, &entry.sha1)?;
+            let blob_data = with_header("blob", &blob_body);
+            let blob = Blob::deserialize(&blob_data)?;
+            let file_path = repo.join(&entry_path);
+            if let Some(parent) = file_path.parent() {
+                fs::create_dir_all(parent)?;
             }
-            _ => {
-                let (_, blob_body) = storage::read_object(repo, &entry.sha1)?;
-                let blob_data = with_header("blob", &blob_body);
-                let blob = Blob::deserialize(&blob_data)?;
-                let file_path = repo.join(entry_path);
-                if let Some(parent) = file_path.parent() {
-                    fs::create_dir_all(parent)?;
-                }
-                fs::write(&file_path, &blob.content)?;
-                new_index.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
-            }
+            fs::write(&file_path, &blob.content)?;
+            idx.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
         }
     }
-
-    new_index.save(repo)?;
     Ok(())
 }

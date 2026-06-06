@@ -190,6 +190,10 @@ fn merge_changes(
     local_sha1: &str,
     remote_sha1: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // 查找 merge base 进行 3-way merge
+    let base_sha = find_common_ancestor(repo, local_sha1, remote_sha1)?
+        .unwrap_or_else(|| local_sha1.to_string());
+
     let config = crate::config::load();
     let (timestamp, time_str) = repo::get_current_timestamp();
     let author = format!(
@@ -198,10 +202,32 @@ fn merge_changes(
     );
     let committer = author.clone();
 
-    let tree_sha1 = remote_utils::resolve_commit_to_tree(repo, remote_sha1)?;
+    // 执行 3-way merge（直接操作 tree），写入工作目录和 index
+    let has_conflicts =
+        crate::core::merge::three_way_merge(repo, &base_sha, local_sha1, remote_sha1)?;
+
+    if has_conflicts {
+        println!("Automatic merge failed; fix conflicts and then commit the result.");
+        let git_dir = repo.join(".git");
+        std::fs::write(git_dir.join("MERGE_HEAD"), format!("{}\n", remote_sha1))?;
+        std::fs::write(
+            git_dir.join("MERGE_MSG"),
+            format!("Merge branch '{}' of remote into {}\n", branch, branch),
+        )?;
+        return Ok(());
+    }
+
+    // 无冲突：从 index 生成 tree 并创建 merge commit
+    let index = crate::core::index::Index::load(repo)?;
+    let mut merge_tree = crate::core::objects::tree::Tree::new();
+    for entry in index.entries.values() {
+        merge_tree.add_entry(&entry.mode, &entry.path, &entry.sha1);
+    }
+    let tree_sha = merge_tree.hash();
+    crate::core::storage::write_object(repo, "tree", &merge_tree.serialize_raw())?;
 
     let mut merge_commit = crate::core::objects::commit::Commit::new(
-        &tree_sha1,
+        &tree_sha,
         &author,
         &committer,
         &format!("Merge branch '{}' of remote into {}\n", branch, branch),
@@ -213,8 +239,6 @@ fn merge_changes(
     crate::core::storage::write_object(repo, "commit", &merge_commit.serialize_raw())?;
 
     refs::write_ref(repo, &format!("refs/heads/{}", branch), &merge_sha1)?;
-
-    remote_utils::apply_tree_by_sha1(repo, "", tree_sha1.as_str())?;
 
     println!("Merge made.\n {} -> {}", &local_sha1[..7], &merge_sha1[..7]);
 

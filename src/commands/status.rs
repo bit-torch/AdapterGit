@@ -86,19 +86,39 @@ fn get_head_tree(repo: &Path, sha1: &str) -> BTreeMap<String, String> {
             if let Ok(commit) = Commit::deserialize(&crate::core::objects::format_object_data(
                 "commit", &content,
             )) {
-                if let Ok((_, tree_data)) = storage::read_object(repo, &commit.tree) {
-                    if let Ok(tree) = Tree::deserialize(&crate::core::objects::format_object_data(
-                        "tree", &tree_data,
-                    )) {
-                        for entry in &tree.entries {
-                            result.insert(entry.name.clone(), entry.sha1.clone());
-                        }
-                    }
-                }
+                let _ = collect_tree_recursive(repo, &commit.tree, "", &mut result);
             }
         }
     }
     result
+}
+
+/// 递归收集 tree 中所有文件路径 → SHA-1 映射。
+fn collect_tree_recursive(
+    repo: &Path,
+    tree_sha1: &str,
+    prefix: &str,
+    out: &mut BTreeMap<String, String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (obj_type, content) = storage::read_object(repo, tree_sha1)?;
+    if obj_type != "tree" {
+        return Ok(());
+    }
+    let tree_data = crate::core::objects::format_object_data("tree", &content);
+    let tree = Tree::deserialize(&tree_data)?;
+    for entry in &tree.entries {
+        let path = if prefix.is_empty() {
+            entry.name.clone()
+        } else {
+            format!("{}/{}", prefix, entry.name)
+        };
+        if entry.mode == "40000" {
+            collect_tree_recursive(repo, &entry.sha1, &path, out)?;
+        } else {
+            out.insert(path, entry.sha1.clone());
+        }
+    }
+    Ok(())
 }
 
 fn get_staged_changes(index: &Index, head_tree: &BTreeMap<String, String>) -> Vec<String> {
