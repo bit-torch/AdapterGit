@@ -211,11 +211,7 @@ mod tests {
             "z.txt",
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
         );
-        tree.add_entry(
-            "40000",
-            "dir",
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
-        );
+        tree.add_entry("40000", "dir", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2");
         tree.add_entry(
             "100644",
             "dir-a",
@@ -228,10 +224,8 @@ mod tests {
         );
 
         let data = tree.serialize_raw();
-        let deserialized = Tree::deserialize(
-            &crate::core::objects::format_object_data("tree", &data),
-        )
-        .unwrap();
+        let deserialized =
+            Tree::deserialize(&crate::core::objects::format_object_data("tree", &data)).unwrap();
 
         // 期望排序: a.txt, dir-a, dir (目录末尾有 "/"，排在 dir-a 之后), z.txt
         assert_eq!(deserialized.entries[0].name, "a.txt");

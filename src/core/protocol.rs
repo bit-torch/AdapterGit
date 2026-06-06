@@ -83,34 +83,41 @@ pub fn parse_refs_data(data: &[u8]) -> Vec<(String, String)> {
             break;
         }
         // data portion is between 4-byte header and trailing \n or \r\n
-         let end = {
-             let raw_end = pos + len;
-             if data[raw_end - 1] == b'\n' {
-                 if raw_end > pos + 5 && data[raw_end - 2] == b'\r' { raw_end - 2 }
-                 else { raw_end - 1 }
-             } else {
-                 raw_end
-             }
-         };
+        let end = {
+            let raw_end = pos + len;
+            if data[raw_end - 1] == b'\n' {
+                if raw_end > pos + 5 && data[raw_end - 2] == b'\r' {
+                    raw_end - 2
+                } else {
+                    raw_end - 1
+                }
+            } else {
+                raw_end
+            }
+        };
         let pkt_data = &data[pos + 4..end];
-         let pkt_str = String::from_utf8_lossy(pkt_data);
-         eprintln!("DEBUG pkt-line: len={}, str={}", len, &pkt_str[..pkt_str.len().min(80)]);
-         // skip capability advertisement lines (# service=...)
-         if pkt_str.starts_with('#') {
-             pos += len;
-             continue;
-         }
-         let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
-         if parts.len() >= 2 && parts[0].len() == 40 {
-             eprintln!("DEBUG parsed ref: {} -> {}", parts[0], parts[1]);
-             // Handle capability advertisement: "refname\0capabilities"
-             let ref_name = if let Some(stripped) = parts[1].split('\0').next() {
-                 stripped.to_string()
-             } else {
-                 parts[1].to_string()
-             };
-             refs.push((parts[0].to_string(), ref_name));
-         }
+        let pkt_str = String::from_utf8_lossy(pkt_data);
+        eprintln!(
+            "DEBUG pkt-line: len={}, str={}",
+            len,
+            &pkt_str[..pkt_str.len().min(80)]
+        );
+        // skip capability advertisement lines (# service=...)
+        if pkt_str.starts_with('#') {
+            pos += len;
+            continue;
+        }
+        let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
+        if parts.len() >= 2 && parts[0].len() == 40 {
+            eprintln!("DEBUG parsed ref: {} -> {}", parts[0], parts[1]);
+            // Handle capability advertisement: "refname\0capabilities"
+            let ref_name = if let Some(stripped) = parts[1].split('\0').next() {
+                stripped.to_string()
+            } else {
+                parts[1].to_string()
+            };
+            refs.push((parts[0].to_string(), ref_name));
+        }
         pos += len;
     }
     refs

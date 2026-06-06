@@ -62,49 +62,46 @@ impl Index {
         let mut data = Vec::new();
 
         let entry_count = self.entries.len() as u32;
-        let header = b"DIRC";
-        data.extend_from_slice(header);
+        data.extend_from_slice(b"DIRC");
         data.extend_from_slice(&2u32.to_be_bytes());
         data.extend_from_slice(&entry_count.to_be_bytes());
 
         for entry in self.entries.values() {
-            let ctime = 0u32.to_be_bytes();
-            let mtime = 0u32.to_be_bytes();
-            data.extend_from_slice(&ctime);
-            data.extend_from_slice(&ctime);
-            data.extend_from_slice(&mtime);
-            data.extend_from_slice(&mtime);
-            data.extend_from_slice(&0u32.to_be_bytes());
-            data.extend_from_slice(&0u32.to_be_bytes());
-            data.extend_from_slice(&0u32.to_be_bytes());
-            data.extend_from_slice(&0u32.to_be_bytes());
-            data.extend_from_slice(&0u32.to_be_bytes());
-            data.extend_from_slice(&0u32.to_be_bytes());
+            let entry_start = data.len(); // 记录条目起始偏移（用于对齐）
 
-            let sha1_bytes = hex_to_bytes(&entry.sha1);
-            data.extend_from_slice(&sha1_bytes);
+            // 统计区 40 字节，mode 写实际值（0o100644 → 0x000081A4）
+            let mode_stat: u32 = u32::from_str_radix(&entry.mode, 8).unwrap_or(0o100644);
+            data.extend_from_slice(&0u32.to_be_bytes()); // ctime sec
+            data.extend_from_slice(&0u32.to_be_bytes()); // ctime nsec
+            data.extend_from_slice(&0u32.to_be_bytes()); // mtime sec
+            data.extend_from_slice(&0u32.to_be_bytes()); // mtime nsec
+            data.extend_from_slice(&0u32.to_be_bytes()); // dev
+            data.extend_from_slice(&0u32.to_be_bytes()); // ino
+            data.extend_from_slice(&mode_stat.to_be_bytes()); // mode
+            data.extend_from_slice(&0u32.to_be_bytes()); // uid
+            data.extend_from_slice(&0u32.to_be_bytes()); // gid
+            data.extend_from_slice(&0u32.to_be_bytes()); // file size
 
-            // DIRC v2+ 扩展标志位 (bit 13 = 0x2000) 必须置 1，
-            // 表示紧随 path 之后有扩展 mode 字段。
-            let flags = entry.flags | 0x2000;
+            // SHA-1 (20 bytes binary)
+            data.extend_from_slice(&hex_to_bytes(&entry.sha1));
+
+            // Flags (u16BE) — 仅路径长度，无扩展位
+            let flags: u16 = entry.flags & 0x0FFF;
             data.extend_from_slice(&flags.to_be_bytes());
 
-            let padded_mode = format!("{:0>6}", entry.mode);
-            data.extend_from_slice(padded_mode.as_bytes());
-
-            data.push(b' ');
-
+            // 路径 (NUL 结尾)
             data.extend_from_slice(entry.path.as_bytes());
             data.push(0);
 
-            let current_len = data.len();
-            let padding_needed = (8 - (current_len % 8)) % 8;
-            data.extend(std::iter::repeat_n(0, padding_needed));
+            // 条目对齐到 8 字节边界（相对条目自身起始）
+            let entry_len = data.len() - entry_start;
+            let pad = (8 - (entry_len % 8)) % 8;
+            data.extend(std::iter::repeat_n(0, pad));
         }
 
+        // SHA-1 校验和
         let sha1 = crate::core::hash::hash_bytes(&data);
-        let sha1_bytes = hex_to_bytes(&sha1);
-        data.extend_from_slice(&sha1_bytes);
+        data.extend_from_slice(&hex_to_bytes(&sha1));
 
         data
     }
@@ -127,7 +124,18 @@ impl Index {
                 return Err("Index entry truncated".into());
             }
 
-            pos += 40;
+            let entry_start = pos;
+
+            // 从统计区第 7 个字段读取 mode (offset 24..28 从 entry 开始)
+            let stat_mode = u32::from_be_bytes([
+                data[pos + 24],
+                data[pos + 25],
+                data[pos + 26],
+                data[pos + 27],
+            ]);
+            let mode = format_mode_from_u32(stat_mode);
+
+            pos += 40; // 跳过全部统计区
 
             let sha1_bytes: &[u8] = &data[pos..pos + 20];
             let sha1 = bytes_to_hex(sha1_bytes);
@@ -136,9 +144,7 @@ impl Index {
             let flags = u16::from_be_bytes([data[pos], data[pos + 1]]);
             pos += 2;
 
-            let mode = std::str::from_utf8(&data[pos..pos + 6])?.to_string();
-            pos += 7;
-
+            // 路径名紧随 flags
             let name_start = pos;
             while pos < data.len() && data[pos] != 0 {
                 pos += 1;
@@ -149,9 +155,10 @@ impl Index {
             let path = std::str::from_utf8(&data[name_start..pos])?.to_string();
             pos += 1;
 
-            let current_len = pos;
-            let padding_needed = (8 - (current_len % 8)) % 8;
-            pos += padding_needed;
+            // 条目对齐到 8 字节边界（相对条目自身起始）
+            let entry_len = pos - entry_start;
+            let pad = (8 - (entry_len % 8)) % 8;
+            pos += pad;
 
             entries.insert(
                 path.clone(),
@@ -177,6 +184,16 @@ fn hex_to_bytes(hex: &str) -> Vec<u8> {
 
 fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// 将 mode 字符串（八进制，如 "100644"）转为 u32（高位 16-bit 为零）。
+fn parse_mode_to_u32(mode: &str) -> u32 {
+    u32::from_str_radix(mode, 8).unwrap_or(0o100644)
+}
+
+/// 将 u32 统计区 mode 值转为八进制字符串（取低 16 位）。
+fn format_mode_from_u32(val: u32) -> String {
+    format!("{:o}", val & 0xFFFF)
 }
 
 #[cfg(test)]
@@ -237,8 +254,11 @@ mod tests {
     }
 
     #[test]
-    fn test_index_extended_bit() {
-        // 验证序列化后的 flags 包含 DIRC v2 扩展标志位 0x2000
+    fn test_index_git_compat() {
+        // 验证生成的 index 与原生 Git 兼容：
+        // 1. 统计区 mode 写入实际值（非 0）
+        // 2. flags 仅含路径长度，无扩展位
+        // 3. 路径紧随 flags（无扩展 mode 区）
         let mut index = Index::new();
         index.add_entry(
             "100644",
@@ -247,25 +267,21 @@ mod tests {
         );
         let data = index.serialize();
 
-        // entry 从 data[12] 开始
-        // stat data: 40 bytes → offset = 12
-        // SHA-1: 20 bytes → offset = 12 + 40 = 52
-        // flags: 2 bytes → offset = 12 + 40 + 20 = 72
-        let flags_offset = 72;
-        let flags = u16::from_be_bytes([
-            data[flags_offset],
-            data[flags_offset + 1],
-        ]);
+        // 统计区 mode 在 entry 偏移 24 (第 7 个 u32)
+        let stat_mode =
+            u32::from_be_bytes([data[12 + 24], data[12 + 25], data[12 + 26], data[12 + 27]]);
+        assert_eq!(stat_mode, 0o100644, "stat mode should be 0o100644");
 
-        // 扩展标志位 (bit 13 = 0x2000) 必须置 1
-        assert!(
-            flags & 0x2000 != 0,
-            "DIRC v2 extended bit not set: flags = 0x{:04x}",
-            flags
+        // flags 在 entry 偏移 60 (40 stat + 20 SHA1)
+        let flags = u16::from_be_bytes([data[72], data[73]]);
+        assert_eq!(flags & 0xFFF, 9, "flags low 12 bits = path length");
+        assert_eq!(
+            flags, 9,
+            "flags should only contain path length, no extended bits"
         );
 
-        // 路径长度从低 12 位提取
-        let name_len = flags & 0x0FFF;
-        assert_eq!(name_len, 9); // "hello.txt" = 9 chars
+        // 路径紧随 flags (偏移 74)，无扩展 mode 区
+        assert_eq!(&data[74..83], b"hello.txt");
+        assert_eq!(data[83], 0u8, "NUL terminator");
     }
 }

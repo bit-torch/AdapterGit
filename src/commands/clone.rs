@@ -49,7 +49,11 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     writeln!(config_file, "\tfetch = +refs/heads/*:refs/remotes/origin/*")?;
 
     for (ref_name, ref_sha1) in &refs_list {
-        eprintln!("clone for_loop: name={}, starts_with_heads={}", ref_name, ref_name.starts_with("refs/heads/"));
+        eprintln!(
+            "clone for_loop: name={}, starts_with_heads={}",
+            ref_name,
+            ref_name.starts_with("refs/heads/")
+        );
         if ref_name.starts_with("refs/heads/") || ref_name.starts_with("refs/tags/") {
             eprintln!("clone writing ref: {}", ref_name);
             refs::write_ref(&repo_dir, ref_name, ref_sha1)?;
