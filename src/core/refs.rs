@@ -67,8 +67,8 @@ pub fn get_current_branch(repo: &Path) -> Result<Option<String>, Box<dyn std::er
     if !head_path.exists() {
         return Ok(None);
     }
-    let content = fs::read_to_string(&head_path)
-        .map_err(|e| format!("Failed to read HEAD: {}", e))?;
+    let content =
+        fs::read_to_string(&head_path).map_err(|e| format!("Failed to read HEAD: {}", e))?;
     let content = content.trim();
     if let Some(ref_path) = content.strip_prefix("ref: refs/heads/") {
         Ok(Some(ref_path.trim().to_string()))
@@ -127,8 +127,7 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
     }
 
     let mut tags = Vec::new();
-    let entries =
-        fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
+    let entries = fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
 
     for entry in entries {
         let entry = entry?;

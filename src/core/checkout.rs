@@ -1,6 +1,7 @@
 use crate::core::objects::blob::Blob;
 use crate::core::objects::tree::Tree;
 use crate::core::{index, refs, storage};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
@@ -14,7 +15,27 @@ pub fn switch_branch(repo: &Path, branch_name: &str) -> Result<(), Box<dyn std::
     let commit_data = with_object_header("commit", &body);
     let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
 
+    // 记录当前索引中的文件，用于切换后清理废弃文件
+    let old_index = index::Index::load(repo)?;
+    let old_tracked: BTreeSet<String> = old_index.entries.keys().cloned().collect();
+
     restore_tree(repo, &commit.tree, Path::new(""))?;
+
+    // 收集目标树中的所有文件
+    let new_tracked = collect_tree_paths(repo, &commit.tree, Path::new(""))?;
+
+    // 删除旧索引中存在但新树中不存在的文件
+    for path in old_tracked.iter() {
+        if !new_tracked.contains(path) {
+            let file_path = repo.join(path);
+            if file_path.is_file() || file_path.is_symlink() {
+                let _ = fs::remove_file(&file_path);
+            }
+        }
+    }
+    // 清理空目录
+    let _ = remove_empty_dirs(repo, Path::new(""));
+
     refs::write_head(repo, &format!("ref: refs/heads/{}", branch_name))?;
 
     println!("Switched to branch '{}'", branch_name);
@@ -59,11 +80,7 @@ fn restore_tree(
                 }
                 fs::write(&file_path, &blob.content)?;
 
-                new_index.add_entry(
-                    &entry.mode,
-                    &entry.sha1,
-                    &entry_path.to_string_lossy(),
-                );
+                new_index.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
             }
         }
     }
@@ -79,4 +96,60 @@ fn with_object_header(obj_type: &str, body: &[u8]) -> Vec<u8> {
     data.extend_from_slice(header.as_bytes());
     data.extend_from_slice(body);
     data
+}
+
+/// 递归收集树中所有文件路径。
+fn collect_tree_paths(
+    repo: &Path,
+    tree_sha: &str,
+    prefix: &Path,
+) -> Result<BTreeSet<String>, Box<dyn std::error::Error>> {
+    let mut paths = BTreeSet::new();
+    let (obj_type, body) = match storage::read_object(repo, tree_sha) {
+        Ok(v) => v,
+        Err(_) => return Ok(paths),
+    };
+    if obj_type != "tree" {
+        return Ok(paths);
+    }
+    let tree_data = with_object_header("tree", &body);
+    let tree = Tree::deserialize(&tree_data)?;
+
+    for entry in &tree.entries {
+        let entry_path = prefix.join(&entry.name);
+        let path_str = entry_path.to_string_lossy().to_string();
+
+        if entry.mode == "40000" {
+            let sub = collect_tree_paths(repo, &entry.sha1, &entry_path)?;
+            paths.extend(sub);
+        } else {
+            paths.insert(path_str);
+        }
+    }
+    Ok(paths)
+}
+
+/// 递归清理空目录。
+fn remove_empty_dirs(repo: &Path, dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let full = repo.join(dir);
+    if !full.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(&full)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            let relative = path.strip_prefix(repo).unwrap_or(&path);
+            remove_empty_dirs(repo, relative)?;
+        }
+    }
+    // 再次读取目录，如果为空则删除
+    if full
+        .read_dir()
+        .map(|mut d| d.next().is_none())
+        .unwrap_or(false)
+    {
+        let _ = fs::remove_dir(&full);
+    }
+    Ok(())
 }

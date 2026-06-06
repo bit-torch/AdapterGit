@@ -43,7 +43,11 @@ fn create_branch_action(
     // 新分支指向当前 HEAD
     let sha1 = refs::read_head(repo)?;
     refs::create_branch(repo, name, &sha1)?;
-    println!("Created branch '{}' at {}", name, &sha1[..7.min(sha1.len())]);
+    println!(
+        "Created branch '{}' at {}",
+        name,
+        &sha1[..7.min(sha1.len())]
+    );
     Ok(())
 }
 
@@ -54,11 +58,7 @@ fn delete_branch_action(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 不允许删除当前所在分支
     if current.as_deref() == Some(name) {
-        return Err(format!(
-            "Cannot delete branch '{}' checked out at HEAD",
-            name
-        )
-        .into());
+        return Err(format!("Cannot delete branch '{}' checked out at HEAD", name).into());
     }
     refs::delete_branch(repo, name)?;
     println!("Deleted branch '{}'", name);

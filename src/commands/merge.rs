@@ -17,10 +17,7 @@ pub fn run(branch: &str) -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("Already on '{}'", branch).into());
     }
 
-    let author = format!(
-        "{} <{}> 0 +0000",
-        cfg.user_name, cfg.user_email
-    );
+    let author = format!("{} <{}> 0 +0000", cfg.user_name, cfg.user_email);
 
     merge::merge_branch(&repo_root, branch, &author, &author)
 }

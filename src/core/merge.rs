@@ -2,7 +2,7 @@ use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
 use crate::core::{index, refs, storage};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
 
@@ -29,20 +29,35 @@ pub fn merge_branch(
     // Fast-forward: HEAD 是 target 的祖先
     if base_sha == head_sha {
         println!("Fast-forward");
+        // 记录当前工作目录中已跟踪的文件
+        let old_index = index::Index::load(repo)?;
+        let old_tracked: BTreeSet<String> = old_index.entries.keys().cloned().collect();
+
         // 更新当前分支 ref 指向 target SHA
         let current_branch = refs::get_current_branch(repo)?;
         if let Some(current) = &current_branch {
-            refs::write_ref(
-                repo,
-                &format!("refs/heads/{}", current),
-                &target_sha,
-            )?;
+            refs::write_ref(repo, &format!("refs/heads/{}", current), &target_sha)?;
         }
         // 重建工作目录到 target commit 的 tree
         let (_, body) = storage::read_object(repo, &target_sha)?;
         let commit_data = with_header("commit", &body);
         let commit = Commit::deserialize(&commit_data)?;
         restore_working_tree(repo, &commit.tree)?;
+
+        // 收集目标树中所有文件
+        let new_tracked = collect_tree_paths(repo, &commit.tree, Path::new(""))?;
+
+        // 清理旧索引中存在但新树中不存在的文件
+        for path in old_tracked.iter() {
+            if !new_tracked.contains(path) {
+                let file_path = repo.join(path);
+                if file_path.is_file() || file_path.is_symlink() {
+                    let _ = fs::remove_file(&file_path);
+                }
+            }
+        }
+        let _ = remove_empty_dirs(repo, Path::new(""));
+
         println!("Updated to {}", &target_sha[..7]);
         return Ok(());
     }
@@ -56,7 +71,10 @@ pub fn merge_branch(
         // 写 MERGE_HEAD 标记
         let git_dir = repo.join(".git");
         fs::write(git_dir.join("MERGE_HEAD"), format!("{}\n", target_sha))?;
-        fs::write(git_dir.join("MERGE_MSG"), format!("Merge branch '{}'\n", branch_name))?;
+        fs::write(
+            git_dir.join("MERGE_MSG"),
+            format!("Merge branch '{}'\n", branch_name),
+        )?;
         return Ok(());
     }
 
@@ -169,7 +187,11 @@ fn three_way_merge(
 
     let all_paths: BTreeMap<String, bool> = {
         let mut paths = BTreeMap::new();
-        for p in base_files.keys().chain(ours_files.keys()).chain(theirs_files.keys()) {
+        for p in base_files
+            .keys()
+            .chain(ours_files.keys())
+            .chain(theirs_files.keys())
+        {
             paths.insert(p.clone(), true);
         }
         paths
@@ -313,10 +335,7 @@ fn create_conflict_marker(
     ours_sha: Option<&str>,
     theirs_sha: Option<&str>,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    fn read_file_content(
-        repo: &Path,
-        sha_opt: Option<&str>,
-    ) -> Vec<u8> {
+    fn read_file_content(repo: &Path, sha_opt: Option<&str>) -> Vec<u8> {
         if let Some(sha) = sha_opt {
             if let Ok((_, body)) = storage::read_object(repo, sha) {
                 let blob_data = with_header("blob", &body);
@@ -353,6 +372,58 @@ fn with_header(obj_type: &str, body: &[u8]) -> Vec<u8> {
     data.extend_from_slice(header.as_bytes());
     data.extend_from_slice(body);
     data
+}
+
+/// 递归收集树中所有文件路径。
+fn collect_tree_paths(
+    repo: &Path,
+    tree_sha: &str,
+    prefix: &Path,
+) -> Result<BTreeSet<String>, Box<dyn std::error::Error>> {
+    let mut paths = BTreeSet::new();
+    let (_, body) = match storage::read_object(repo, tree_sha) {
+        Ok(v) => v,
+        Err(_) => return Ok(paths),
+    };
+    let tree_data = with_header("tree", &body);
+    let tree = Tree::deserialize(&tree_data)?;
+
+    for entry in &tree.entries {
+        let entry_path = prefix.join(&entry.name);
+        let path_str = entry_path.to_string_lossy().to_string();
+
+        if entry.mode == "40000" {
+            let sub = collect_tree_paths(repo, &entry.sha1, &entry_path)?;
+            paths.extend(sub);
+        } else {
+            paths.insert(path_str);
+        }
+    }
+    Ok(paths)
+}
+
+/// 递归清理空目录。
+fn remove_empty_dirs(repo: &Path, dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let full = repo.join(dir);
+    if !full.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(&full)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            let relative = path.strip_prefix(repo).unwrap_or(&path);
+            remove_empty_dirs(repo, relative)?;
+        }
+    }
+    if full
+        .read_dir()
+        .map(|mut d| d.next().is_none())
+        .unwrap_or(false)
+    {
+        let _ = fs::remove_dir(&full);
+    }
+    Ok(())
 }
 
 fn restore_working_tree(repo: &Path, tree_sha: &str) -> Result<(), Box<dyn std::error::Error>> {
