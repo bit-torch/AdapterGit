@@ -25,7 +25,13 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn new(object: &str, object_type: &str, tag_name: &str, tagger: &str, message: &str) -> Self {
+    pub fn new(
+        object: &str,
+        object_type: &str,
+        tag_name: &str,
+        tagger: &str,
+        message: &str,
+    ) -> Self {
         Tag {
             object: object.to_string(),
             object_type: object_type.to_string(),

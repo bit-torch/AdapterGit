@@ -83,11 +83,7 @@ pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Err
 
 /// 创建轻量标签（直接指向某个 commit SHA-1）。
 #[allow(dead_code)]
-pub fn create_tag(
-    repo: &Path,
-    name: &str,
-    sha1: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn create_tag(repo: &Path, name: &str, sha1: &str) -> Result<(), Box<dyn std::error::Error>> {
     write_ref(repo, &format!("refs/tags/{}", name), sha1)
 }
 
@@ -100,8 +96,7 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
     }
 
     let mut tags = Vec::new();
-    let entries =
-        fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
+    let entries = fs::read_dir(&tags_dir).map_err(|e| format!("Failed to read tags dir: {}", e))?;
 
     for entry in entries {
         let entry = entry?;
