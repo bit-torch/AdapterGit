@@ -49,6 +49,7 @@ impl Commit {
         data
     }
 
+    #[allow(dead_code)]
     pub fn serialize(&self) -> Vec<u8> {
         let raw = self.serialize_raw();
         let header = format!("commit {}\0", raw.len());

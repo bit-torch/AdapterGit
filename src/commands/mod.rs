@@ -1,4 +1,5 @@
 pub mod add;
+pub mod cat_file;
 pub mod clone;
 pub mod commit;
 pub mod diff;

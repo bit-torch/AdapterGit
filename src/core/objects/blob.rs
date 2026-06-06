@@ -9,6 +9,7 @@ impl Blob {
         Blob { content }
     }
 
+    #[allow(dead_code)]
     pub fn size(&self) -> usize {
         self.content.len()
     }
@@ -17,6 +18,7 @@ impl Blob {
         hash_git_object("blob", &self.content)
     }
 
+    #[allow(dead_code)]
     pub fn serialize(&self) -> Vec<u8> {
         let header = format!("blob {}\0", self.content.len());
         let mut data = Vec::with_capacity(header.len() + self.content.len());
@@ -25,6 +27,7 @@ impl Blob {
         data
     }
 
+    #[allow(dead_code)]
     pub fn deserialize(data: &[u8]) -> Result<Self, Box<dyn std::error::Error>> {
         let null_pos = data
             .iter()

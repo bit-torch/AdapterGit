@@ -48,10 +48,12 @@ impl Index {
         );
     }
 
+    #[allow(dead_code)]
     pub fn remove_entry(&mut self, path: &str) {
         self.entries.remove(path);
     }
 
+    #[allow(dead_code)]
     pub fn get_entry(&self, path: &str) -> Option<&IndexEntry> {
         self.entries.get(path)
     }

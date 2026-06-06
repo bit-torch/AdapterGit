@@ -17,10 +17,12 @@ pub fn set_no_color(v: bool) {
     NO_COLOR.store(v, Ordering::SeqCst);
 }
 
+#[allow(dead_code)]
 pub fn is_json() -> bool {
     JSON_MODE.load(Ordering::SeqCst)
 }
 
+#[allow(dead_code)]
 pub fn is_yaml() -> bool {
     YAML_MODE.load(Ordering::SeqCst)
 }
@@ -37,6 +39,7 @@ pub fn colorize(text: &str, code: &str) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub fn print_structured<T: Serialize>(data: &T) {
     if is_json() {
         if let Ok(json) = serde_json::to_string_pretty(data) {
@@ -49,6 +52,7 @@ pub fn print_structured<T: Serialize>(data: &T) {
     }
 }
 
+#[allow(dead_code)]
 pub fn print_lines_json(lines: &[(&str, &str)]) {
     if !is_json() {
         return;

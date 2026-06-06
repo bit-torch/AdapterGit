@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum AgitError {
     Io(std::io::Error),
     ObjectNotFound(String),

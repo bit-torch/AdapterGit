@@ -10,6 +10,7 @@ pub fn is_ai_mode() -> bool {
     AI_MODE.load(Ordering::SeqCst)
 }
 
+#[allow(dead_code)]
 pub fn ai_commit_marker() -> &'static str {
     if is_ai_mode() {
         "[AI-committed] "
@@ -18,4 +19,5 @@ pub fn ai_commit_marker() -> &'static str {
     }
 }
 
+#[allow(dead_code)]
 pub const DANGEROUS_COMMANDS: &[&str] = &["mergetool", "rebase", "bisect"];

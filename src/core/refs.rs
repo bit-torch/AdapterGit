@@ -52,6 +52,7 @@ pub fn write_ref(repo: &Path, name: &str, sha1: &str) -> Result<(), Box<dyn std:
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn create_branch(
     repo: &Path,
     name: &str,
@@ -60,6 +61,7 @@ pub fn create_branch(
     write_ref(repo, &format!("refs/heads/{}", name), sha1)
 }
 
+#[allow(dead_code)]
 pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let heads_dir = refs_dir(repo).join("refs").join("heads");
     if !heads_dir.exists() {

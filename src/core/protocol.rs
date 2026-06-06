@@ -47,6 +47,7 @@ pub fn pkt_line_flush() -> Vec<u8> {
     b"0000".to_vec()
 }
 
+#[allow(dead_code)]
 pub fn pkt_line_decode(line: &[u8]) -> Option<Vec<u8>> {
     if line.len() < 4 {
         return None;
@@ -114,6 +115,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
         obj_start: usize,
         obj_type: u8,
         decompressed: Vec<u8>,
+        #[allow(dead_code)]
         consumed: usize,
     }
 
@@ -503,7 +505,7 @@ impl HttpTransport {
         let mut body = Vec::new();
         let report_cap = "report-status side-band-64k agent=agit/0.1.0";
         body.extend_from_slice(&pkt_line_encode(
-            format!("{} {}\0{}\n", ref_update, ref_update, report_cap).as_bytes(),
+            format!("{}\0{}\n", ref_update, report_cap).as_bytes(),
         ));
         body.extend_from_slice(&pkt_line_flush());
         body.extend_from_slice(pack_data);
