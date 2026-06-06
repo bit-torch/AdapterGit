@@ -84,7 +84,10 @@ impl Index {
             let sha1_bytes = hex_to_bytes(&entry.sha1);
             data.extend_from_slice(&sha1_bytes);
 
-            data.extend_from_slice(&entry.flags.to_be_bytes());
+            // DIRC v2+ 扩展标志位 (bit 13 = 0x2000) 必须置 1，
+            // 表示紧随 path 之后有扩展 mode 字段。
+            let flags = entry.flags | 0x2000;
+            data.extend_from_slice(&flags.to_be_bytes());
 
             let padded_mode = format!("{:0>6}", entry.mode);
             data.extend_from_slice(padded_mode.as_bytes());
@@ -231,5 +234,38 @@ mod tests {
         assert_eq!(deserialized.entries.len(), 2);
         assert!(deserialized.get_entry("hello.txt").is_some());
         assert!(deserialized.get_entry("world.txt").is_some());
+    }
+
+    #[test]
+    fn test_index_extended_bit() {
+        // 验证序列化后的 flags 包含 DIRC v2 扩展标志位 0x2000
+        let mut index = Index::new();
+        index.add_entry(
+            "100644",
+            "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
+            "hello.txt",
+        );
+        let data = index.serialize();
+
+        // entry 从 data[12] 开始
+        // stat data: 40 bytes → offset = 12
+        // SHA-1: 20 bytes → offset = 12 + 40 = 52
+        // flags: 2 bytes → offset = 12 + 40 + 20 = 72
+        let flags_offset = 72;
+        let flags = u16::from_be_bytes([
+            data[flags_offset],
+            data[flags_offset + 1],
+        ]);
+
+        // 扩展标志位 (bit 13 = 0x2000) 必须置 1
+        assert!(
+            flags & 0x2000 != 0,
+            "DIRC v2 extended bit not set: flags = 0x{:04x}",
+            flags
+        );
+
+        // 路径长度从低 12 位提取
+        let name_len = flags & 0x0FFF;
+        assert_eq!(name_len, 9); // "hello.txt" = 9 chars
     }
 }

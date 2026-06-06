@@ -31,8 +31,24 @@ impl Tree {
     }
 
     pub fn serialize_raw(&self) -> Vec<u8> {
+        let mut sorted: Vec<&TreeEntry> = self.entries.iter().collect();
+        // Git tree 条目排序规则：按名称字典序，目录名末尾追加 "/" 参与比较
+        sorted.sort_by(|a, b| {
+            let a_key = if a.mode == "40000" {
+                format!("{}/", a.name)
+            } else {
+                a.name.clone()
+            };
+            let b_key = if b.mode == "40000" {
+                format!("{}/", b.name)
+            } else {
+                b.name.clone()
+            };
+            a_key.cmp(&b_key)
+        });
+
         let mut data = Vec::new();
-        for entry in &self.entries {
+        for entry in sorted {
             data.extend_from_slice(format!("{} {}\0", entry.mode, entry.name).as_bytes());
             let sha1_bytes = hex_to_bytes(&entry.sha1);
             data.extend_from_slice(&sha1_bytes);
@@ -183,5 +199,74 @@ mod tests {
         assert_eq!(deserialized.entries.len(), 1);
         assert_eq!(deserialized.entries[0].mode, "40000");
         assert_eq!(deserialized.entries[0].name, "subdir");
+    }
+
+    #[test]
+    fn test_tree_sorting_order() {
+        // 验证按 Git 规范排序：目录名末尾追加 "/"
+        let mut tree = Tree::new();
+        // 故意逆序插入
+        tree.add_entry(
+            "100644",
+            "z.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+        );
+        tree.add_entry(
+            "40000",
+            "dir",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+        );
+        tree.add_entry(
+            "100644",
+            "dir-a",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa3",
+        );
+        tree.add_entry(
+            "100644",
+            "a.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4",
+        );
+
+        let data = tree.serialize_raw();
+        let deserialized = Tree::deserialize(
+            &crate::core::objects::format_object_data("tree", &data),
+        )
+        .unwrap();
+
+        // 期望排序: a.txt, dir-a, dir (目录末尾有 "/"，排在 dir-a 之后), z.txt
+        assert_eq!(deserialized.entries[0].name, "a.txt");
+        assert_eq!(deserialized.entries[1].name, "dir-a");
+        assert_eq!(deserialized.entries[2].name, "dir");
+        assert_eq!(deserialized.entries[3].name, "z.txt");
+    }
+
+    #[test]
+    fn test_tree_sorting_consistent_hash() {
+        // 不同插入顺序产生相同的 hash
+        let mut tree1 = Tree::new();
+        tree1.add_entry(
+            "100644",
+            "b.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+        );
+        tree1.add_entry(
+            "100644",
+            "a.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+        );
+
+        let mut tree2 = Tree::new();
+        tree2.add_entry(
+            "100644",
+            "a.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2",
+        );
+        tree2.add_entry(
+            "100644",
+            "b.txt",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1",
+        );
+
+        assert_eq!(tree1.hash(), tree2.hash());
     }
 }

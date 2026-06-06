@@ -270,20 +270,29 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
     Ok(resolved.into_iter().map(|(s, d, _)| (s, d)).collect())
 }
 
+/// Git 有偏 MSB-first 变长整数解码。
+///
+/// 与 C git 的 `decode_varint` 保持一致：
+/// ```c
+/// val = c & 127;
+/// while (c & 128) { val++; c = *buf++; val = (val << 7) + (c & 127); }
+/// ```
 fn decode_varint(data: &[u8]) -> (u64, usize) {
-    let mut value: u64 = 0;
-    let mut shift = 0;
+    if data.is_empty() {
+        return (0, 0);
+    }
     let mut pos = 0;
-    while pos < data.len() {
-        let byte = data[pos];
-        pos += 1;
-        let lower_7 = (byte & 0x7F) as u64;
-        value |= lower_7 << shift;
-        shift += 7;
-        if byte & 0x80 == 0 {
+    let mut byte = data[pos];
+    pos += 1;
+    let mut value: u64 = (byte & 0x7F) as u64;
+    while byte & 0x80 != 0 {
+        if pos >= data.len() {
             break;
         }
-        value += 1 << shift;
+        value += 1;
+        byte = data[pos];
+        pos += 1;
+        value = (value << 7) | ((byte & 0x7F) as u64);
     }
     (value, pos)
 }
@@ -630,4 +639,46 @@ fn find_pack_start(data: &[u8]) -> usize {
         }
     }
     data.len()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_varint_one_byte() {
+        // 0x01 → 1
+        let (val, consumed) = decode_varint(&[0x01]);
+        assert_eq!(val, 1);
+        assert_eq!(consumed, 1);
+    }
+
+    #[test]
+    fn test_decode_varint_value_128() {
+        // Git encodes 128 as [0x80, 0x00]
+        let (val, _) = decode_varint(&[0x80, 0x00]);
+        assert_eq!(val, 128, "128: expected 128, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_129() {
+        // Git encodes 129 as [0x80, 0x01]
+        let (val, _) = decode_varint(&[0x80, 0x01]);
+        assert_eq!(val, 129, "129: expected 129, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_300() {
+        // Git encodes 300 as [0x81, 0x2C]
+        // 300 = 2*128 + 44; encode: first=0x81(1|128), last=0x2C(44)
+        let (val, _) = decode_varint(&[0x81, 0x2C]);
+        assert_eq!(val, 300, "300: expected 300, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_16384() {
+        // 16384 = 128*128; Git encodes as [0xFF, 0x00]
+        let (val, _) = decode_varint(&[0xFF, 0x00]);
+        assert_eq!(val, 16384, "16384: expected 16384, got {}", val);
+    }
 }
