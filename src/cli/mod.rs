@@ -32,6 +32,18 @@ pub enum Commands {
         files: Vec<String>,
     },
 
+    #[command(about = "List, create, or delete branches")]
+    Branch {
+        #[arg(short, long = "list", help = "List branches (default)")]
+        list: bool,
+
+        #[arg(short = 'c', long = "create", help = "Create a new branch")]
+        create: Option<String>,
+
+        #[arg(short = 'd', long = "delete", help = "Delete a branch")]
+        delete: Option<String>,
+    },
+
     #[command(about = "Record changes to the repository")]
     Commit {
         #[arg(short = 'm', long, help = "Commit message")]
@@ -41,11 +53,23 @@ pub enum Commands {
         ai: bool,
     },
 
+    #[command(about = "Switch branches or restore working tree files")]
+    Checkout {
+        #[arg(help = "Branch name to switch to")]
+        branch: String,
+    },
+
     #[command(about = "Show working tree status")]
     Status,
 
     #[command(about = "Show commit logs")]
     Log,
+
+    #[command(about = "Join two or more development histories together")]
+    Merge {
+        #[arg(help = "Branch to merge into current branch")]
+        branch: String,
+    },
 
     #[command(about = "Clone a repository into a new directory")]
     Clone {

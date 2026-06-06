@@ -31,9 +31,16 @@ fn main() {
         }
         Some(Commands::Init) => commands::init::run(),
         Some(Commands::Add { files }) => commands::add::run(files),
+        Some(Commands::Branch {
+            list,
+            create,
+            delete,
+        }) => commands::branch::run(*list, create.clone(), delete.clone()),
         Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
+        Some(Commands::Checkout { branch }) => commands::checkout::run(branch),
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Log) => commands::log::run(),
+        Some(Commands::Merge { branch }) => commands::merge::run(branch),
         Some(Commands::Clone { url }) => commands::clone::run(url),
         Some(Commands::CatFile {
             show_type,

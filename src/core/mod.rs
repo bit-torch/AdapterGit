@@ -1,6 +1,8 @@
+pub mod checkout;
 pub mod compression;
 pub mod hash;
 pub mod index;
+pub mod merge;
 pub mod objects;
 pub mod protocol;
 pub mod refs;

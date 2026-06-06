@@ -1,5 +1,7 @@
 pub mod add;
+pub mod branch;
 pub mod cat_file;
+pub mod checkout;
 pub mod clone;
 pub mod commit;
 pub mod diff;
@@ -7,6 +9,7 @@ pub mod fetch;
 pub mod init;
 pub mod log;
 pub mod ls_tree;
+pub mod merge;
 pub mod pull;
 pub mod push;
 pub mod remote;
