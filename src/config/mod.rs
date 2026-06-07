@@ -126,9 +126,14 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
+    use std::sync::Mutex;
+
+    /// 串行化 config 测试，防止并行运行时 env var 互相污染。
+    static CONFIG_TEST_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_default_config() {
+        let _guard = CONFIG_TEST_LOCK.lock().unwrap();
         // 清除可能影响测试的环境变量
         env::remove_var("AGIT_USER_NAME");
         env::remove_var("AGIT_USER_EMAIL");
@@ -140,6 +145,7 @@ mod tests {
 
     #[test]
     fn test_config_from_file() {
+        let _guard = CONFIG_TEST_LOCK.lock().unwrap();
         env::remove_var("AGIT_USER_NAME");
         env::remove_var("AGIT_USER_EMAIL");
         let dir = std::env::temp_dir().join(format!("agit_test_config_{}", std::process::id()));
@@ -165,6 +171,7 @@ email = "test@example.com"
 
     #[test]
     fn test_config_aliases() {
+        let _guard = CONFIG_TEST_LOCK.lock().unwrap();
         env::remove_var("AGIT_USER_NAME");
         env::remove_var("AGIT_USER_EMAIL");
         let dir = std::env::temp_dir().join(format!("agit_test_aliases_{}", std::process::id()));
@@ -190,6 +197,7 @@ br = "branch"
 
     #[test]
     fn test_config_partial() {
+        let _guard = CONFIG_TEST_LOCK.lock().unwrap();
         env::remove_var("AGIT_USER_NAME");
         env::remove_var("AGIT_USER_EMAIL");
         let dir = std::env::temp_dir().join(format!("agit_test_partial_{}", std::process::id()));
@@ -215,6 +223,7 @@ name = "Partial User"
 
     #[test]
     fn test_config_env_override() {
+        let _guard = CONFIG_TEST_LOCK.lock().unwrap();
         env::remove_var("AGIT_USER_NAME");
         env::remove_var("AGIT_USER_EMAIL");
         let dir = std::env::temp_dir().join(format!("agit_test_env_{}", std::process::id()));

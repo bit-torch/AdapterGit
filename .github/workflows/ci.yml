@@ -2,10 +2,10 @@ name: CI
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ["main", "feat/*", "fix/*"]
     tags: ["v*"]
   pull_request:
-    branches: ["main", "master"]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -14,48 +14,81 @@ permissions:
   contents: write
 
 jobs:
+  # ── 代码风格 & 静态检查 (单平台即可) ──
   check:
     name: Code Style
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
       - run: cargo fmt -- --check
 
   clippy:
     name: Clippy Lints
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
-  test:
-    name: Tests
-    runs-on: windows-latest
+  # ── 测试 (Linux + Windows) ──
+  test-linux:
+    name: Tests (Linux)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --verbose
+      - run: cargo test --verbose --all-features
 
-  build-release:
-    name: Build Release
+  test-windows:
+    name: Tests (Windows)
     runs-on: windows-latest
-    needs: [check, clippy, test]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build
-        run: cargo build --release --verbose
-      - name: Package
-        shell: pwsh
+      - run: cargo test --verbose --all-features
+
+  # ── Release 构建 (双平台) ──
+  build-linux:
+    name: Build Release (Linux)
+    runs-on: ubuntu-latest
+    needs: [check, clippy, test-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release --verbose
+      - run: |
+          mkdir release
+          cp target/release/agit release/agit
+          cp LICENSE release/LICENSE
+          tar -czf agit-linux-x86_64.tar.gz -C release .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-linux-x86_64
+          path: agit-linux-x86_64.tar.gz
+          retention-days: 30
+
+  build-windows:
+    name: Build Release (Windows)
+    runs-on: windows-latest
+    needs: [check, clippy, test-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release --verbose
+      - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
           Copy-Item target/release/agit.exe release/agit.exe
           Copy-Item LICENSE release/LICENSE
           Compress-Archive -Path release/* -DestinationPath agit-windows-x86_64.zip -Force
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: agit-windows-x86_64
           path: agit-windows-x86_64.zip
@@ -63,16 +96,19 @@ jobs:
 
   release:
     name: GitHub Release
-    runs-on: windows-latest
-    needs: [build-release]
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-windows]
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-linux-x86_64
+      - uses: actions/download-artifact@v4
         with:
           name: agit-windows-x86_64
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
-          files: agit-windows-x86_64.zip
+          files: |
+            agit-linux-x86_64.tar.gz
+            agit-windows-x86_64.zip
           generate_release_notes: true

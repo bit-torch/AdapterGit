@@ -64,27 +64,66 @@ pub fn pkt_line_decode(line: &[u8]) -> Option<Vec<u8>> {
 }
 
 pub fn parse_refs_data(data: &[u8]) -> Vec<(String, String)> {
-    let text = String::from_utf8_lossy(data);
     let mut refs = Vec::new();
-    for line in text.lines() {
-        let line = line.trim();
-        if line.is_empty() {
+    let mut pos = 0;
+    while pos + 4 <= data.len() {
+        let len_str = match std::str::from_utf8(&data[pos..pos + 4]) {
+            Ok(s) => s,
+            Err(_) => break,
+        };
+        let len = match u16::from_str_radix(len_str, 16) {
+            Ok(l) => l as usize,
+            Err(_) => break,
+        };
+        if len == 0 {
+            pos += 4;
             continue;
         }
-        if let Some(pkt) = parse_pkt_line(line) {
-            if pkt.is_empty() {
-                continue;
-            }
-            let pkt_str = String::from_utf8_lossy(&pkt);
-            let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
-            if parts.len() >= 2 && parts[0].len() == 40 {
-                refs.push((parts[0].to_string(), parts[1].to_string()));
-            }
+        if pos + len > data.len() {
+            break;
         }
+        // data portion is between 4-byte header and trailing \n or \r\n
+        let end = {
+            let raw_end = pos + len;
+            if data[raw_end - 1] == b'\n' {
+                if raw_end > pos + 5 && data[raw_end - 2] == b'\r' {
+                    raw_end - 2
+                } else {
+                    raw_end - 1
+                }
+            } else {
+                raw_end
+            }
+        };
+        let pkt_data = &data[pos + 4..end];
+        let pkt_str = String::from_utf8_lossy(pkt_data);
+        eprintln!(
+            "DEBUG pkt-line: len={}, str={}",
+            len,
+            &pkt_str[..pkt_str.len().min(80)]
+        );
+        // skip capability advertisement lines (# service=...)
+        if pkt_str.starts_with('#') {
+            pos += len;
+            continue;
+        }
+        let parts: Vec<&str> = pkt_str.splitn(2, ' ').collect();
+        if parts.len() >= 2 && parts[0].len() == 40 {
+            eprintln!("DEBUG parsed ref: {} -> {}", parts[0], parts[1]);
+            // Handle capability advertisement: "refname\0capabilities"
+            let ref_name = if let Some(stripped) = parts[1].split('\0').next() {
+                stripped.to_string()
+            } else {
+                parts[1].to_string()
+            };
+            refs.push((parts[0].to_string(), ref_name));
+        }
+        pos += len;
     }
     refs
 }
 
+#[allow(dead_code)]
 fn parse_pkt_line(line: &str) -> Option<Vec<u8>> {
     if line.len() < 4 {
         return None;
@@ -239,20 +278,29 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
     Ok(resolved.into_iter().map(|(s, d, _)| (s, d)).collect())
 }
 
+/// Git 有偏 MSB-first 变长整数解码。
+///
+/// 与 C git 的 `decode_varint` 保持一致：
+/// ```c
+/// val = c & 127;
+/// while (c & 128) { val++; c = *buf++; val = (val << 7) + (c & 127); }
+/// ```
 fn decode_varint(data: &[u8]) -> (u64, usize) {
-    let mut value: u64 = 0;
-    let mut shift = 0;
+    if data.is_empty() {
+        return (0, 0);
+    }
     let mut pos = 0;
-    while pos < data.len() {
-        let byte = data[pos];
-        pos += 1;
-        let lower_7 = (byte & 0x7F) as u64;
-        value |= lower_7 << shift;
-        shift += 7;
-        if byte & 0x80 == 0 {
+    let mut byte = data[pos];
+    pos += 1;
+    let mut value: u64 = (byte & 0x7F) as u64;
+    while byte & 0x80 != 0 {
+        if pos >= data.len() {
             break;
         }
-        value += 1 << shift;
+        value += 1;
+        byte = data[pos];
+        pos += 1;
+        value = (value << 7) | ((byte & 0x7F) as u64);
     }
     (value, pos)
 }
@@ -433,7 +481,12 @@ impl HttpTransport {
         if status != 200 {
             return Err(format!("HTTP {}: refs discovery failed", status).into());
         }
-        Ok(parse_refs_data(&body))
+        let refs = parse_refs_data(&body);
+        eprintln!("DEBUG discover_refs: parsed {} refs", refs.len());
+        for (sha, name) in &refs {
+            eprintln!("  {} -> {}", &sha[..7], name);
+        }
+        Ok(refs)
     }
 
     pub fn clone_full(&self, want_sha1: &str) -> Result<ObjectList, Box<dyn std::error::Error>> {
@@ -548,8 +601,43 @@ fn parse_http_response(data: &[u8]) -> Result<(u16, Vec<u8>), Box<dyn std::error
         .map(|p| p + 4)
         .unwrap_or(data.len());
 
-    let body = data[header_end..].to_vec();
+    let mut body = data[header_end..].to_vec();
+
+    // Dechunk if transfer-encoding is chunked
+    if body.len() > 2 && body[0].is_ascii_hexdigit() {
+        if let Some(dechunked) = dechunk_body(&body) {
+            body = dechunked;
+        }
+    }
+
     Ok((status, body))
+}
+
+/// Dechunk a Transfer-Encoding: chunked response body.
+/// Format: {hex-size}\r\n{data}\r\n...0\r\n\r\n
+fn dechunk_body(body: &[u8]) -> Option<Vec<u8>> {
+    let mut result = Vec::new();
+    let mut pos = 0;
+    while pos < body.len() {
+        // Find end of hex size line
+        let crlf = body[pos..].windows(2).position(|w| w == b"\r\n")?;
+        let size_str = std::str::from_utf8(&body[pos..pos + crlf]).ok()?;
+        let size = usize::from_str_radix(size_str, 16).ok()?;
+        pos += crlf + 2;
+        if size == 0 {
+            break;
+        }
+        if pos + size > body.len() {
+            return None;
+        }
+        result.extend_from_slice(&body[pos..pos + size]);
+        pos += size;
+        // Skip trailing \r\n
+        if pos + 2 <= body.len() && &body[pos..pos + 2] == b"\r\n" {
+            pos += 2;
+        }
+    }
+    Some(result)
 }
 
 fn find_pack_start(data: &[u8]) -> usize {
@@ -559,4 +647,46 @@ fn find_pack_start(data: &[u8]) -> usize {
         }
     }
     data.len()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_decode_varint_one_byte() {
+        // 0x01 → 1
+        let (val, consumed) = decode_varint(&[0x01]);
+        assert_eq!(val, 1);
+        assert_eq!(consumed, 1);
+    }
+
+    #[test]
+    fn test_decode_varint_value_128() {
+        // Git encodes 128 as [0x80, 0x00]
+        let (val, _) = decode_varint(&[0x80, 0x00]);
+        assert_eq!(val, 128, "128: expected 128, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_129() {
+        // Git encodes 129 as [0x80, 0x01]
+        let (val, _) = decode_varint(&[0x80, 0x01]);
+        assert_eq!(val, 129, "129: expected 129, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_300() {
+        // Git encodes 300 as [0x81, 0x2C]
+        // 300 = 2*128 + 44; encode: first=0x81(1|128), last=0x2C(44)
+        let (val, _) = decode_varint(&[0x81, 0x2C]);
+        assert_eq!(val, 300, "300: expected 300, got {}", val);
+    }
+
+    #[test]
+    fn test_decode_varint_value_16384() {
+        // 16384 = 128*128; Git encodes as [0xFF, 0x00]
+        let (val, _) = decode_varint(&[0xFF, 0x00]);
+        assert_eq!(val, 16384, "16384: expected 16384, got {}", val);
+    }
 }

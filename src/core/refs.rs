@@ -61,6 +61,34 @@ pub fn create_branch(
     write_ref(repo, &format!("refs/heads/{}", name), sha1)
 }
 
+/// 获取当前分支名称（返回 "main" 等，detached HEAD 返回 None）。
+pub fn get_current_branch(repo: &Path) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let head_path = head_file(repo);
+    if !head_path.exists() {
+        return Ok(None);
+    }
+    let content =
+        fs::read_to_string(&head_path).map_err(|e| format!("Failed to read HEAD: {}", e))?;
+    let content = content.trim();
+    if let Some(ref_path) = content.strip_prefix("ref: refs/heads/") {
+        Ok(Some(ref_path.trim().to_string()))
+    } else {
+        // detached HEAD (SHA-1) or unrecognized format
+        Ok(None)
+    }
+}
+
+/// 删除分支。
+#[allow(dead_code)]
+pub fn delete_branch(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let path = ref_path(repo, &format!("refs/heads/{}", name));
+    if !path.exists() {
+        return Err(format!("branch '{}' not found", name).into());
+    }
+    fs::remove_file(&path)?;
+    Ok(())
+}
+
 #[allow(dead_code)]
 pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let heads_dir = refs_dir(repo).join("refs").join("heads");
@@ -82,12 +110,14 @@ pub fn list_branches(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Err
 }
 
 /// 创建轻量标签（直接指向某个 commit SHA-1）。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn create_tag(repo: &Path, name: &str, sha1: &str) -> Result<(), Box<dyn std::error::Error>> {
     write_ref(repo, &format!("refs/tags/{}", name), sha1)
 }
 
 /// 列出所有轻量标签名称。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let tags_dir = refs_dir(repo).join("refs").join("tags");
@@ -108,6 +138,7 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
 }
 
 /// 删除标签。
+#[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn delete_tag(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let path = ref_path(repo, &format!("refs/tags/{}", name));
@@ -230,6 +261,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_create_and_list_tags() {
         let repo = setup_repo("taglist");
         setup_git_dir(&repo);
@@ -245,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_list_tags_empty() {
         let repo = setup_repo("emptytags");
         setup_git_dir(&repo);
@@ -256,6 +289,62 @@ mod tests {
     }
 
     #[test]
+    fn test_delete_branch() {
+        let repo = setup_repo("delbranch");
+        setup_git_dir(&repo);
+
+        create_branch(&repo, "topic", "abc123").unwrap();
+        assert_eq!(list_branches(&repo).unwrap().len(), 1);
+
+        delete_branch(&repo, "topic").unwrap();
+        assert!(list_branches(&repo).unwrap().is_empty());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_delete_branch_not_found() {
+        let repo = setup_repo("delnotfound");
+        setup_git_dir(&repo);
+
+        assert!(delete_branch(&repo, "nonexistent").is_err());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_get_current_branch() {
+        let repo = setup_repo("currentb");
+        setup_git_dir(&repo);
+
+        create_branch(&repo, "main", "abc123").unwrap();
+        fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+
+        let current = get_current_branch(&repo).unwrap();
+        assert_eq!(current, Some("main".to_string()));
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_get_current_branch_detached() {
+        let repo = setup_repo("detachedb");
+        setup_git_dir(&repo);
+
+        fs::write(
+            repo.join(".git/HEAD"),
+            "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n",
+        )
+        .unwrap();
+
+        let current = get_current_branch(&repo).unwrap();
+        assert_eq!(current, None);
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    #[cfg(feature = "tag")]
     fn test_delete_tag() {
         let repo = setup_repo("deltag");
         setup_git_dir(&repo);
@@ -270,6 +359,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "tag")]
     fn test_delete_nonexistent_tag() {
         let repo = setup_repo("delnonex");
         setup_git_dir(&repo);
