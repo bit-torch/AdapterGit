@@ -1,6 +1,6 @@
 # AdapterGit - Git for AI, not for editors
 
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/bit-torch/AdapterGit)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/bit-torch/AdapterGit)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![Static Binary](https://img.shields.io/badge/binary-static%20musl-green.svg)](https://github.com/bit-torch/AdapterGit/releases)
 
