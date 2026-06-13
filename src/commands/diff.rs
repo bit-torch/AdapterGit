@@ -8,10 +8,37 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(cached: bool, name_only: bool, commit1: Option<&str>, commit2: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
+
+    // 两个 commit 都指定 → 比较两个提交的 tree
+    if let (Some(c1), Some(c2)) = (commit1, commit2) {
+        let tree1 = resolve_to_tree(&repo_root, c1)?;
+        let tree2 = resolve_to_tree(&repo_root, c2)?;
+        let map1 = build_tree_map_from_tree(&repo_root, &tree1);
+        let map2 = build_tree_map_from_tree(&repo_root, &tree2);
+        return print_tree_diff(&repo_root, &map1, &map2, name_only, "a", "b");
+    }
+
+    // 仅一个 commit → 与工作区比较
+    if let Some(c) = commit1 {
+        let tree = resolve_to_tree(&repo_root, c)?;
+        let tree_map = build_tree_map_from_tree(&repo_root, &tree);
+        let index = Index::load(&repo_root)?;
+        return print_tree_vs_working(&repo_root, &tree_map, &index, name_only);
+    }
+
     let index = Index::load(&repo_root)?;
 
+    // --cached: HEAD vs index
+    if cached {
+        let head_sha1 = refs::read_head(&repo_root)?;
+        let head_tree_map = build_head_tree_map(&repo_root, &head_sha1);
+        let index_map = build_index_map(&repo_root, &index);
+        return print_tree_diff(&repo_root, &head_tree_map, &index_map, name_only, "a", "b");
+    }
+
+    // 默认：index vs working tree (已有逻辑)
     let head_sha1 = match refs::read_head(&repo_root) {
         Ok(sha1) => sha1,
         Err(_) => {
@@ -37,10 +64,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         if old_content != new_content {
-            let a_path = format!("a/{}", path);
-            let b_path = format!("b/{}", path);
-            let diff = generate_unified_diff(&a_path, &b_path, &old_content, &new_content);
-            diff_output.push(diff);
+            if name_only {
+                println!("{}", path);
+            } else {
+                let a_path = format!("a/{}", path);
+                let b_path = format!("b/{}", path);
+                let diff = generate_unified_diff(&a_path, &b_path, &old_content, &new_content);
+                diff_output.push((path.clone(), diff));
+            }
         }
     }
 
@@ -48,12 +79,16 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         if !index.entries.contains_key(path) {
             let full_path = repo_root.join(path);
             if !full_path.exists() {
-                let old_content =
-                    read_blob_content(&repo_root, &head_tree_map[path]).unwrap_or_default();
-                let a_path = format!("a/{}", path);
-                let b_path = format!("b/{}", path);
-                let diff = generate_unified_diff_deleted(&a_path, &b_path, &old_content);
-                diff_output.push(diff);
+                if name_only {
+                    println!("{}", path);
+                } else {
+                    let old_content =
+                        read_blob_content(&repo_root, &head_tree_map[path]).unwrap_or_default();
+                    let a_path = format!("a/{}", path);
+                    let b_path = format!("b/{}", path);
+                    let diff = generate_unified_diff_deleted(&a_path, &b_path, &old_content);
+                    diff_output.push((path.clone(), diff));
+                }
             }
         }
     }
@@ -62,10 +97,142 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    for diff in &diff_output {
+    for (_path, diff) in &diff_output {
         print!("{}", diff);
     }
 
+    Ok(())
+}
+
+/// 解析引用为 tree SHA。
+fn resolve_to_tree(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // 处理 ~N 后缀
+    let (base, n) = if let Some(tilde_pos) = spec.find('~') {
+        let n: usize = spec[tilde_pos + 1..].parse().unwrap_or(1);
+        (&spec[..tilde_pos], n)
+    } else {
+        (spec, 0)
+    };
+
+    let mut sha = resolve_single_ref(repo, base)?;
+    for _ in 0..n {
+        sha = get_parent(repo, &sha)?;
+    }
+    return commit_to_tree(repo, &sha);
+}
+
+fn resolve_single_ref(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error::Error>> {
+    if spec.len() == 40 && spec.chars().all(|c| c.is_ascii_hexdigit()) {
+        if storage::read_object(repo, spec).is_ok() {
+            return Ok(spec.to_string());
+        }
+    }
+    if spec == "HEAD" {
+        return refs::read_head(repo);
+    }
+    if let Ok(sha) = refs::read_ref(repo, &format!("refs/heads/{}", spec)) {
+        return Ok(sha);
+    }
+    if let Ok(sha) = refs::read_ref(repo, &format!("refs/tags/{}", spec)) {
+        return Ok(sha);
+    }
+    Err(format!("fatal: '{}' is not a valid tree/commit", spec).into())
+}
+
+/// 获取 commit 的 first parent。
+fn get_parent(repo: &Path, sha: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let (obj_type, content) = storage::read_object(repo, sha)?;
+    if obj_type != "commit" {
+        return Err(format!("object {} is not a commit", sha).into());
+    }
+    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let commit = Commit::deserialize(&commit_data)?;
+    commit.parents.first().cloned()
+        .ok_or_else(|| format!("commit {} has no parent", sha).into())
+}
+
+fn commit_to_tree(repo: &Path, commit_sha: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let (_, content) = storage::read_object(repo, commit_sha)?;
+    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let commit = Commit::deserialize(&commit_data)?;
+    Ok(commit.tree)
+}
+
+fn build_tree_map_from_tree(repo: &Path, tree_sha: &str) -> BTreeMap<String, String> {
+    let mut result = BTreeMap::new();
+    let _ = collect_tree_recursive(repo, tree_sha, "", &mut result);
+    result
+}
+
+fn build_index_map(_repo: &Path, index: &Index) -> BTreeMap<String, String> {
+    let mut result = BTreeMap::new();
+    for (path, entry) in &index.entries {
+        result.insert(path.clone(), entry.sha1.clone());
+    }
+    result
+}
+
+fn print_tree_diff(
+    repo: &Path,
+    map1: &BTreeMap<String, String>,
+    map2: &BTreeMap<String, String>,
+    name_only: bool,
+    label_a: &str,
+    label_b: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let all_keys: Vec<&String> = map1.keys().chain(map2.keys()).collect();
+    let mut seen = std::collections::BTreeSet::new();
+
+    for path in all_keys {
+        if seen.contains(path) { continue; }
+        seen.insert(path.clone());
+
+        let content1 = map1.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
+        let content2 = map2.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
+
+        if content1 != content2 {
+            if name_only {
+                println!("{}", path);
+            } else {
+                print!("{}", generate_unified_diff(
+                    &format!("{}/{}", label_a, path),
+                    &format!("{}/{}", label_b, path),
+                    &content1,
+                    &content2,
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn print_tree_vs_working(
+    repo: &Path,
+    tree_map: &BTreeMap<String, String>,
+    index: &Index,
+    name_only: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let all_keys: Vec<&String> = tree_map.keys().chain(index.entries.keys()).collect();
+    let mut seen = std::collections::BTreeSet::new();
+
+    for path in all_keys {
+        if seen.contains(path) { continue; }
+        seen.insert(path.clone());
+
+        let old_content = tree_map.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
+        let full_path = repo.join(path);
+        let new_content = if full_path.exists() { fs::read(&full_path).unwrap_or_default() } else { Vec::new() };
+
+        if old_content != new_content {
+            if name_only {
+                println!("{}", path);
+            } else {
+                print!("{}", generate_unified_diff(
+                    &format!("a/{}", path), &format!("b/{}", path), &old_content, &new_content,
+                ));
+            }
+        }
+    }
     Ok(())
 }
 

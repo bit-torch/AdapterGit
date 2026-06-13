@@ -29,6 +29,8 @@ fn main() {
             println!("Run 'agit --help' for usage information.");
             Ok(())
         }
+        Some(Commands::Rm { cached, files }) => commands::rm::run(*cached, files),
+        Some(Commands::Mv { source, dest }) => commands::mv::run(source, dest),
         Some(Commands::Init) => commands::init::run(),
         Some(Commands::Add { files }) => commands::add::run(files),
         Some(Commands::Config {
@@ -54,7 +56,11 @@ fn main() {
         Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
         Some(Commands::Checkout { branch, force }) => commands::checkout::run(branch, *force),
         Some(Commands::Status) => commands::status::run(),
-        Some(Commands::Log) => commands::log::run(),
+        Some(Commands::Log {
+            oneline,
+            max_count,
+            all,
+        }) => commands::log::run(*oneline, *max_count, *all),
         Some(Commands::Merge {
             branch,
             abort,
@@ -75,7 +81,12 @@ fn main() {
             commit,
             files,
         }) => commands::reset::run(*soft, *mixed, *hard, commit.as_deref(), files),
-        Some(Commands::Diff) => commands::diff::run(),
+        Some(Commands::Diff {
+            cached,
+            name_only,
+            commit1,
+            commit2,
+        }) => commands::diff::run(*cached, *name_only, commit1.as_deref(), commit2.as_deref()),
         Some(Commands::Fetch { url }) => commands::fetch::run(url.as_deref()),
         Some(Commands::Push { remote, branch }) => {
             commands::push::run(remote.as_deref(), branch.as_deref())

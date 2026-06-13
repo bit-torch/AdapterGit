@@ -23,6 +23,24 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    #[command(about = "Remove files from the working tree and index")]
+    Rm {
+        #[arg(long, help = "Only remove from index, keep working tree file")]
+        cached: bool,
+
+        #[arg(help = "Files to remove")]
+        files: Vec<String>,
+    },
+
+    #[command(about = "Move or rename a file in the working tree and index")]
+    Mv {
+        #[arg(help = "Source path")]
+        source: String,
+
+        #[arg(help = "Destination path")]
+        dest: String,
+    },
+
     #[command(about = "Initialize a new git repository")]
     Init,
 
@@ -91,7 +109,16 @@ pub enum Commands {
     Status,
 
     #[command(about = "Show commit logs")]
-    Log,
+    Log {
+        #[arg(long, help = "Show logs in one line format")]
+        oneline: bool,
+
+        #[arg(short = 'n', long, help = "Limit number of commits shown")]
+        max_count: Option<usize>,
+
+        #[arg(long, help = "Show all branches")]
+        all: bool,
+    },
 
     #[command(about = "Join two or more development histories together")]
     Merge {
@@ -166,7 +193,19 @@ pub enum Commands {
     },
 
     #[command(about = "Show changes between commits, commit and working tree, etc")]
-    Diff,
+    Diff {
+        #[arg(long, help = "Show staged changes (HEAD vs index)")]
+        cached: bool,
+
+        #[arg(long, help = "Show only filenames")]
+        name_only: bool,
+
+        #[arg(help = "First commit/tree to compare")]
+        commit1: Option<String>,
+
+        #[arg(help = "Second commit/tree to compare")]
+        commit2: Option<String>,
+    },
 
     #[command(about = "Download objects and refs from another repository")]
     Fetch {
