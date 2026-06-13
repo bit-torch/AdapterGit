@@ -54,11 +54,25 @@ utils/error.rs   → AgitError enum
 
 ## Rules
 
+### Branch & PR
+
 1. **main is protected** — never push directly to main. Create `feat/`, `fix/`, `docs/`, `chore/` branches and use PRs.
-2. **Every change is a commit** — one logical change per commit. Commit message in Conventional Commits format.
-3. **Tests required** — all new features must have integration tests. Run `cargo test` before pushing; 0 failures.
-4. **Clippy clean** — `cargo clippy` must produce 0 warnings before push.
-5. **Formatted** — `cargo fmt` must produce no diff before push.
-6. **No silent error swallowing** — use `?` or explicit `map_err` for file/IO operations. Do not use `unwrap_or_default()` to hide read errors.
-7. **Feature gate tag** — code under `#[cfg(feature = "tag")]` must compile with both `--features tag` and `--no-default-features`.
-8. **Windows compatibility** — use `std::fs` APIs (not `open`/`fcntl`), normalize paths with `replace('\\', '/')`.
+2. **Branch naming**: `feat/<name>`, `fix/<name>`, `docs/<name>`, `chore/<name>`.
+
+### Commit
+
+3. **Single Logical Change** — every commit must be one atomic, self-contained change. No "Fix stuff" or "Update code".
+4. **Multi-commit PR is OK** — splitting across commits is encouraged (e.g. `refactor:` → `feat:` → `test:`), but never squash unrelated changes into one.
+5. **Conventional Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Scope optional: `feat(core): ...`.
+
+### Quality Gate
+
+6. **Tests required** — new features must have unit + integration tests. `cargo test` must pass with 0 failures before push.
+7. **Clippy clean** — `cargo clippy` must produce 0 warnings before push.
+8. **Formatted** — `cargo fmt` must produce no diff before push.
+
+### Code
+
+9. **No silent error swallowing** — use `?` or explicit `map_err` for IO. Never `unwrap_or_default()` on file reads.
+10. **Feature gate tag** — `#[cfg(feature = "tag")]` code must compile with both `--features tag` and `--no-default-features`.
+11. **Windows compatibility** — use `std::fs` APIs, normalize paths with `replace('\\', '/')`.
