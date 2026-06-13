@@ -17,15 +17,18 @@ pub fn run(
     }
 
     // 默认：列出所有分支
-    list_branches_action(&repo_root, &current);
-    Ok(())
+    list_branches_action(&repo_root, &current)
 }
 
-fn list_branches_action(repo: &std::path::Path, current: &Option<String>) {
-    let branches = refs::list_branches(repo).unwrap_or_default();
+fn list_branches_action(
+    repo: &std::path::Path,
+    current: &Option<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let branches =
+        refs::list_branches(repo).map_err(|e| format!("Failed to list branches: {}", e))?;
     if branches.is_empty() {
         println!("(no branches)");
-        return;
+        return Ok(());
     }
     for b in &branches {
         if current.as_deref() == Some(b) {
@@ -34,6 +37,7 @@ fn list_branches_action(repo: &std::path::Path, current: &Option<String>) {
             println!("  {}", b);
         }
     }
+    Ok(())
 }
 
 fn create_branch_action(

@@ -14,7 +14,8 @@ pub fn run(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
 
-    let head_sha = refs::read_head(&repo_root).unwrap_or_default();
+    let head_sha =
+        refs::read_head(&repo_root).map_err(|e| format!("Failed to read HEAD: {}", e))?;
 
     // 如果指定了文件路径，执行 unstage 模式
     if !files.is_empty() {

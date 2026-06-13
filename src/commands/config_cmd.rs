@@ -44,7 +44,7 @@ fn resolve_config_path(global: bool) -> Result<PathBuf, Box<dyn std::error::Erro
 
 /// 列出所有配置项。
 fn list_config(config_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-    let table = read_toml(config_path);
+    let table = read_toml(config_path).unwrap_or_default();
     if table.is_empty() {
         // 即使文件不存在也输出默认配置的键值
         println!("user.name=agit");
@@ -70,7 +70,7 @@ fn list_config(config_path: &std::path::Path) -> Result<(), Box<dyn std::error::
 fn get_key(config_path: &std::path::Path, key: &str) -> Result<(), Box<dyn std::error::Error>> {
     let (section, field) = parse_key(key)?;
 
-    let table = read_toml(config_path);
+    let table = read_toml(config_path).unwrap_or_default();
     if let Some(section_val) = table.get(&section) {
         if let Some(inner) = section_val.as_table() {
             if let Some(val) = inner.get(&field) {
@@ -100,7 +100,7 @@ fn set_key(
     value: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (section, field) = parse_key(key)?;
-    let mut table = read_toml(config_path);
+    let mut table = read_toml(config_path)?;
 
     // 插入或更新 section.field = value
     let inner = table
@@ -117,7 +117,7 @@ fn set_key(
 /// 删除配置项。
 fn unset_key(config_path: &std::path::Path, key: &str) -> Result<(), Box<dyn std::error::Error>> {
     let (section, field) = parse_key(key)?;
-    let mut table = read_toml(config_path);
+    let mut table = read_toml(config_path)?;
 
     if let Some(section_val) = table.get_mut(&section) {
         if let Some(t) = section_val.as_table_mut() {
@@ -147,10 +147,19 @@ fn parse_key(key: &str) -> Result<(String, String), Box<dyn std::error::Error>> 
 }
 
 /// 读取 TOML 文件返回 table Map。
-fn read_toml(path: &std::path::Path) -> Map<String, toml::Value> {
+/// 文件不存在时返回空 Map；I/O 错误和 TOML 解析错误向上传播。
+fn read_toml(
+    path: &std::path::Path,
+) -> Result<Map<String, toml::Value>, Box<dyn std::error::Error>> {
     match fs::read_to_string(path) {
-        Ok(content) => toml::from_str(&content).unwrap_or_default(),
-        Err(_) => Map::new(),
+        Ok(content) => {
+            if content.trim().is_empty() {
+                return Ok(Map::new());
+            }
+            toml::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e).into())
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Map::new()),
+        Err(e) => Err(format!("Failed to read config file: {}", e).into()),
     }
 }
 
