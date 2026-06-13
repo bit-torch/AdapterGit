@@ -21,7 +21,8 @@ pub fn run_push() -> Result<(), Box<dyn std::error::Error>> {
     for (path, entry) in &index.entries {
         let file_path = repo_root.join(path);
         if file_path.exists() {
-            let content = fs::read(&file_path).unwrap_or_default();
+            let content = fs::read(&file_path)
+                .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
             let blob = Blob::new(content);
             if blob.hash() != entry.sha1 {
                 has_changes = true;
@@ -49,7 +50,8 @@ pub fn run_push() -> Result<(), Box<dyn std::error::Error>> {
     for path in index.entries.keys() {
         let file_path = repo_root.join(path);
         if file_path.exists() {
-            let content = fs::read(&file_path).unwrap_or_default();
+            let content = fs::read(&file_path)
+                .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
             let blob = Blob::new(content);
             let sha1 = blob.hash();
             // 只在 object 不存在时写入

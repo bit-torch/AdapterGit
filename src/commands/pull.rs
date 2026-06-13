@@ -66,7 +66,8 @@ fn check_working_tree_clean(
     for (path, entry) in index.entries.iter() {
         let full_path = repo.join(path);
         if full_path.exists() {
-            let content = fs::read(&full_path).unwrap_or_default();
+            let content = fs::read(&full_path)
+                .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
             let blob = Blob::new(content);
             if blob.hash() != entry.sha1 {
                 return Ok(false);
