@@ -7,7 +7,7 @@ mod output;
 mod utils;
 
 use clap::Parser;
-use cli::{Cli, Commands, RemoteAction};
+use cli::{Cli, Commands, RemoteAction, StashAction};
 use std::env;
 
 fn main() {
@@ -81,6 +81,12 @@ fn main() {
             commands::push::run(remote.as_deref(), branch.as_deref())
         }
         Some(Commands::Pull) => commands::pull::run(),
+        Some(Commands::Stash { action }) => match action {
+            StashAction::Push => commands::stash::run_push(),
+            StashAction::Pop => commands::stash::run_pop(),
+            StashAction::List => commands::stash::run_list(),
+            StashAction::Drop { stash } => commands::stash::run_drop(stash.as_deref()),
+        },
         Some(Commands::Remote { action }) => match action {
             RemoteAction::Add { name, url } => commands::remote::run_add(name, url),
             RemoteAction::List => commands::remote::run_list(),

@@ -16,4 +16,5 @@ pub mod push;
 pub mod remote;
 pub mod reset;
 pub mod show;
+pub mod stash;
 pub mod status;

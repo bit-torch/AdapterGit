@@ -135,6 +135,12 @@ pub enum Commands {
         object: String,
     },
 
+    #[command(about = "Stash the changes in a dirty working directory")]
+    Stash {
+        #[command(subcommand)]
+        action: StashAction,
+    },
+
     #[command(about = "Reset current HEAD to the specified state")]
     Reset {
         #[arg(short, long, help = "Keep index and working tree (move HEAD only)")]
@@ -178,6 +184,24 @@ pub enum Commands {
     Remote {
         #[command(subcommand)]
         action: RemoteAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum StashAction {
+    #[command(about = "Save working tree changes to stash")]
+    Push,
+
+    #[command(about = "Apply and remove the top stash")]
+    Pop,
+
+    #[command(about = "List all stashes")]
+    List,
+
+    #[command(about = "Remove a stash entry")]
+    Drop {
+        #[arg(help = "Stash reference (e.g. stash@{0})")]
+        stash: Option<String>,
     },
 }
 
