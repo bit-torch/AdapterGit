@@ -1,75 +1,64 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-> 默认使用简体中文进行所有回复和代码注释。
+This file provides guidance to Claude Code when working in this repo.
+> 默认使用简体中文回复。代码注释使用简体中文。
+
 ## Project
 
-**agit (AdapterGit)** — an AI-native Git tool in pure Rust. Zero external Git dependencies; implements the Git object model, refs, index, and network protocol from scratch. Designed for AI agents, CI/CD, and portable use. No TUI editors — it never blocks on interactive prompts.
+**agit (AdapterGit)** — a pure-Rust, zero-external-Git-dependency Git implementation. Objects, refs, index, smart-HTTP protocol all from scratch. Ships as a single static binary. Designed for AI agents, CI/CD, and portable use. Never blocks on interactive prompts.
 
-Version: 0.4.1 | Edition: 2021 | License: Apache-2.0
+Version: 0.6.1 | Edition: 2021 | License: Apache-2.0
 
 ## Build / Test / Lint
 
 ```bash
-cargo build              # Debug build
-cargo build --release    # Release build
-cargo test               # All tests (unit + integration)
-cargo test -p agit       # Run only the agit crate tests
-cargo clippy             # Lint
-cargo fmt                # Format code
+cargo build              # Debug
+cargo build --release    # Release
+cargo test               # All 119 tests (87 unit + 32 integration)
+cargo clippy             # Must pass w/ 0 warnings
+cargo fmt                # Must pass w/ no diff
 ```
-
-Static compilation (musl):
-```bash
-cargo build --release --target x86_64-unknown-linux-musl
-```
-
-Integration tests (`tests/integration_test.rs`) shell out to the agit binary. Cargo sets `CARGO_BIN_EXE_agit` automatically; run with `cargo test`.
-
-## Feature flags
-
-- `tag` (default, enabled in `default` features) — gates `core::objects::tag` and tag-related functions in `core::refs` (`create_tag`, `list_tags`, `delete_tag`). Tag module code uses `#[cfg(feature = "tag")]`.
 
 ## Architecture
 
 ```
-main.rs          → Entry point. Loads config → resolves aliases → parses CLI → dispatches to commands.
-                   Sets global AI/JSON/YAML/no-color modes before dispatch.
-cli/mod.rs       → clap derive (Parser + Subcommand). 15 subcommands + 4 global flags (--ai --json --yaml --no-color).
-commands/        → One file per subcommand. Each exposes a `run(...)` function returning `Result<(), Box<dyn Error>>`.
-core/            → Pure Git implementation (no I/O to stdout, no CLI coupling).
-  objects/       → blob.rs, tree.rs, commit.rs, tag.rs (feature-gated). Each has new/serialize/hash.
-  storage.rs     → Loose object read/write to .git/objects/{prefix}/{rest}, zlib compressed.
-  refs.rs        → HEAD (symbolic/detached), refs/heads/*, refs/tags/* (CRUD).
-  index.rs       → Staging area (.git/index), DIRC v2 format.
-  hash.rs        → SHA-1 via sha1 crate: hash_bytes(), hash_git_object(type, content).
-  compression.rs → zlib compress/decompress via flate2.
-  protocol.rs    → Git smart HTTP: pkt-line codec, ref discovery, packfile parse (ofs_delta + ref_delta), push.
-  remote_utils.rs→ Shared helpers: write_objects, apply_tree, collect commits, resolve URLs.
-  repo.rs        → find_repo_root(), ensure_dir(), get_current_timestamp().
-  checkout.rs    → Working-tree checkout logic (used by clone/checkout commands).
-  merge.rs       → Merge logic (used by pull/merge commands).
-ai/mod.rs        → AtomicBool for AI mode, ai_commit_marker(), DANGEROUS_COMMANDS list.
-output/mod.rs    → AtomicBools for JSON/YAML/no-color modes, print_structured(), colorize().
-config/mod.rs    → Config struct: user_name, user_email, aliases. Priority: env > repo .agit/config.toml > ~/.agitconfig.toml > defaults.
-utils/error.rs   → AgitError enum (Io, ObjectNotFound, InvalidObject, InvalidRef, CompressionError, RepoNotFound, NotAGitRepo, Other).
+main.rs          → Config → alias resolve → CLI parse → dispatch
+cli/mod.rs       → clap derive, 24+ subcommands, global flags (--ai --json --yaml --no-color)
+commands/        → One file per subcommand, each exposes run(…) → Result<(), Box<dyn Error>>
+core/
+  objects/       → blob, tree, commit, tag (feature-gated)
+  storage.rs     → Loose object R/W (.git/objects/XX/XXXXXX), zlib
+  refs.rs        → HEAD, refs/heads/*, refs/tags/*, refs/remotes/*, CRUD
+  index.rs       → DIRC v2 staging area
+  hash.rs        → SHA-1 (sha1 crate)
+  compression.rs → zlib via flate2
+  protocol.rs    → Git smart-HTTP: pkt-line, ref discovery, packfile parse, push
+  remote_utils.rs→ Shared helpers for network commands
+  checkout.rs    → Branch switch, tree restore, index rebuild
+  merge.rs       → 3-way merge + fast-forward + conflict markers
+  ignore.rs      → .gitignore parser (glob, negation, char-class, dir-only)
+  repo.rs        → find_repo_root(), timestamp helpers
+ai/mod.rs        → AI-mode flag, DANGEROUS_COMMANDS list
+output/mod.rs    → JSON/YAML/no-color mode flags + output formatting
+config/mod.rs    → Config: user.name, user.email, aliases (env > .agit/config.toml > ~/.agitconfig.toml > defaults)
+utils/error.rs   → AgitError enum
 ```
 
-### Key patterns
+## Key Patterns
 
-- **Global state**: `AI_MODE`, `JSON_MODE`, `YAML_MODE`, `NO_COLOR` are `AtomicBool` statics. Set once in `main()` before dispatch, read anywhere via `is_ai_mode()` / `is_json()` etc.
-- **Error handling**: Commands return `Box<dyn Error>`. Core modules use both `Box<dyn Error>` and the `AgitError` enum. `anyhow` is a dependency but `AgitError` is used for structured errors.
-- **Alias resolution**: `main.rs::resolve_aliases()` rewrites the CLI args before clap parsing — e.g., `agit co -m "msg"` becomes `agit commit -m "msg"`.
-- **Config loading**: `Config::load(repo_path)` cascades: env vars (`AGIT_USER_NAME` / `AGIT_USER_EMAIL` / `GIT_AUTHOR_*`) → repo `.agit/config.toml` → global `~/.agitconfig.toml` → defaults (`"agit"` / `"agit@localhost"`).
-- **Commit flow**: `Index::load()` → build `Tree` from index → write tree object → build `Commit` (with parent from HEAD) → write commit object → update branch ref.
-- **Network commands** share protocol code in `core/protocol.rs` and helpers in `core/remote_utils.rs`. Clone = discover_refs → clone_full → parse_packfile → write_objects → checkout. Push = discover_refs → collect_local_objects → generate_pack → push_pack. Pull = fetch → merge or fast-forward.
+- **Global state**: `AI_MODE`, `JSON_MODE`, `YAML_MODE`, `NO_COLOR` are `AtomicBool` statics, set once in main before dispatch.
+- **Error handling**: Commands return `Box<dyn Error>`. Core uses `AgitError` enum. IO errors propagate via `?` — never swallow with `unwrap_or_default()` on file reads.
+- **Config cascade**: env vars (`AGIT_USER_NAME`/`AGIT_USER_EMAIL`) > repo `.agit/config.toml` > global `~/.agitconfig.toml` > defaults.
+- **Commit flow**: `Index::load()` → build `Tree` → write tree → build `Commit` (+parent from HEAD/MERGE_HEAD) → write commit → update ref.
+- **Network flow**: Clone = discover_refs → fetch_objects → parse_packfile → write_objects → checkout. Push = discover_refs → collect_local_objects → generate_pack → push_pack. Pull = fetch → merge/ff.
 
-## Commit conventions
+## Rules
 
-Conventional Commits: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Scope optional: `feat(core): ...`.
-
-Branch naming: `feat/<name>`, `fix/<name>`, `docs/<name>`.
-
-## Git compatibility note
-
-This project stores its own config in `.agit/` (not `.git/config`), uses its own object storage under `.git/objects/`, and is compatible with standard Git repositories. The `.git/` directory layout follows Git conventions so `git` and `agit` can operate on the same repo.
+1. **main is protected** — never push directly to main. Create `feat/`, `fix/`, `docs/`, `chore/` branches and use PRs.
+2. **Every change is a commit** — one logical change per commit. Commit message in Conventional Commits format.
+3. **Tests required** — all new features must have integration tests. Run `cargo test` before pushing; 0 failures.
+4. **Clippy clean** — `cargo clippy` must produce 0 warnings before push.
+5. **Formatted** — `cargo fmt` must produce no diff before push.
+6. **No silent error swallowing** — use `?` or explicit `map_err` for file/IO operations. Do not use `unwrap_or_default()` to hide read errors.
+7. **Feature gate tag** — code under `#[cfg(feature = "tag")]` must compile with both `--features tag` and `--no-default-features`.
+8. **Windows compatibility** — use `std::fs` APIs (not `open`/`fcntl`), normalize paths with `replace('\\', '/')`.
