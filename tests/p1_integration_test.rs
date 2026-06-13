@@ -29,7 +29,12 @@ fn setup_repo(name: &str) -> PathBuf {
 fn run_agit(repo: &PathBuf, args: &[&str]) -> std::process::Output {
     let bin = agit_binary();
     let mut cmd = Command::new(&bin);
-    cmd.args(args).current_dir(repo).env_remove("AGIT_USER_NAME").env_remove("AGIT_USER_EMAIL").env("AGIT_USER_NAME", "Test User").env("AGIT_USER_EMAIL", "test@agit.local");
+    cmd.args(args)
+        .current_dir(repo)
+        .env_remove("AGIT_USER_NAME")
+        .env_remove("AGIT_USER_EMAIL")
+        .env("AGIT_USER_NAME", "Test User")
+        .env("AGIT_USER_EMAIL", "test@agit.local");
 
     #[cfg(windows)]
     {
@@ -44,7 +49,10 @@ fn run_ok(repo: &PathBuf, args: &[&str]) -> String {
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        panic!("agit {:?} failed:\nstdout: {}\nstderr: {}", args, stdout, stderr);
+        panic!(
+            "agit {:?} failed:\nstdout: {}\nstderr: {}",
+            args, stdout, stderr
+        );
     }
     stdout
 }
@@ -102,7 +110,10 @@ fn test_gitignore_negation() {
 
     let out = run_ok(&repo, &["status"]);
     assert!(!out.contains("drop.log"), "drop.log should be ignored");
-    assert!(out.contains("keep.log"), "keep.log should NOT be ignored (negated)");
+    assert!(
+        out.contains("keep.log"),
+        "keep.log should NOT be ignored (negated)"
+    );
 
     let _ = fs::remove_dir_all(&repo);
 }
@@ -175,7 +186,11 @@ fn test_stash_no_changes_error() {
     run_ok(&repo, &["commit", "-m", "init"]);
     // Working tree is clean — stash should have nothing to save
     let out = run_err(&repo, &["stash", "push"]);
-    assert!(out.contains("No local changes to save"), "expected error, got: {}", out);
+    assert!(
+        out.contains("No local changes to save"),
+        "expected error, got: {}",
+        out
+    );
     let _ = fs::remove_dir_all(&repo);
 }
 
@@ -339,8 +354,16 @@ fn test_log_limit() {
     let out = run_ok(&repo, &["log", "-n", "3"]);
     // 检查是否只显示了3条提交（通过统计短 hash 出现次数）
     // log 输出 commit <sha> 行数应等于3
-    let commit_lines: Vec<&str> = out.lines().filter(|l| l.contains("commit ") && l.len() > 20).collect();
-    assert_eq!(commit_lines.len(), 3, "should show exactly 3 commits, got: {}", out);
+    let commit_lines: Vec<&str> = out
+        .lines()
+        .filter(|l| l.contains("commit ") && l.len() > 20)
+        .collect();
+    assert_eq!(
+        commit_lines.len(),
+        3,
+        "should show exactly 3 commits, got: {}",
+        out
+    );
 
     let _ = fs::remove_dir_all(&repo);
 }
@@ -378,7 +401,10 @@ fn test_rm_tracked_file() {
     run_ok(&repo, &["commit", "-m", "init"]);
     run_ok(&repo, &["rm", "f.txt"]);
 
-    assert!(!repo.join("f.txt").exists(), "working tree file should be deleted");
+    assert!(
+        !repo.join("f.txt").exists(),
+        "working tree file should be deleted"
+    );
     let out = run_ok(&repo, &["status"]);
     assert!(!out.contains("f.txt") || out.contains("deleted"));
 
@@ -394,7 +420,10 @@ fn test_rm_cached() {
     run_ok(&repo, &["commit", "-m", "init"]);
     run_ok(&repo, &["rm", "--cached", "f.txt"]);
 
-    assert!(repo.join("f.txt").exists(), "file should remain with --cached");
+    assert!(
+        repo.join("f.txt").exists(),
+        "file should remain with --cached"
+    );
     let out = run_ok(&repo, &["status"]);
     assert!(out.contains("Untracked") || out.contains("f.txt"));
 
@@ -412,10 +441,7 @@ fn test_mv_rename() {
 
     assert!(!repo.join("old.txt").exists(), "old file should be moved");
     assert!(repo.join("new.txt").exists(), "new file should exist");
-    assert_eq!(
-        fs::read_to_string(repo.join("new.txt")).unwrap(),
-        "data"
-    );
+    assert_eq!(fs::read_to_string(repo.join("new.txt")).unwrap(), "data");
 
     let _ = fs::remove_dir_all(&repo);
 }

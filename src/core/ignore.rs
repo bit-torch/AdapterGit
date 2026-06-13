@@ -377,7 +377,7 @@ mod tests {
         let m = IgnoreMatcher { rules };
         assert!(m.is_ignored("target", true));
         assert!(!m.is_ignored("target", false)); // 名为 target 的文件不忽略
-        // 目录内的文件因祖先目录被忽略而忽略
+                                                 // 目录内的文件因祖先目录被忽略而忽略
         assert!(m.is_ignored("target/foo", false));
     }
 
