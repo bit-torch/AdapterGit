@@ -105,6 +105,12 @@ pub enum Commands {
         r#continue: bool,
     },
 
+    #[command(about = "Create, list, or delete tags")]
+    Tag {
+        #[command(subcommand)]
+        action: TagAction,
+    },
+
     #[command(about = "Clone a repository into a new directory")]
     Clone {
         #[arg(help = "Repository URL to clone")]
@@ -184,6 +190,30 @@ pub enum Commands {
     Remote {
         #[command(subcommand)]
         action: RemoteAction,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum TagAction {
+    #[command(about = "List all tags")]
+    List,
+
+    #[command(about = "Create a new tag")]
+    Create {
+        #[arg(help = "Tag name")]
+        name: String,
+
+        #[arg(short = 'm', long, help = "Tag message (annotated)")]
+        message: Option<String>,
+
+        #[arg(help = "Commit SHA (default: HEAD)")]
+        commit: Option<String>,
+    },
+
+    #[command(about = "Delete a tag")]
+    Delete {
+        #[arg(help = "Tag name to delete")]
+        name: String,
     },
 }
 

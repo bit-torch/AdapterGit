@@ -18,3 +18,5 @@ pub mod reset;
 pub mod show;
 pub mod stash;
 pub mod status;
+#[cfg(feature = "tag")]
+pub mod tag;

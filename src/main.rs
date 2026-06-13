@@ -7,7 +7,7 @@ mod output;
 mod utils;
 
 use clap::Parser;
-use cli::{Cli, Commands, RemoteAction, StashAction};
+use cli::{Cli, Commands, RemoteAction, StashAction, TagAction};
 use std::env;
 
 fn main() {
@@ -81,6 +81,15 @@ fn main() {
             commands::push::run(remote.as_deref(), branch.as_deref())
         }
         Some(Commands::Pull) => commands::pull::run(),
+        Some(Commands::Tag { action }) => match action {
+            TagAction::List => commands::tag::run_list(),
+            TagAction::Create {
+                name,
+                message,
+                commit,
+            } => commands::tag::run_create(name, message.as_deref(), commit.as_deref()),
+            TagAction::Delete { name } => commands::tag::run_delete(name),
+        },
         Some(Commands::Stash { action }) => match action {
             StashAction::Push => commands::stash::run_push(),
             StashAction::Pop => commands::stash::run_pop(),
