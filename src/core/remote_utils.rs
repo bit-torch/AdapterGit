@@ -73,8 +73,12 @@ pub fn apply_tree_by_sha1(
     apply_tree(repo, prefix, &tree)
 }
 
-pub fn get_remote_url(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    let config = fs::read_to_string(repo.join(".git").join("config")).unwrap_or_default();
+pub fn get_remote_url(
+    repo: &Path,
+    remote_name: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let config = fs::read_to_string(repo.join(".git").join("config"))
+        .map_err(|e| format!("Failed to read .git/config: {}", e))?;
     let mut current_section = "";
     let mut first_url: Option<String> = None;
 
@@ -88,20 +92,34 @@ pub fn get_remote_url(repo: &Path) -> Result<String, Box<dyn std::error::Error>>
         } else if trimmed.starts_with('[') {
             current_section = "";
         } else if let Some(url) = trimmed.strip_prefix("url = ") {
-            if current_section == "origin" {
-                return Ok(url.to_string());
-            }
-            if first_url.is_none() {
-                first_url = Some(url.to_string());
+            // 如果指定了 remote name，精确匹配
+            if let Some(target) = remote_name {
+                if current_section == target {
+                    return Ok(url.to_string());
+                }
+            } else {
+                // 未指定时优先 "origin"，否则取第一个
+                if current_section == "origin" {
+                    return Ok(url.to_string());
+                }
+                if first_url.is_none() {
+                    first_url = Some(url.to_string());
+                }
             }
         }
+    }
+
+    // 指定名称时未找到匹配的 remote
+    if let Some(name) = remote_name {
+        return Err(format!("remote '{}' not found in config", name).into());
     }
 
     first_url.ok_or_else(|| "No remote URL configured".into())
 }
 
 pub fn get_current_branch(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
-    let head_content = fs::read_to_string(repo.join(".git").join("HEAD")).unwrap_or_default();
+    let head_content = fs::read_to_string(repo.join(".git").join("HEAD"))
+        .map_err(|e| format!("Failed to read HEAD: {}", e))?;
     let head_content = head_content.trim();
     if let Some(ref_path) = head_content.strip_prefix("ref: ") {
         ref_path

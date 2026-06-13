@@ -66,5 +66,5 @@ fn resolve_url(
     if let Some(u) = url {
         return Ok(u.to_string());
     }
-    remote_utils::get_remote_url(repo)
+    remote_utils::get_remote_url(repo, None)
 }
