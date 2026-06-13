@@ -14,13 +14,9 @@ pub fn run_create(
         Some(c) => {
             if c == "HEAD" {
                 refs::read_head(&repo_root)?
-            } else if let Ok(sha) =
-                refs::read_ref(&repo_root, &format!("refs/heads/{}", c))
-            {
+            } else if let Ok(sha) = refs::read_ref(&repo_root, &format!("refs/heads/{}", c)) {
                 sha
-            } else if let Ok(sha) =
-                refs::read_ref(&repo_root, &format!("refs/tags/{}", c))
-            {
+            } else if let Ok(sha) = refs::read_ref(&repo_root, &format!("refs/tags/{}", c)) {
                 sha
             } else {
                 c.to_string()

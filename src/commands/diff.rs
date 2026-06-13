@@ -8,7 +8,12 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-pub fn run(cached: bool, name_only: bool, commit1: Option<&str>, commit2: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(
+    cached: bool,
+    name_only: bool,
+    commit1: Option<&str>,
+    commit2: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
 
     // 两个 commit 都指定 → 比较两个提交的 tree
@@ -147,7 +152,10 @@ fn get_parent(repo: &Path, sha: &str) -> Result<String, Box<dyn std::error::Erro
     }
     let commit_data = crate::core::objects::format_object_data("commit", &content);
     let commit = Commit::deserialize(&commit_data)?;
-    commit.parents.first().cloned()
+    commit
+        .parents
+        .first()
+        .cloned()
         .ok_or_else(|| format!("commit {} has no parent", sha).into())
 }
 
@@ -184,22 +192,33 @@ fn print_tree_diff(
     let mut seen = std::collections::BTreeSet::new();
 
     for path in all_keys {
-        if seen.contains(path) { continue; }
+        if seen.contains(path) {
+            continue;
+        }
         seen.insert(path.clone());
 
-        let content1 = map1.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
-        let content2 = map2.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
+        let content1 = map1
+            .get(path)
+            .and_then(|s| read_blob_content(repo, s))
+            .unwrap_or_default();
+        let content2 = map2
+            .get(path)
+            .and_then(|s| read_blob_content(repo, s))
+            .unwrap_or_default();
 
         if content1 != content2 {
             if name_only {
                 println!("{}", path);
             } else {
-                print!("{}", generate_unified_diff(
-                    &format!("{}/{}", label_a, path),
-                    &format!("{}/{}", label_b, path),
-                    &content1,
-                    &content2,
-                ));
+                print!(
+                    "{}",
+                    generate_unified_diff(
+                        &format!("{}/{}", label_a, path),
+                        &format!("{}/{}", label_b, path),
+                        &content1,
+                        &content2,
+                    )
+                );
             }
         }
     }
@@ -216,20 +235,35 @@ fn print_tree_vs_working(
     let mut seen = std::collections::BTreeSet::new();
 
     for path in all_keys {
-        if seen.contains(path) { continue; }
+        if seen.contains(path) {
+            continue;
+        }
         seen.insert(path.clone());
 
-        let old_content = tree_map.get(path).and_then(|s| read_blob_content(repo, s)).unwrap_or_default();
+        let old_content = tree_map
+            .get(path)
+            .and_then(|s| read_blob_content(repo, s))
+            .unwrap_or_default();
         let full_path = repo.join(path);
-        let new_content = if full_path.exists() { fs::read(&full_path).unwrap_or_default() } else { Vec::new() };
+        let new_content = if full_path.exists() {
+            fs::read(&full_path).unwrap_or_default()
+        } else {
+            Vec::new()
+        };
 
         if old_content != new_content {
             if name_only {
                 println!("{}", path);
             } else {
-                print!("{}", generate_unified_diff(
-                    &format!("a/{}", path), &format!("b/{}", path), &old_content, &new_content,
-                ));
+                print!(
+                    "{}",
+                    generate_unified_diff(
+                        &format!("a/{}", path),
+                        &format!("b/{}", path),
+                        &old_content,
+                        &new_content,
+                    )
+                );
             }
         }
     }

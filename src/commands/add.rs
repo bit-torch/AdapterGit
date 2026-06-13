@@ -42,7 +42,13 @@ pub fn run(files: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if full_path.is_dir() {
-            add_directory(&repo_root, &full_path, &matcher, &mut index, &mut added_count)?;
+            add_directory(
+                &repo_root,
+                &full_path,
+                &matcher,
+                &mut index,
+                &mut added_count,
+            )?;
         } else {
             add_file(&repo_root, &full_path, &mut index, &mut added_count)?;
         }

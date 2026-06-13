@@ -98,7 +98,8 @@ impl IgnoreMatcher {
     pub fn load(repo: &Path, relative_dir: &Path) -> Self {
         let mut matcher = IgnoreMatcher::new();
 
-        // 从当前目录向上遍历，加载所有 .gitignore
+        // 从当前目录向上遍历，收集每个 .gitignore 的规则
+        let mut file_rules: Vec<Vec<IgnoreRule>> = Vec::new();
         let mut current = repo.to_path_buf();
         current.push(relative_dir);
 
@@ -106,10 +107,14 @@ impl IgnoreMatcher {
             let gitignore = current.join(".gitignore");
             if gitignore.exists() {
                 if let Ok(content) = fs::read_to_string(&gitignore) {
+                    let mut rules = Vec::new();
                     for line in content.lines() {
                         if let Some(rule) = IgnoreRule::parse(line) {
-                            matcher.rules.push(rule);
+                            rules.push(rule);
                         }
+                    }
+                    if !rules.is_empty() {
+                        file_rules.push(rules);
                     }
                 }
             }
@@ -120,7 +125,13 @@ impl IgnoreMatcher {
             }
         }
 
-        // 也加载 .git/info/exclude
+        // 父目录规则先添加，子目录规则后添加（后匹配=高优先级）
+        // file_rules 顺序：[子目录, ..., 根目录]，反转后：[根目录, ..., 子目录]
+        for rules in file_rules.iter().rev() {
+            matcher.rules.extend(rules.clone());
+        }
+
+        // 加载 .git/info/exclude（优先级低于所有 .gitignore）
         let exclude_path = repo.join(".git").join("info").join("exclude");
         if exclude_path.exists() {
             if let Ok(content) = fs::read_to_string(&exclude_path) {
@@ -139,11 +150,27 @@ impl IgnoreMatcher {
     pub fn is_ignored(&self, path: &str, is_dir: bool) -> bool {
         let mut ignored = false;
 
-        // 后添加的规则优先级更高（从子目录到父目录的 .gitignore）
-        // 最后一条匹配的规则决定最终状态
+        // 检查路径本身
         for rule in &self.rules {
             if rule.matches(path, is_dir) {
                 ignored = !rule.negated;
+            }
+        }
+
+        // 如果路径本身未被忽略，检查祖先目录是否被忽略
+        if !ignored {
+            let mut parts: Vec<&str> = path.split('/').collect();
+            while parts.len() > 1 {
+                parts.pop(); // 移除最后一段
+                let ancestor = parts.join("/");
+                for rule in &self.rules {
+                    if rule.matches(&ancestor, true) {
+                        ignored = !rule.negated;
+                    }
+                }
+                if ignored {
+                    break;
+                }
             }
         }
 
@@ -199,7 +226,10 @@ fn globstar_match(pattern: &str, path: &str) -> bool {
     }
 
     let prefix = parts[0].trim_end_matches('/');
-    let suffix = parts.get(1).map(|s| s.trim_start_matches('/')).unwrap_or("");
+    let suffix = parts
+        .get(1)
+        .map(|s| s.trim_start_matches('/'))
+        .unwrap_or("");
 
     if prefix.is_empty() && suffix.is_empty() {
         return true; // 纯 `**`
@@ -346,8 +376,9 @@ mod tests {
         let rules = vec![IgnoreRule::parse("target/").unwrap()];
         let m = IgnoreMatcher { rules };
         assert!(m.is_ignored("target", true));
-        assert!(!m.is_ignored("target", false));
-        assert!(!m.is_ignored("target/foo", false));
+        assert!(!m.is_ignored("target", false)); // 名为 target 的文件不忽略
+        // 目录内的文件因祖先目录被忽略而忽略
+        assert!(m.is_ignored("target/foo", false));
     }
 
     #[test]
@@ -405,5 +436,107 @@ mod tests {
         let m = IgnoreMatcher { rules };
         assert!(m.is_ignored("build", true));
         assert!(!m.is_ignored("src/build", true));
+    }
+
+    #[test]
+    fn test_nested_directory() {
+        let rules = vec![IgnoreRule::parse("target/debug/").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("target/debug", true));
+        assert!(!m.is_ignored("target/release", true));
+    }
+
+    #[test]
+    fn test_exact_filename() {
+        let rules = vec![IgnoreRule::parse("Cargo.lock").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("Cargo.lock", false));
+        assert!(m.is_ignored("foo/Cargo.lock", false));
+        assert!(!m.is_ignored("Cargo.lock.bak", false));
+    }
+
+    #[test]
+    fn test_char_class_letters() {
+        let rules = vec![IgnoreRule::parse("[abc].txt").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("a.txt", false));
+        assert!(m.is_ignored("b.txt", false));
+        assert!(!m.is_ignored("d.txt", false));
+    }
+
+    #[test]
+    fn test_globstar_middle() {
+        let rules = vec![IgnoreRule::parse("src/**/test").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("src/test", false));
+        assert!(m.is_ignored("src/foo/test", false));
+        assert!(m.is_ignored("src/foo/bar/test", false));
+    }
+
+    #[test]
+    fn test_double_star_start() {
+        let rules = vec![IgnoreRule::parse("**/temp").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("temp", false));
+        assert!(m.is_ignored("a/temp", false));
+        assert!(!m.is_ignored("template", false));
+    }
+
+    #[test]
+    fn test_question_mark_multiple() {
+        let rules = vec![IgnoreRule::parse("???.tmp").unwrap()];
+        let m = IgnoreMatcher { rules };
+        assert!(m.is_ignored("abc.tmp", false));
+        assert!(!m.is_ignored("ab.tmp", false));
+    }
+
+    #[test]
+    fn test_load_from_file() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("agit_ig_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+
+        let mut f = std::fs::File::create(dir.join(".gitignore")).unwrap();
+        f.write_all(b"*.log\nbuild/\n").unwrap();
+        let mut f2 = std::fs::File::create(dir.join("src").join(".gitignore")).unwrap();
+        f2.write_all(b"!debug.log\n").unwrap();
+
+        let matcher = IgnoreMatcher::load(&dir, std::path::Path::new("src"));
+        assert!(matcher.is_ignored("error.log", false));
+        assert!(!matcher.is_ignored("debug.log", false)); // negated
+        assert!(matcher.is_ignored("build/output", false));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_exclude_file() {
+        use std::io::Write;
+        let dir = std::env::temp_dir().join(format!("agit_ex_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join(".git").join("info")).unwrap();
+
+        let mut f = std::fs::File::create(dir.join(".git").join("info").join("exclude")).unwrap();
+        f.write_all(b"*.private\n").unwrap();
+
+        let matcher = IgnoreMatcher::load(&dir, std::path::Path::new(""));
+        assert!(matcher.is_ignored("secret.private", false));
+        assert!(!matcher.is_ignored("public.txt", false));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_empty_matcher() {
+        let m = IgnoreMatcher::new();
+        assert!(!m.is_ignored("anything.txt", false));
+        assert!(!m.is_ignored("dir", true));
+    }
+
+    #[test]
+    fn test_default_matcher() {
+        let m: IgnoreMatcher = Default::default();
+        assert!(!m.is_ignored("file.txt", false));
     }
 }

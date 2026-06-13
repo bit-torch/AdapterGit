@@ -16,7 +16,24 @@ pub fn run_push() -> Result<(), Box<dyn std::error::Error>> {
     let head_sha = refs::read_head(&repo_root)?;
     let index = Index::load(&repo_root)?;
 
-    if index.entries.is_empty() {
+    // 检查是否有实际变更（工作区 vs index）
+    let mut has_changes = false;
+    for (path, entry) in &index.entries {
+        let file_path = repo_root.join(path);
+        if file_path.exists() {
+            let content = fs::read(&file_path).unwrap_or_default();
+            let blob = Blob::new(content);
+            if blob.hash() != entry.sha1 {
+                has_changes = true;
+                break;
+            }
+        } else {
+            // 文件被删除
+            has_changes = true;
+            break;
+        }
+    }
+    if !has_changes {
         return Err("No local changes to save".into());
     }
 
@@ -46,12 +63,7 @@ pub fn run_push() -> Result<(), Box<dyn std::error::Error>> {
     storage::write_object(&repo_root, "tree", &tree.serialize_raw())?;
 
     // 创建 stash commit，第二个 parent 链接到之前的 stash
-    let mut stash_commit = Commit::new(
-        &tree_sha,
-        &author,
-        &author,
-        "WIP on stash\n",
-    );
+    let mut stash_commit = Commit::new(&tree_sha, &author, &author, "WIP on stash\n");
     stash_commit.add_parent(&head_sha);
 
     // 如果已有 stash，链上作为第二个 parent（模拟 reflog 链）

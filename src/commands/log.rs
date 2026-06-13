@@ -3,7 +3,11 @@ use crate::core::refs;
 use crate::core::repo;
 use crate::core::storage;
 
-pub fn run(oneline: bool, max_count: Option<usize>, all: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(
+    oneline: bool,
+    max_count: Option<usize>,
+    all: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
 
     let start_points = if all {
@@ -41,14 +45,18 @@ pub fn run(oneline: bool, max_count: Option<usize>, all: bool) -> Result<(), Box
         let mut current_sha = start_sha.clone();
 
         loop {
-            if count >= limit { break; }
+            if count >= limit {
+                break;
+            }
 
             let (obj_type, content) = match storage::read_object(&repo_root, &current_sha) {
                 Ok(v) => v,
                 Err(_) => break,
             };
 
-            if obj_type != "commit" { break; }
+            if obj_type != "commit" {
+                break;
+            }
 
             let commit_data = crate::core::objects::format_object_data("commit", &content);
             let commit = match Commit::deserialize(&commit_data) {
@@ -60,10 +68,18 @@ pub fn run(oneline: bool, max_count: Option<usize>, all: bool) -> Result<(), Box
 
             if oneline {
                 let msg_first_line = commit.message.lines().next().unwrap_or("");
-                let author_name = commit.author.split('<').next().unwrap_or(&commit.author).trim();
+                let author_name = commit
+                    .author
+                    .split('<')
+                    .next()
+                    .unwrap_or(&commit.author)
+                    .trim();
                 if all {
                     let branch = resolve_branch_label(&repo_root, &current_sha);
-                    println!("{} ({}) {} — {}", short_hash, branch, author_name, msg_first_line);
+                    println!(
+                        "{} ({}) {} — {}",
+                        short_hash, branch, author_name, msg_first_line
+                    );
                 } else {
                     println!("{} {} — {}", short_hash, author_name, msg_first_line);
                 }
@@ -76,14 +92,24 @@ pub fn run(oneline: bool, max_count: Option<usize>, all: bool) -> Result<(), Box
                     let parents: Vec<&str> = commit.parents.iter().map(|p| &p[..7]).collect();
                     println!("Merge: {}", parents.join(" "));
                 }
-                println!("Author: {}", commit.author.split('<').next().unwrap_or(&commit.author).trim());
+                println!(
+                    "Author: {}",
+                    commit
+                        .author
+                        .split('<')
+                        .next()
+                        .unwrap_or(&commit.author)
+                        .trim()
+                );
                 println!();
                 println!("    {}", commit.message.lines().next().unwrap_or(""));
                 println!();
             }
 
             count += 1;
-            if commit.parents.is_empty() { break; }
+            if commit.parents.is_empty() {
+                break;
+            }
             current_sha = commit.parents[0].clone();
         }
     }
