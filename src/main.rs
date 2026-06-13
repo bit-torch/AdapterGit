@@ -31,16 +31,35 @@ fn main() {
         }
         Some(Commands::Init) => commands::init::run(),
         Some(Commands::Add { files }) => commands::add::run(files),
+        Some(Commands::Config {
+            global,
+            list,
+            unset,
+            get,
+            key,
+            value,
+        }) => commands::config_cmd::run(
+            *global,
+            *list,
+            *unset,
+            *get,
+            key.as_deref(),
+            value.as_deref(),
+        ),
         Some(Commands::Branch {
             list,
             create,
             delete,
         }) => commands::branch::run(*list, create.clone(), delete.clone()),
         Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
-        Some(Commands::Checkout { branch }) => commands::checkout::run(branch),
+        Some(Commands::Checkout { branch, force }) => commands::checkout::run(branch, *force),
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Log) => commands::log::run(),
-        Some(Commands::Merge { branch }) => commands::merge::run(branch),
+        Some(Commands::Merge {
+            branch,
+            abort,
+            r#continue,
+        }) => commands::merge::run(branch.as_deref(), *abort, *r#continue),
         Some(Commands::Clone { url }) => commands::clone::run(url),
         Some(Commands::CatFile {
             show_type,
@@ -49,6 +68,13 @@ fn main() {
         }) => commands::cat_file::run(object, *show_type, *pretty_print),
         Some(Commands::LsTree { tree_sha1 }) => commands::ls_tree::run(tree_sha1),
         Some(Commands::Show { object }) => commands::show::run(object),
+        Some(Commands::Reset {
+            soft,
+            mixed,
+            hard,
+            commit,
+            files,
+        }) => commands::reset::run(*soft, *mixed, *hard, commit.as_deref(), files),
         Some(Commands::Diff) => commands::diff::run(),
         Some(Commands::Fetch { url }) => commands::fetch::run(url.as_deref()),
         Some(Commands::Push { remote, branch }) => {

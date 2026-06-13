@@ -32,6 +32,27 @@ pub enum Commands {
         files: Vec<String>,
     },
 
+    #[command(about = "Get and set repository or global options")]
+    Config {
+        #[arg(short, long, help = "Use global config file (~/.agitconfig.toml)")]
+        global: bool,
+
+        #[arg(short, long, help = "List all config variables")]
+        list: bool,
+
+        #[arg(long, help = "Remove a config variable")]
+        unset: bool,
+
+        #[arg(long, help = "Get a config value (default)")]
+        get: bool,
+
+        #[arg(help = "Config key (e.g. user.name)")]
+        key: Option<String>,
+
+        #[arg(help = "Value to set")]
+        value: Option<String>,
+    },
+
     #[command(about = "List, create, or delete branches")]
     Branch {
         #[arg(short, long = "list", help = "List branches (default)")]
@@ -57,6 +78,13 @@ pub enum Commands {
     Checkout {
         #[arg(help = "Branch name to switch to")]
         branch: String,
+
+        #[arg(
+            short = 'f',
+            long = "force",
+            help = "Force checkout even with local changes"
+        )]
+        force: bool,
     },
 
     #[command(about = "Show working tree status")]
@@ -68,7 +96,13 @@ pub enum Commands {
     #[command(about = "Join two or more development histories together")]
     Merge {
         #[arg(help = "Branch to merge into current branch")]
-        branch: String,
+        branch: Option<String>,
+
+        #[arg(long, help = "Abort the current conflict resolution process")]
+        abort: bool,
+
+        #[arg(long, help = "Continue the current conflict resolution process")]
+        r#continue: bool,
     },
 
     #[command(about = "Clone a repository into a new directory")]
@@ -99,6 +133,24 @@ pub enum Commands {
     Show {
         #[arg(help = "Object SHA-1 or reference")]
         object: String,
+    },
+
+    #[command(about = "Reset current HEAD to the specified state")]
+    Reset {
+        #[arg(short, long, help = "Keep index and working tree (move HEAD only)")]
+        soft: bool,
+
+        #[arg(long, help = "Reset index but not working tree (default)")]
+        mixed: bool,
+
+        #[arg(long, help = "Reset index and working tree")]
+        hard: bool,
+
+        #[arg(help = "Commit/tree to reset to (default: HEAD)")]
+        commit: Option<String>,
+
+        #[arg(help = "Files to unstage from index")]
+        files: Vec<String>,
     },
 
     #[command(about = "Show changes between commits, commit and working tree, etc")]
