@@ -31,6 +31,21 @@ fn main() {
         }
         Some(Commands::Init) => commands::init::run(),
         Some(Commands::Add { files }) => commands::add::run(files),
+        Some(Commands::Config {
+            global,
+            list,
+            unset,
+            get,
+            key,
+            value,
+        }) => commands::config_cmd::run(
+            *global,
+            *list,
+            *unset,
+            *get,
+            key.as_deref(),
+            value.as_deref(),
+        ),
         Some(Commands::Branch {
             list,
             create,

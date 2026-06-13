@@ -32,6 +32,27 @@ pub enum Commands {
         files: Vec<String>,
     },
 
+    #[command(about = "Get and set repository or global options")]
+    Config {
+        #[arg(short, long, help = "Use global config file (~/.agitconfig.toml)")]
+        global: bool,
+
+        #[arg(short, long, help = "List all config variables")]
+        list: bool,
+
+        #[arg(long, help = "Remove a config variable")]
+        unset: bool,
+
+        #[arg(long, help = "Get a config value (default)")]
+        get: bool,
+
+        #[arg(help = "Config key (e.g. user.name)")]
+        key: Option<String>,
+
+        #[arg(help = "Value to set")]
+        value: Option<String>,
+    },
+
     #[command(about = "List, create, or delete branches")]
     Branch {
         #[arg(short, long = "list", help = "List branches (default)")]

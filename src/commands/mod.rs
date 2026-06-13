@@ -4,6 +4,7 @@ pub mod cat_file;
 pub mod checkout;
 pub mod clone;
 pub mod commit;
+pub mod config_cmd;
 pub mod diff;
 pub mod fetch;
 pub mod init;
