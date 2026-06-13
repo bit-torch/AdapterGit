@@ -1,6 +1,7 @@
 pub mod checkout;
 pub mod compression;
 pub mod hash;
+pub mod ignore;
 pub mod index;
 pub mod merge;
 pub mod objects;

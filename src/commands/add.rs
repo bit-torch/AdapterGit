@@ -1,3 +1,4 @@
+use crate::core::ignore::IgnoreMatcher;
 use crate::core::index::Index;
 use crate::core::objects::blob::Blob;
 use crate::core::repo;
@@ -28,6 +29,7 @@ fn file_mode(path: &Path) -> &str {
 pub fn run(files: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
     let mut index = Index::load(&repo_root)?;
+    let matcher = IgnoreMatcher::load(&repo_root, Path::new(""));
 
     let mut added_count = 0;
 
@@ -40,7 +42,7 @@ pub fn run(files: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if full_path.is_dir() {
-            add_directory(&repo_root, &full_path, &mut index, &mut added_count)?;
+            add_directory(&repo_root, &full_path, &matcher, &mut index, &mut added_count)?;
         } else {
             add_file(&repo_root, &full_path, &mut index, &mut added_count)?;
         }
@@ -82,6 +84,7 @@ fn add_file(
 fn add_directory(
     repo_root: &Path,
     dir: &Path,
+    matcher: &IgnoreMatcher,
     index: &mut Index,
     count: &mut usize,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -93,9 +96,21 @@ fn add_directory(
             continue;
         }
 
+        let relative = path
+            .strip_prefix(repo_root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+
         if path.is_dir() {
-            add_directory(repo_root, &path, index, count)?;
+            if matcher.is_ignored(&relative, true) {
+                continue;
+            }
+            add_directory(repo_root, &path, matcher, index, count)?;
         } else if path.is_file() {
+            if matcher.is_ignored(&relative, false) {
+                continue;
+            }
             add_file(repo_root, &path, index, count)?;
         }
     }

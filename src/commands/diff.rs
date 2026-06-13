@@ -71,7 +71,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
 fn show_untracked_diff(repo: &Path, index: &Index) -> Result<(), Box<dyn std::error::Error>> {
     let mut untracked = Vec::new();
-    collect_untracked(repo, repo, index, &mut untracked)?;
+    let matcher = crate::core::ignore::IgnoreMatcher::load(repo, Path::new(""));
+    collect_untracked(repo, repo, index, &matcher, &mut untracked)?;
     if untracked.is_empty() {
         return Ok(());
     }
@@ -245,6 +246,7 @@ fn collect_untracked(
     repo: &Path,
     current: &Path,
     index: &Index,
+    matcher: &crate::core::ignore::IgnoreMatcher,
     untracked: &mut Vec<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !current.exists() {
@@ -265,8 +267,13 @@ fn collect_untracked(
             .to_string_lossy()
             .replace('\\', "/");
 
-        if path.is_dir() {
-            collect_untracked(repo, &path, index, untracked)?;
+        let is_dir = path.is_dir();
+        if matcher.is_ignored(&relative, is_dir) {
+            continue;
+        }
+
+        if is_dir {
+            collect_untracked(repo, &path, index, matcher, untracked)?;
         } else if path.is_file() && !index.entries.contains_key(&relative.to_string()) {
             untracked.push(relative.to_string());
         }

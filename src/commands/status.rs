@@ -175,7 +175,8 @@ fn get_deleted_changes(
 
 fn list_untracked(repo: &Path, index: &Index) {
     let mut untracked = Vec::new();
-    if let Err(e) = collect_untracked(repo, repo, index, &mut untracked) {
+    let matcher = crate::core::ignore::IgnoreMatcher::load(repo, Path::new(""));
+    if let Err(e) = collect_untracked(repo, repo, index, &matcher, &mut untracked) {
         eprintln!("error listing untracked: {}", e);
         return;
     }
@@ -193,6 +194,7 @@ fn collect_untracked(
     repo: &Path,
     current: &Path,
     index: &Index,
+    matcher: &crate::core::ignore::IgnoreMatcher,
     untracked: &mut Vec<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !current.exists() {
@@ -213,8 +215,15 @@ fn collect_untracked(
             .to_string_lossy()
             .replace('\\', "/");
 
-        if path.is_dir() {
-            collect_untracked(repo, &path, index, untracked)?;
+        let is_dir = path.is_dir();
+
+        // 跳过被 ignore 的文件和目录
+        if matcher.is_ignored(&relative, is_dir) {
+            continue;
+        }
+
+        if is_dir {
+            collect_untracked(repo, &path, index, matcher, untracked)?;
         } else if path.is_file() && !index.entries.contains_key(&relative.to_string()) {
             untracked.push(relative.to_string());
         }
