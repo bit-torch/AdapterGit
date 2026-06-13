@@ -46,7 +46,7 @@ pub fn run_push() -> Result<(), Box<dyn std::error::Error>> {
 
     // 从当前工作区构建 tree（使用 index entries 但替换为工作区实际内容）
     let mut tree = Tree::new();
-    for (path, _entry) in &index.entries {
+    for path in index.entries.keys() {
         let file_path = repo_root.join(path);
         if file_path.exists() {
             let content = fs::read(&file_path).unwrap_or_default();

@@ -121,7 +121,7 @@ fn resolve_branch_label(repo: &std::path::Path, sha: &str) -> String {
     if let Ok(branches) = refs::list_branches(repo) {
         for b in &branches {
             if let Ok(ref_sha) = refs::read_ref(repo, &format!("refs/heads/{}", b)) {
-                if &ref_sha == sha {
+                if ref_sha == sha {
                     return b.clone();
                 }
             }

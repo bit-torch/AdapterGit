@@ -123,14 +123,15 @@ fn resolve_to_tree(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error
     for _ in 0..n {
         sha = get_parent(repo, &sha)?;
     }
-    return commit_to_tree(repo, &sha);
+    commit_to_tree(repo, &sha)
 }
 
 fn resolve_single_ref(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error::Error>> {
-    if spec.len() == 40 && spec.chars().all(|c| c.is_ascii_hexdigit()) {
-        if storage::read_object(repo, spec).is_ok() {
-            return Ok(spec.to_string());
-        }
+    if spec.len() == 40
+        && spec.chars().all(|c| c.is_ascii_hexdigit())
+        && storage::read_object(repo, spec).is_ok()
+    {
+        return Ok(spec.to_string());
     }
     if spec == "HEAD" {
         return refs::read_head(repo);
