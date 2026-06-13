@@ -57,6 +57,9 @@ pub enum Commands {
     Checkout {
         #[arg(help = "Branch name to switch to")]
         branch: String,
+
+        #[arg(short = 'f', long = "force", help = "Force checkout even with local changes")]
+        force: bool,
     },
 
     #[command(about = "Show working tree status")]
