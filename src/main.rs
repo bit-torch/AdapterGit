@@ -57,7 +57,11 @@ fn main() {
         }
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Log) => commands::log::run(),
-        Some(Commands::Merge { branch }) => commands::merge::run(branch),
+        Some(Commands::Merge {
+            branch,
+            abort,
+            r#continue,
+        }) => commands::merge::run(branch.as_deref(), *abort, *r#continue),
         Some(Commands::Clone { url }) => commands::clone::run(url),
         Some(Commands::CatFile {
             show_type,

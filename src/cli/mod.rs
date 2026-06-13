@@ -92,7 +92,13 @@ pub enum Commands {
     #[command(about = "Join two or more development histories together")]
     Merge {
         #[arg(help = "Branch to merge into current branch")]
-        branch: String,
+        branch: Option<String>,
+
+        #[arg(long, help = "Abort the current conflict resolution process")]
+        abort: bool,
+
+        #[arg(long, help = "Continue the current conflict resolution process")]
+        r#continue: bool,
     },
 
     #[command(about = "Clone a repository into a new directory")]
