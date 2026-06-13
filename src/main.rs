@@ -49,6 +49,13 @@ fn main() {
         }) => commands::cat_file::run(object, *show_type, *pretty_print),
         Some(Commands::LsTree { tree_sha1 }) => commands::ls_tree::run(tree_sha1),
         Some(Commands::Show { object }) => commands::show::run(object),
+        Some(Commands::Reset {
+            soft,
+            mixed,
+            hard,
+            commit,
+            files,
+        }) => commands::reset::run(*soft, *mixed, *hard, commit.as_deref(), files),
         Some(Commands::Diff) => commands::diff::run(),
         Some(Commands::Fetch { url }) => commands::fetch::run(url.as_deref()),
         Some(Commands::Push { remote, branch }) => {

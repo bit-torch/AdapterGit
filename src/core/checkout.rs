@@ -5,6 +5,76 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+/// 从 commit SHA 还原整个工作目录和索引。
+/// 用于 reset --hard 等需要重建工作区的操作。
+pub fn restore_from_commit(repo: &Path, commit_sha: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let (obj_type, body) = storage::read_object(repo, commit_sha)?;
+    if obj_type != "commit" {
+        return Err(format!("object {} is not a commit", commit_sha).into());
+    }
+    let commit_data = with_object_header("commit", &body);
+    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+
+    let old_index = index::Index::load(repo)?;
+    let old_tracked: BTreeSet<String> = old_index.entries.keys().cloned().collect();
+
+    restore_tree(repo, &commit.tree, Path::new(""))?;
+
+    let new_tracked = collect_tree_paths(repo, &commit.tree, Path::new(""))?;
+
+    for path in old_tracked.iter() {
+        if !new_tracked.contains(path) {
+            let file_path = repo.join(path);
+            if file_path.is_file() || file_path.is_symlink() {
+                let _ = fs::remove_file(&file_path);
+            }
+        }
+    }
+    let _ = remove_empty_dirs(repo, Path::new(""));
+    Ok(())
+}
+
+/// 从 commit 的 tree 重建 index（不修改工作区）。
+pub fn rebuild_index_from_commit(
+    repo: &Path,
+    commit_sha: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (obj_type, body) = storage::read_object(repo, commit_sha)?;
+    if obj_type != "commit" {
+        return Err(format!("object {} is not a commit", commit_sha).into());
+    }
+    let commit_data = with_object_header("commit", &body);
+    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+    let mut new_index = index::Index::new();
+    rebuild_index_from_tree(repo, &commit.tree, Path::new(""), &mut new_index)?;
+    new_index.save(repo)?;
+    Ok(())
+}
+
+/// 仅从 tree 递归重建 index 条目（不写工作区文件）。
+fn rebuild_index_from_tree(
+    repo: &Path,
+    tree_sha: &str,
+    prefix: &Path,
+    idx: &mut index::Index,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (obj_type, body) = storage::read_object(repo, tree_sha)?;
+    if obj_type != "tree" {
+        return Ok(());
+    }
+    let tree_data = with_object_header("tree", &body);
+    let tree = Tree::deserialize(&tree_data)?;
+    for entry in &tree.entries {
+        let entry_path = prefix.join(&entry.name);
+        if entry.mode == "40000" {
+            rebuild_index_from_tree(repo, &entry.sha1, &entry_path, idx)?;
+        } else {
+            idx.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
+        }
+    }
+    Ok(())
+}
+
 /// 切换到指定分支（更新 HEAD 和工作目录）。
 pub fn switch_branch(repo: &Path, branch_name: &str) -> Result<(), Box<dyn std::error::Error>> {
     let target_sha = refs::read_ref(repo, &format!("refs/heads/{}", branch_name))?;

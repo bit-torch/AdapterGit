@@ -13,5 +13,6 @@ pub mod merge;
 pub mod pull;
 pub mod push;
 pub mod remote;
+pub mod reset;
 pub mod show;
 pub mod status;

@@ -101,6 +101,24 @@ pub enum Commands {
         object: String,
     },
 
+    #[command(about = "Reset current HEAD to the specified state")]
+    Reset {
+        #[arg(short, long, help = "Keep index and working tree (move HEAD only)")]
+        soft: bool,
+
+        #[arg(long, help = "Reset index but not working tree (default)")]
+        mixed: bool,
+
+        #[arg(long, help = "Reset index and working tree")]
+        hard: bool,
+
+        #[arg(help = "Commit/tree to reset to (default: HEAD)")]
+        commit: Option<String>,
+
+        #[arg(help = "Files to unstage from index")]
+        files: Vec<String>,
+    },
+
     #[command(about = "Show changes between commits, commit and working tree, etc")]
     Diff,
 
