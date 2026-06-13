@@ -1,62 +1,43 @@
 # agit 功能缺口分析
 
-> 版本：0.4.1 | 日期：2026-06-13 | 分支：feat/mvp-commands-v0.5
+> 版本：0.5.4 | 日期：2026-06-13 | 分支：feat/missing-features-doc
 
 本文档分析 agit 相对于标准 Git 的功能缺失，按优先级分为 P0（阻塞基本工作流）→ P3（锦上添花）。每个条目包含问题描述和实现建议，不包含具体代码实现。
 
 ---
 
-## 🔴 P0 — 阻塞基本工作流（无这些功能无法正常使用）
+## 🔴 P0 — 阻塞基本工作流（无这些功能无法正常使用）✅ 已完成 (v0.5.4)
 
-### 1. `reset` / 取消暂存
+### 1. `reset` / 取消暂存 ✅
 
 **问题：** `status` 输出中提示 `"use git restore --staged <file>..."`，但项目根本没有 `reset` 或 `restore` 命令。用户执行 `add` 后无法取消暂存文件。`core::index::Index::remove_entries()` API 已实现但无任何命令调用它。
 
-**影响：** 误 `add` 文件后无法撤销，只能手动 hack 或删除 `.git/index` 重建。
+**实现：** `commands/reset.rs` — 支持 `reset HEAD <file>`（取消暂存）、`reset --soft/--mixed/--hard [<commit>]`（移动 HEAD）、`HEAD~N` 父提交遍历。`core::checkout` 暴露 `restore_from_commit()` 和 `rebuild_index_from_commit()` 公共 API。
+> 提交：`7233db6`
 
-**实现建议：**
-- 最低限度：`agit reset HEAD <file>` 从 index 中移除指定文件条目（调用已有的 `Index::remove_entries()`），可选从 HEAD 恢复内容。
-- 完整实现：`--soft`（仅移动 HEAD 引用）、`--mixed`（默认，重置索引但不修改工作区）、`--hard`（重置索引+工作目录）。
-- CLI 定义：`reset [--soft|--mixed|--hard] [<commit>] [<path>...]`
-
-### 2. checkout 缺少工作区安全检查
+### 2. checkout 缺少工作区安全检查 ✅
 
 **问题：** `commands/checkout.rs:23` 直接调用 `checkout::switch_branch()`，**不检查工作区是否有未提交的变更**。Git checkout 默认会检查并拒绝（除非 `-f/--force`），以防止用户丢失未保存修改。
 
-**影响：** 切换分支时静默覆盖所有未提交修改，用户数据丢失。
+**实现：** `commands/checkout.rs` — 切换分支前检查 tracked 文件是否被修改/删除，不干净时拒绝并提示。添加 `-f`/`--force` 强制切换。
+> 提交：`0094649`
 
-**实现建议：**
-- 在 `checkout::run()` 中调用类似 `commands/pull.rs:15` 的 `check_working_tree_clean()` 检查。
-- 工作区不干净时输出错误提示（"Please commit your changes or stash them before you switch branches."），拒绝切换。
-- 添加 `-f` / `--force` 参数允许强制切换。
-
-### 3. `config` 命令
+### 3. `config` 命令 ✅
 
 **问题：** 用户无法通过命令行设置 `user.name` / `user.email`。只能手动编辑 `.agit/config.toml` 或 `~/.agitconfig.toml`。这是新用户 onboarding 的第一步，也是 Git 使用频率最高的命令之一。
 
-**影响：** 新用户入门门槛极高，无法完成基本的身份配置。
+**实现：** `commands/config_cmd.rs` — 支持 `config <key>`（get）、`config <key> <val>`（set）、`--list`、`--unset`、`--global`。直接读写 TOML 文件，支持 `section.key` 嵌套键。
+> 提交：`80d9b5e`
 
-**实现建议：**
-- `agit config user.name "name"` → set，写入 repo 级 `.agit/config.toml`。
-- `agit config --global user.name "name"` → 写入 `~/.agitconfig.toml`。
-- `agit config user.name` → get，读取当前值。
-- `agit config --list` → 列出所有配置项。
-- 直接操作 `config::Config` 结构体和 TOML 序列化/反序列化。
-
-### 4. 合并冲突解决流程残缺
+### 4. 合并冲突解决流程残缺 ✅
 
 **问题：** merge 产生冲突后写入 `<<<<<<<` 标记文件和 `MERGE_HEAD` / `MERGE_MSG`，但：
 - `commit` 不检测 `MERGE_HEAD` 存在 → 无法完成合并提交。
 - 没有 `merge --abort` → 无法回退合并状态。
 - 没有 `merge --continue` → 无法继续中止的合并。
 
-**影响：** 用户卡在冲突状态，无法前进（提交合并结果）或后退（放弃合并）。
-
-**实现建议：**
-- `commit` 检测 `.git/MERGE_HEAD` 存在 → 自动读取并创建包含两个 parent 的 merge commit，之后清理 `MERGE_HEAD`/`MERGE_MSG`。
-- `merge --abort`：① 检查 `MERGE_HEAD` 存在 → 读 `ORIG_HEAD`（在合并开始前写入）恢复 HEAD；② `git checkout -- .` 恢复工作区；③ 删除 `MERGE_*` 文件。
-- `merge --continue`：等价于 `commit` + 清理合并状态文件。
-- 可选：`merge --quit`（仅清理状态文件，不修改工作区）。
+**实现：** `commands/commit.rs` — 自动检测 MERGE_HEAD 并创建双 parent 合并提交、使用 MERGE_MSG 作为默认消息、提交后清理合并状态文件。`commands/merge.rs` — `--abort` 恢复 ORIG_HEAD + 清理状态文件，`--continue` 委托给 commit，merge 开始时自动保存 ORIG_HEAD。
+> 提交：`be91be1`
 
 ---
 
