@@ -64,9 +64,9 @@ pub fn run(
         let full_path = repo_root.join(path);
         let new_content = if full_path.exists() {
             fs::read(&full_path).unwrap_or_else(|e| {
-    eprintln!("warning: failed to read '{}': {}", path, e);
-    Vec::new()
-})
+                eprintln!("warning: failed to read '{}': {}", path, e);
+                Vec::new()
+            })
         } else {
             Vec::new()
         };
@@ -251,9 +251,9 @@ fn print_tree_vs_working(
         let full_path = repo.join(path);
         let new_content = if full_path.exists() {
             fs::read(&full_path).unwrap_or_else(|e| {
-    eprintln!("warning: failed to read '{}': {}", path, e);
-    Vec::new()
-})
+                eprintln!("warning: failed to read '{}': {}", path, e);
+                Vec::new()
+            })
         } else {
             Vec::new()
         };
