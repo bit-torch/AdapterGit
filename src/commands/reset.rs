@@ -68,16 +68,14 @@ fn resolve_commit(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error:
     }
 
     // 完整 SHA-1
-    if spec.len() == 40 && spec.chars().all(|c| c.is_ascii_hexdigit()) {
-        if storage::read_object(repo, spec).is_ok() {
-            return Ok(spec.to_string());
-        }
+    if spec.len() == 40
+        && spec.chars().all(|c| c.is_ascii_hexdigit())
+        && storage::read_object(repo, spec).is_ok()
+    {
+        return Ok(spec.to_string());
     }
     // 缩写 SHA（7-39 位十六进制）
-    if spec.len() >= 7
-        && spec.len() < 40
-        && spec.chars().all(|c| c.is_ascii_hexdigit())
-    {
+    if spec.len() >= 7 && spec.len() < 40 && spec.chars().all(|c| c.is_ascii_hexdigit()) {
         if let Some(full_sha) = find_full_sha(repo, spec) {
             return Ok(full_sha);
         }

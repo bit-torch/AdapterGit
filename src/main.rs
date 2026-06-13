@@ -52,9 +52,7 @@ fn main() {
             delete,
         }) => commands::branch::run(*list, create.clone(), delete.clone()),
         Some(Commands::Commit { message, ai }) => commands::commit::run(message.clone(), *ai),
-        Some(Commands::Checkout { branch, force }) => {
-            commands::checkout::run(branch, *force)
-        }
+        Some(Commands::Checkout { branch, force }) => commands::checkout::run(branch, *force),
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Log) => commands::log::run(),
         Some(Commands::Merge {

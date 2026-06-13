@@ -79,7 +79,11 @@ pub enum Commands {
         #[arg(help = "Branch name to switch to")]
         branch: String,
 
-        #[arg(short = 'f', long = "force", help = "Force checkout even with local changes")]
+        #[arg(
+            short = 'f',
+            long = "force",
+            help = "Force checkout even with local changes"
+        )]
         force: bool,
     },
 

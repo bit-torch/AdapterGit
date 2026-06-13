@@ -35,7 +35,10 @@ pub fn run(
 
     // 保存 ORIG_HEAD 以便 --abort 恢复
     if let Ok(head_sha) = refs::read_head(&repo_root) {
-        let _ = fs::write(repo_root.join(".git").join("ORIG_HEAD"), format!("{}\n", head_sha));
+        let _ = fs::write(
+            repo_root.join(".git").join("ORIG_HEAD"),
+            format!("{}\n", head_sha),
+        );
     }
 
     let (timestamp, time_str) = repo::get_current_timestamp();

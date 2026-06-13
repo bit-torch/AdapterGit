@@ -4,97 +4,99 @@
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![Static Binary](https://img.shields.io/badge/binary-static%20musl-green.svg)](https://github.com/bit-torch/AdapterGit/releases)
 
-**AdapterGit (agit)** - 让 Git 在 AI 时代不再卡死。为自动化、脚本、CI/CD 和公共电脑环境设计的无 TUI Git 实现。
+[中文文档](README-zh_CN.md)
 
-## 🎯 痛点解决
+**AdapterGit (agit)** — A TUI-free Git implementation that never hangs. Designed for automation, scripting, CI/CD, and shared computer environments.
 
-还在为这些事抓狂吗？
-- 🤖 **AI Agent 调用 Git 时被 TUI 编辑器卡死**
-- 🏫 **在学校机房每次都要重新安装 Git**
-- 🔧 **脚本中 Git 命令意外触发交互界面**
-- 🐌 **原生 Git 在非 TTY 环境表现诡异**
+## The Problem
 
-**agit 一劳永逸解决这些问题。**
+- AI agents get stuck when Git opens a TUI editor
+- Installing Git on every school lab machine is tedious
+- Git commands unexpectedly launch interactive interfaces in scripts
+- Native Git behaves unpredictably in non-TTY environments
 
-## ✨ 核心特性
+**agit solves all of these.**
 
-### 🤖 **AI 优先设计**
-- 零 TUI 阻塞，AI Agent 的安全选择
-- 结构化 JSON 输出，机器可读
-- 自动添加 `[AI-committed]` 标记
-- 危险操作防护，防止 AI 误操作
+## Key Features
 
-### 📦 **双版本策略**
-agit 提供两个版本，均从底层原生实现 Git 核心逻辑，无任何外部 Git 依赖：
+### AI-First Design
+- Zero TUI blocking — safe for AI agents
+- Structured JSON output, machine-readable
+- Automatic `[AI-committed]` tagging
+- Dangerous operation guards to prevent AI misoperations
 
-| | **Full 版本** | **Lite 版本** |
+### Dual Edition Strategy
+
+agit ships in two editions. Both implement Git core logic natively from scratch in Rust with zero external Git dependencies:
+
+| | **Full Edition** | **Lite Edition** |
 |---|---|---|
-| 形态 | 已打包的可安装应用程序安装包 | 单文件便携二进制 |
-| 安装方式 | 安装包一键安装（.msi / .deb / .dmg） | 下载即用，无需安装 |
-| 体积 | ~20MB 安装包 | ~10MB 单文件 |
-| 适用场景 | 个人开发机、企业批量部署 | AI Agent、CI/CD、临时环境、U 盘携带 |
-| 系统集成 | 注册 PATH、右键菜单、文件关联 | 纯绿色，无系统痕迹 |
-| Git 核心实现 | ✅ 原生 Rust 实现 | ✅ 原生 Rust 实现 |
+| Format | Installable application package | Single-file portable binary |
+| Installation | One-click installer (.msi / .deb / .dmg) | Download and run, no install needed |
+| Size | ~20MB installer | ~10MB single file |
+| Use case | Personal dev machines, enterprise deployment | AI agents, CI/CD, temporary environments, USB drives |
+| System integration | PATH registration, context menu, file associations | Zero footprint, no system traces |
+| Git core | Native Rust implementation | Native Rust implementation |
 
-**两个版本都完整实现了原生 Git 底层逻辑**（SHA-1、zlib、Blob/Tree/Commit 对象、引用系统、索引、网络协议），仅分发形态不同。
+Both editions share the same native Rust Git core (SHA-1, zlib, Blob/Tree/Commit objects, refs, index, network protocols) — only the distribution format differs.
 
-### ⚡ **永不卡死**
-- 自动跳过所有编辑器
-- 智能转换交互式命令
-- 非 TTY 环境友好
-- CI/CD 环境零配置
+### Never Hangs
+- Automatically skips all editors
+- Intelligently converts interactive commands
+- Non-TTY friendly
+- Zero-configuration in CI/CD environments
 
-### 🔄 **Git 兼容**
-- 兼容现有 Git 仓库和工作流
-- 支持常用 Git 命令子集
-- 可渐进式替换 git 命令
-- 透明回退机制
+### Git Compatible
+- Works with existing Git repositories and workflows
+- Supports a common subset of Git commands
+- Gradual replacement of `git` commands
+- Transparent fallback mechanism
 
-## 🚀 快速开始
+## Quick Start
 
-### 下载即用
+### Lite Edition (single-file portable)
 
-#### 🪶 Lite 版本（单文件便携）
 ```bash
 # Linux / macOS
 curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-x86_64-unknown-linux-musl -o agit
 chmod +x agit
 ./agit --help
 
-# 直接运行，无需安装
+# Run directly — no installation required
 ./agit init
 ```
 
-#### 📦 Full 版本（安装包）
+### Full Edition (installer)
+
 ```bash
 # Linux (.deb)
 curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit_0.1.0_amd64.deb
 sudo dpkg -i agit_0.1.0_amd64.deb
 
-# macOS (.dmg)
-# 下载 .dmg 文件，双击安装即可
+# macOS (.dmg) — download and double-click to install
 
-# Windows (.msi)
-# 下载 .msi 安装包，双击运行安装向导
+# Windows (.msi) — download and run the installer wizard
 ```
 
-### 从源码构建
+### Build from Source
+
 ```bash
-# 安装 Rust
+# Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 构建 agit
+# Build agit
 git clone https://github.com/bit-torch/AdapterGit.git
 cd agit
 cargo build --release
 
-# 静态编译（推荐）
+# Static build (recommended)
 cargo build --release --target x86_64-unknown-linux-musl
 ```
 
-## 📖 使用示例
+## Usage Examples
 
-### 基础使用（和 Git 一样）
+### Basic Usage (just like Git)
+
 ```bash
 agit init
 agit add .
@@ -102,12 +104,13 @@ agit commit -m "feat: add new feature"
 agit push origin main
 ```
 
-### 🤖 **AI 模式**
+### AI Mode
+
 ```bash
-# AI 调用 - 永远不会卡在编辑器
+# AI invocation — never stuck in an editor
 agit commit --ai "fix: login bug"
 
-# 输出结构化 JSON
+# Structured JSON output
 {
   "status": "success",
   "command": "commit",
@@ -117,39 +120,43 @@ agit commit --ai "fix: login bug"
 }
 ```
 
-### 🎯 **便携模式**
+### Portable Mode
+
 ```bash
-# 在任何地方，无需安装
+# Anywhere, no installation needed
 cd /tmp/some-project
 /path/to/agit add -A
 /path/to/agit commit -m "work from public computer"
 ```
 
-### 📁 **配置别名**
+### Shell Alias
+
 ```bash
-# 临时替换 git
+# Temporarily replace git
 alias git=agit
 
-# 或只替换特定场景
+# Or only for specific scenarios
 alias gai='agit --ai'
 ```
 
-## 🔧 安装指南
+## Installation
 
-### 🪶 Lite 版本安装
+### Lite Edition
+
 ```bash
-# 使用 cargo
+# Via cargo
 cargo install agit --features lite
 
-# 或直接下载单文件
+# Or download the single binary directly
 curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite -o agit
 chmod +x agit
-sudo mv agit /usr/local/bin/  # 可选，移到 PATH
+sudo mv agit /usr/local/bin/  # optional, add to PATH
 ```
 
-### 📦 Full 版本安装
+### Full Edition
+
 ```bash
-# 使用 cargo
+# Via cargo
 cargo install agit
 
 # Linux (deb)
@@ -158,148 +165,152 @@ sudo dpkg -i agit_0.1.0_amd64.deb
 # Linux (rpm)
 sudo rpm -i agit-0.1.0-1.x86_64.rpm
 
-# macOS
-# 下载 .dmg 双击安装，或使用 Homebrew：
+# macOS — download .dmg and double-click, or use Homebrew:
 brew install bit-torch/tap/agit
 
-# Windows
-# 下载 .msi 安装包，双击运行安装向导
-# 或使用 winget：
+# Windows — download .msi installer, or use winget:
 winget install bit-torch.agit
 ```
 
-### 手动安装（两种版本通用）
-1. 从 https://github.com/bit-torch/AdapterGit/releases 页面选择对应版本下载
-2. Lite 版本：`chmod +x agit` 后直接运行
-3. Full 版本：运行安装包或添加可执行权限后移到 PATH 目录
+### Manual Installation (both editions)
 
-## 📊 对比表
+1. Download the appropriate release from [GitHub Releases](https://github.com/bit-torch/AdapterGit/releases)
+2. Lite: `chmod +x agit` and run directly
+3. Full: run the installer or add execute permission and move to a PATH directory
 
-### agit vs 原生 Git
+## Comparison
 
-| 特性 | agit Full | agit Lite | 原生 Git |
-|------|-----------|-----------|----------|
-| AI 调用安全 | ✅ 永不卡 TUI | ✅ 永不卡 TUI | ❌ 会卡编辑器 |
-| 分发形态 | 📦 安装包（.msi/.deb/.dmg） | 🪶 单文件二进制 | ❌ 需要完整安装 |
-| 单文件便携 | ❌ 需安装 | ✅ ~10MB 单文件 | ❌ 需安装 |
-| 系统集成 | ✅ PATH/右键/文件关联 | ❌ 纯绿色无痕迹 | ✅ 完整集成 |
-| 结构化输出 | ✅ JSON / YAML | ✅ JSON / YAML | ❌ 纯文本 |
-| 零配置运行 | ✅ 开箱即用 | ✅ 开箱即用 | ❌ 需要 git config |
-| 原生 Git 核心 | ✅ 纯 Rust 实现 | ✅ 纯 Rust 实现 | ✅ C 实现 |
-| 交互式操作 | ❌ 不支持 | ❌ 不支持 | ✅ 完整支持 |
+### agit vs Native Git
 
-### Full vs Lite 版本选择指南
+| Feature | agit Full | agit Lite | Native Git |
+|---------|-----------|-----------|------------|
+| AI-safe (no TUI hang) | Yes | Yes | No |
+| Distribution | Installer (.msi/.deb/.dmg) | Single binary (~10MB) | Full installation required |
+| Single-file portable | No (requires install) | Yes | No |
+| System integration | PATH / context menu / file associations | Zero footprint | Full integration |
+| Structured output | JSON / YAML | JSON / YAML | Plain text only |
+| Zero-config run | Yes | Yes | No (requires git config) |
+| Native Git core | Pure Rust | Pure Rust | C |
+| Interactive operations | Not supported | Not supported | Full support |
 
-| 场景 | 推荐版本 |
-|------|----------|
-| 个人开发机日常使用 | 📦 Full |
-| 企业批量部署 | 📦 Full |
-| AI Agent / 自动化脚本 | 🪶 Lite |
-| CI/CD 流水线 | 🪶 Lite |
-| Docker 容器 | 🪶 Lite |
-| U 盘携带 / 公共电脑 | 🪶 Lite |
-| 需要右键菜单集成 | 📦 Full |
-| 临时环境快速使用 | 🪶 Lite |
+### Full vs Lite — Which to Choose?
 
-## 🎨 AI 模式详解
+| Scenario | Recommended Edition |
+|----------|---------------------|
+| Personal dev machine daily use | Full |
+| Enterprise batch deployment | Full |
+| AI Agent / automation scripts | Lite |
+| CI/CD pipelines | Lite |
+| Docker containers | Lite |
+| USB drive / public computers | Lite |
+| Context menu integration needed | Full |
+| Quick use in temporary environments | Lite |
 
-agit 专为 AI Agent 设计：
+## AI Mode in Depth
 
-### 自动标记
+agit is purpose-built for AI agents:
+
+### Auto-Tagging
+
 ```bash
-agit commit --ai "修复登录问题"
-# 提交信息自动添加：[AI-committed]
+agit commit --ai "fix login issue"
+# Commit message automatically includes: [AI-committed]
 ```
 
-### 无交互转换
+### Non-Interactive Conversion
+
 ```bash
-# agit 自动转换这些危险命令
-git commit          → agit commit -m "[AI] auto-commit"
-git rebase -i       → agit rebase --no-edit
-git add -p          → agit add -A
-git mergetool       → ❌ 拒绝执行
+# agit automatically converts these dangerous commands
+git commit          -> agit commit -m "[AI] auto-commit"
+git rebase -i       -> agit rebase --no-edit
+git add -p          -> agit add -A
+git mergetool       -> Rejected
 ```
 
-### 机器可读输出
+### Machine-Readable Output
+
 ```bash
 agit log --json
 agit status --json
 agit diff --json
 ```
 
-## 🏗️ 架构设计
+## Architecture
 
 ```
 ┌─────────────────────────────────────────┐
 │             AI Agent / Script           │
 └─────────────────┬───────────────────────┘
-                  │ JSON / 结构化输出
+                  │ JSON / Structured Output
 ┌─────────────────▼───────────────────────┐
-│              agit (适配层)               │
+│              agit (Adapter Layer)        │
 │  ┌───────────────────────────────────┐  │
-│  │  TUI 消除  │ 便携封装 │ AI 安全    │  │
+│  │  TUI Elimination │ Portability │ AI Safety  │  │
 │  └─────────────────┬─────────────────┘  │
 └─────────────────┬───────────────────────┘
-                  │ 纯 Rust 原生实现
+                  │ Pure Rust Native Implementation
 ┌─────────────────▼───────────────────────┐
-│         原生 Git 核心实现 (Pure Rust)    │
+│         Native Git Core (Pure Rust)      │
 │  ┌───────────────────────────────────┐  │
-│  │  对象存储 │ 引用管理 │ Diff 算法   │  │
-│  │  Pack 文件 │ 协议层 │ 索引系统    │  │
+│  │  Object Store │ Refs │ Diff Algorithm   │  │
+│  │  Pack Files   │ Protocol │ Index System  │  │
 │  └───────────────────────────────────┘  │
 └─────────────────┬───────────────────────┘
-                  │ 统一核心 → 双版本分发
+                  │ Unified Core → Dual Distribution
 ┌─────────────────▼───────────────────────┐
-│              版本分发层                   │
+│            Distribution Layer            │
 │  ┌─────────────────┬─────────────────┐  │
-│  │  📦 Full 版本    │  🪶 Lite 版本   │  │
-│  │  .msi/.deb/.dmg │  单文件二进制     │  │
-│  │  安装包分发      │  下载即用        │  │
+│  │  Full Edition    │  Lite Edition   │  │
+│  │  .msi/.deb/.dmg │  Single Binary  │  │
+│  │  Installer       │  Download & Run │  │
 │  └─────────────────┴─────────────────┘  │
 └─────────────────────────────────────────┘
 ```
 
-**Full 和 Lite 共享同一套原生 Rust 实现的 Git 核心，仅分发形态不同。**
+**Full and Lite share the same native Rust Git core — only the distribution format differs.**
 
-## 📁 支持的命令
+## Supported Commands
 
-### ✅ 已实现
-- `init` - 初始化仓库
-- `add` - 添加文件
-- `commit` - 提交更改
-- `push` / `pull` - 远程操作
-- `status` - 查看状态
-- `log` - 查看日志
-- `clone` - 克隆仓库
+### Implemented
+- `init` — Initialize a repository
+- `add` — Stage files
+- `commit` — Commit changes
+- `push` / `pull` — Remote operations
+- `status` — Show working tree status
+- `log` — Show commit history
+- `clone` — Clone a repository
 
-### 🚧 开发中
-- `branch` - 分支管理
-- `checkout` - 切换分支
-- `merge` - 合并分支
-- `stash` - 暂存更改
+### In Progress
+- `branch` — Branch management
+- `checkout` — Switch branches
+- `merge` — Merge branches
+- `stash` — Stash changes
 
-### ❌ 不计划支持
-- `rebase -i` (交互式变基)
-- `add -p` (交互式添加)
-- `git mergetool` (合并工具)
-- 其他所有 TUI 交互命令
+### Not Planned
+- `rebase -i` (interactive rebase)
+- `add -p` (interactive patching)
+- `git mergetool` (merge tool)
+- All other TUI-interactive commands
 
-## 🔧 配置
+## Configuration
 
-### 环境变量
+### Environment Variables
+
 ```bash
-# 强制 AI 模式
+# Force AI mode
 export AGIT_AI_MODE=1
 
-# 设置输出格式
+# Set output format
 export AGIT_OUTPUT_FORMAT=json  # json, yaml, text
 
-# 禁用颜色
+# Disable color
 export AGIT_NO_COLOR=1
 ```
 
-### 配置文件
+### Config File
+
 `~/.config/agit/config.toml`
+
 ```toml
 [ai]
 auto_tag = true
@@ -314,9 +325,10 @@ prevent_force_push = true
 max_commit_length = 100
 ```
 
-## 🐳 集成示例
+## Integration Examples
 
 ### GitHub Actions
+
 ```yaml
 - name: Checkout with agit
   uses: bit-torch/agit-action@v1
@@ -325,14 +337,15 @@ max_commit_length = 100
 ```
 
 ### Docker
+
 ```dockerfile
 COPY --from=ghcr.io/bit-torch/AdapterGit:latest /agit /usr/local/bin/
 RUN agit clone https://github.com/user/repo.git
 ```
 
-### AI Agent (AutoGPT)
+### AI Agent (Python)
+
 ```python
-# 用 agit 替代 git，避免卡死
 import subprocess
 
 result = subprocess.run(
@@ -340,86 +353,74 @@ result = subprocess.run(
     capture_output=True,
     text=True
 )
-print(result.stdout)  # JSON 输出
+print(result.stdout)  # JSON output
 ```
 
-## 🤝 贡献指南
+## Contributing
 
-欢迎贡献！agit 是开源项目，我们欢迎所有形式的贡献。
+Contributions are welcome! agit is open source and we appreciate all forms of contribution.
 
-### 开发环境设置
+### Development Setup
+
 ```bash
-# 1. Fork 并克隆仓库
+# 1. Fork and clone the repository
 git clone https://github.com/bit-torch/AdapterGit.git
 cd agit
 
-# 2. 安装 Rust
+# 2. Install Rust
 rustup toolchain install stable
 
-# 3. 构建
+# 3. Build
 cargo build
 
-# 4. 运行测试
+# 4. Run tests
 cargo test
 ```
 
-### 提交规范
-agit 使用 Conventional Commits：
-- `feat:` 新功能
-- `fix:` bug 修复
-- `docs:` 文档更新
-- `test:` 测试相关
-- `refactor:` 重构
+### Commit Convention
 
-### 项目结构
+agit follows [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` — New feature
+- `fix:` — Bug fix
+- `docs:` — Documentation update
+- `test:` — Test related
+- `refactor:` — Code refactoring
+
+### Project Structure
+
 ```
 agit/
 ├── src/
-│   ├── cli/      # 命令行解析
-│   ├── git/      # Git 核心功能
-│   ├── ai/       # AI 模式实现
-│   ├── output/   # 输出格式化
-│   └── utils/    # 工具函数
-├── tests/        # 集成测试
-└── examples/     # 使用示例
+│   ├── cli/      # Command-line parsing
+│   ├── git/      # Git core functionality
+│   ├── ai/       # AI mode implementation
+│   ├── output/   # Output formatting
+│   └── utils/    # Utility functions
+├── tests/        # Integration tests
+└── examples/     # Usage examples
 ```
 
-## 📄 许可证
+## License
 
-本项目采用 **Apache-2.0** 许可证。
+This project is licensed under **Apache-2.0**.
 
-## 🙏 致谢
+## Acknowledgments
 
-- **完全原生实现**：从底层用 Rust 实现 Git 核心协议和算法，无任何外部 Git 库依赖
-- 受 [GitButler](https://gitbutler.com/) 和 [gitui](https://github.com/extrawurst/gitui) 启发
-- 感谢所有在公共电脑上被 Git 折磨过的开发者
+- **Fully native implementation** — Git core protocols and algorithms implemented from scratch in Rust, with zero external Git library dependencies
+- Inspired by [GitButler](https://gitbutler.com/) and [gitui](https://github.com/extrawurst/gitui)
+- Thanks to every developer who has been frustrated by Git on shared machines
 
-## 🐛 问题反馈
+## Reporting Issues
 
-发现 bug 或有新想法？欢迎：
-- [提交 Issue](https://github.com/bit-torch/AdapterGit/issues)
-- [提交 PR](https://github.com/bit-torch/AdapterGit/pulls)
-- [参与讨论](https://github.com/bit-torch/AdapterGit/discussions)
+Found a bug or have an idea?
+- [Open an Issue](https://github.com/bit-torch/AdapterGit/issues)
+- [Submit a PR](https://github.com/bit-torch/AdapterGit/pulls)
+- [Join the Discussion](https://github.com/bit-torch/AdapterGit/discussions)
 
-## 🌟 星星历史
+## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=bit-torch/AdapterGit&type=Date)](https://star-history.com/#bit-torch/AdapterGit&Date)
 
 ---
 
-## 📢 一句话介绍
-
-**agit - 让你在 AI 时代还能愉快地用 Git,不再被TUI编辑器限制。**
-
-无论你是：
-- 🤖 在写 AI Agent
-- 🎓 在学校机房 coding
-- 🏢 在受限的企业环境
-- 🐳 在 Docker 容器中
-- 📱 在临时环境中
-
-agit 都能让你的 Git 工作流**永不卡死，开箱即用**。
-
----
-
-> ✨ 专为 AI 时代设计的 Git 工具 ✨
+> A Git tool designed for the AI era — never hang, ready out of the box.

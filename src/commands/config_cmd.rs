@@ -155,7 +155,10 @@ fn read_toml(path: &std::path::Path) -> Map<String, toml::Value> {
 }
 
 /// 将 table 写入 TOML 文件。
-fn write_toml(path: &std::path::Path, table: &Map<String, toml::Value>) -> Result<(), Box<dyn std::error::Error>> {
+fn write_toml(
+    path: &std::path::Path,
+    table: &Map<String, toml::Value>,
+) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }

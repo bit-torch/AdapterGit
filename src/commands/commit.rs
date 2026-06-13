@@ -63,8 +63,9 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
 
     if in_merge {
         let head_sha1 = refs::read_head(&repo_root)?;
-        let merge_head_sha =
-            std::fs::read_to_string(&merge_head_path)?.trim().to_string();
+        let merge_head_sha = std::fs::read_to_string(&merge_head_path)?
+            .trim()
+            .to_string();
         commit.add_parent(&head_sha1);
         commit.add_parent(&merge_head_sha);
     } else if let Ok(head_sha1) = refs::read_head(&repo_root) {

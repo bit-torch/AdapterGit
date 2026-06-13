@@ -7,7 +7,10 @@ use std::path::Path;
 
 /// 从 commit SHA 还原整个工作目录和索引。
 /// 用于 reset --hard 等需要重建工作区的操作。
-pub fn restore_from_commit(repo: &Path, commit_sha: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn restore_from_commit(
+    repo: &Path,
+    commit_sha: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let (obj_type, body) = storage::read_object(repo, commit_sha)?;
     if obj_type != "commit" {
         return Err(format!("object {} is not a commit", commit_sha).into());
