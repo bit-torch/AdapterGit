@@ -132,6 +132,7 @@ pub enum Commands {
         r#continue: bool,
     },
 
+    #[cfg(feature = "tag")]
     #[command(about = "Create, list, or delete tags")]
     Tag {
         #[command(subcommand)]
@@ -232,6 +233,7 @@ pub enum Commands {
     },
 }
 
+#[cfg(feature = "tag")]
 #[derive(Subcommand)]
 pub enum TagAction {
     #[command(about = "List all tags")]

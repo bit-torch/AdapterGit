@@ -7,7 +7,9 @@ mod output;
 mod utils;
 
 use clap::Parser;
-use cli::{Cli, Commands, RemoteAction, StashAction, TagAction};
+#[cfg(feature = "tag")]
+use cli::TagAction;
+use cli::{Cli, Commands, RemoteAction, StashAction};
 use std::env;
 
 fn main() {
@@ -100,6 +102,7 @@ fn main() {
             commands::push::run(remote.as_deref(), branch.as_deref())
         }
         Some(Commands::Pull) => commands::pull::run(),
+        #[cfg(feature = "tag")]
         Some(Commands::Tag { action }) => match action {
             TagAction::List => commands::tag::run_list(),
             TagAction::Create {
@@ -146,6 +149,7 @@ fn command_name(cmd: &Commands) -> String {
             }
         }
         Commands::Merge { .. } => "merge".to_string(),
+        #[cfg(feature = "tag")]
         Commands::Tag { action } => match action {
             TagAction::Delete { .. } => "tag -d".to_string(),
             _ => "tag".to_string(),
