@@ -23,6 +23,14 @@ fn main() {
     output::set_yaml_mode(cli.yaml);
     output::set_no_color(cli.no_color);
 
+    // AI 模式下检查危险命令
+    if let Some(ref cmd) = cli.command {
+        if let Err(e) = ai::check_dangerous_command(&command_name(cmd)) {
+            eprintln!("error: {}", e);
+            std::process::exit(1);
+        }
+    }
+
     let result = match &cli.command {
         None => {
             println!("agit - AI-native Git tool (Pure Rust)");
@@ -116,6 +124,33 @@ fn main() {
     if let Err(e) = result {
         eprintln!("error: {}", e);
         std::process::exit(1);
+    }
+}
+
+/// 将 Commands 枚举转为字符串表示，用于危险命令检查（如 "push"、"stash drop"）。
+fn command_name(cmd: &Commands) -> String {
+    match cmd {
+        Commands::Push { .. } => "push".to_string(),
+        Commands::Stash { action } => match action {
+            StashAction::Push => "stash push".to_string(),
+            StashAction::Pop => "stash pop".to_string(),
+            StashAction::List => "stash list".to_string(),
+            StashAction::Drop { .. } => "stash drop".to_string(),
+        },
+        Commands::Reset { .. } => "reset".to_string(),
+        Commands::Branch { delete, .. } => {
+            if delete.is_some() {
+                "branch -D".to_string()
+            } else {
+                "branch".to_string()
+            }
+        }
+        Commands::Merge { .. } => "merge".to_string(),
+        Commands::Tag { action } => match action {
+            TagAction::Delete { .. } => "tag -d".to_string(),
+            _ => "tag".to_string(),
+        },
+        _ => "".to_string(),
     }
 }
 

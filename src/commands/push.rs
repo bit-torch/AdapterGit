@@ -53,17 +53,7 @@ fn resolve_url(
     repo: &std::path::Path,
     remote: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    if let Some(remote_name) = remote {
-        let refs_path = repo
-            .join(".git")
-            .join("refs")
-            .join("remotes")
-            .join(remote_name);
-        if !refs_path.exists() {
-            return Err(format!("remote '{}' not found", remote_name).into());
-        }
-    }
-    remote_utils::get_remote_url(repo)
+    remote_utils::get_remote_url(repo, remote)
 }
 
 fn resolve_branch(

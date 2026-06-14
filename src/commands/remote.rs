@@ -6,7 +6,11 @@ pub fn run_add(name: &str, url: &str) -> Result<(), Box<dyn std::error::Error>> 
     let repo_root = repo::find_repo_root()?;
     let config_path = repo_root.join(".git").join("config");
 
-    let mut config = fs::read_to_string(&config_path).unwrap_or_default();
+    let mut config = match fs::read_to_string(&config_path) {
+        Ok(c) => c,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(format!("Failed to read .git/config: {}", e).into()),
+    };
 
     let section = format!(
         "[remote \"{}\"]\n\turl = {}\n\tfetch = +refs/heads/*:refs/remotes/{}/*\n",

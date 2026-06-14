@@ -46,7 +46,7 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     };
 
     if is_ai {
-        msg = format!("[AI-committed] {}", msg);
+        msg = format!("{}{}", ai::ai_commit_marker(), msg);
     }
     if !msg.ends_with('\n') {
         msg.push('\n');
@@ -75,15 +75,17 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let commit_sha1 = commit.hash();
     storage::write_object(&repo_root, "commit", &commit.serialize_raw())?;
 
-    let head_content =
-        std::fs::read_to_string(repo_root.join(".git").join("HEAD")).unwrap_or_default();
+    let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
+        .map_err(|e| format!("Failed to read HEAD: {}", e))?;
     let head_trimmed = head_content.trim();
     let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()
     } else if head_trimmed.len() == 40 && head_trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err("You are in 'detached HEAD' state. Please create a branch first.".into());
+    } else if head_trimmed.is_empty() {
+        return Err("HEAD is empty or corrupted. Cannot determine current branch.".into());
     } else {
-        "refs/heads/main".to_string()
+        return Err(format!("Unexpected HEAD content: '{}'", head_trimmed).into());
     };
     refs::write_ref(&repo_root, &branch_ref, &commit_sha1)?;
 

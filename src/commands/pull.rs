@@ -9,7 +9,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
 
     let branch = remote_utils::get_current_branch(&repo_root)?;
-    let remote_url = remote_utils::get_remote_url(&repo_root)?;
+    let remote_url = remote_utils::get_remote_url(&repo_root, None)?;
 
     let index = Index::load(&repo_root)?;
     let working_clean = check_working_tree_clean(&repo_root, &index)?;
