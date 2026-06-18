@@ -70,10 +70,13 @@ pub fn merge_branch(
         println!("Automatic merge failed; fix conflicts and then commit the result.");
         // 写 MERGE_HEAD 标记
         let git_dir = repo.join(".git");
-        fs::write(git_dir.join("MERGE_HEAD"), format!("{}\n", target_sha))?;
-        fs::write(
-            git_dir.join("MERGE_MSG"),
-            format!("Merge branch '{}'\n", branch_name),
+        crate::utils::atomic_write(
+            &git_dir.join("MERGE_HEAD"),
+            format!("{}\n", target_sha).as_bytes(),
+        )?;
+        crate::utils::atomic_write(
+            &git_dir.join("MERGE_MSG"),
+            format!("Merge branch '{}'\n", branch_name).as_bytes(),
         )?;
         return Ok(());
     }

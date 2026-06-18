@@ -3,6 +3,9 @@ use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use std::io::{Read, Write};
 
+/// 解压输出上限（1 GiB），防止 zip 炸弹导致 OOM。
+const MAX_DECOMPRESSED_SIZE: u64 = 1024 * 1024 * 1024;
+
 pub fn compress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
     encoder.write_all(data)?;
@@ -11,16 +14,34 @@ pub fn compress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 
 pub fn decompress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut decoder = ZlibDecoder::new(data);
-    let mut result = Vec::new();
-    decoder.read_to_end(&mut result)?;
+    let mut result = Vec::with_capacity(data.len().min(8192));
+    let mut limited = decoder.take(MAX_DECOMPRESSED_SIZE + 1);
+    limited.read_to_end(&mut result)?;
+    // 如果读满了限制，说明输出超过上限 → zip 炸弹
+    if result.len() > MAX_DECOMPRESSED_SIZE as usize {
+        return Err(format!(
+            "Decompressed data exceeds {} byte limit (possible zip bomb)",
+            MAX_DECOMPRESSED_SIZE
+        )
+        .into());
+    }
     Ok(result)
 }
 
 pub fn decompress_stream(data: &[u8]) -> Result<(Vec<u8>, usize), Box<dyn std::error::Error>> {
     let mut decoder = ZlibDecoder::new(data);
-    let mut result = Vec::new();
-    decoder.read_to_end(&mut result)?;
-    Ok((result, decoder.total_in() as usize))
+    let consumed = decoder.total_in() as usize;
+    let mut result = Vec::with_capacity(data.len().min(8192));
+    let mut limited = decoder.take(MAX_DECOMPRESSED_SIZE + 1);
+    limited.read_to_end(&mut result)?;
+    if result.len() > MAX_DECOMPRESSED_SIZE as usize {
+        return Err(format!(
+            "Decompressed data exceeds {} byte limit (possible zip bomb)",
+            MAX_DECOMPRESSED_SIZE
+        )
+        .into());
+    }
+    Ok((result, consumed))
 }
 
 #[cfg(test)]

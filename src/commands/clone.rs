@@ -54,9 +54,18 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
             ref_name,
             ref_name.starts_with("refs/heads/")
         );
-        if ref_name.starts_with("refs/heads/") || ref_name.starts_with("refs/tags/") {
+        // 验证 ref 名安全（拒绝路径穿越等）
+        if (ref_name.starts_with("refs/heads/") || ref_name.starts_with("refs/tags/"))
+            && !ref_name.contains("..")
+            && !ref_name.contains('\\')
+        {
             eprintln!("clone writing ref: {}", ref_name);
             refs::write_ref(&repo_dir, ref_name, ref_sha1)?;
+        } else if ref_name.starts_with("refs/") {
+            eprintln!(
+                "clone: skipping unsafe remote ref '{}' (contains path traversal)",
+                ref_name
+            );
         }
     }
 

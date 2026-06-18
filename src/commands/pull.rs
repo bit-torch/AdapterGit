@@ -210,10 +210,13 @@ fn merge_changes(
     if has_conflicts {
         println!("Automatic merge failed; fix conflicts and then commit the result.");
         let git_dir = repo.join(".git");
-        std::fs::write(git_dir.join("MERGE_HEAD"), format!("{}\n", remote_sha1))?;
-        std::fs::write(
-            git_dir.join("MERGE_MSG"),
-            format!("Merge branch '{}' of remote into {}\n", branch, branch),
+        crate::utils::atomic_write(
+            &git_dir.join("MERGE_HEAD"),
+            format!("{}\n", remote_sha1).as_bytes(),
+        )?;
+        crate::utils::atomic_write(
+            &git_dir.join("MERGE_MSG"),
+            format!("Merge branch '{}' of remote into {}\n", branch, branch).as_bytes(),
         )?;
         return Ok(());
     }

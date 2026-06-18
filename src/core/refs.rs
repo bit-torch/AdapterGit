@@ -1,6 +1,37 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 验证 Git ref 名称或相对路径不包含路径穿越成分。
+/// 拒绝 `..`、`\`、控制字符，要求仅含可打印 ASCII 和 `/`。
+fn validate_ref_name(name: &str) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("ref name must not be empty".into());
+    }
+    if name.starts_with('/') || name.ends_with('/') {
+        return Err(format!(
+            "ref name '{}' must not start or end with '/'",
+            name
+        ));
+    }
+    if name.contains("..") {
+        return Err(format!(
+            "ref name '{}' contains '..' which is forbidden",
+            name
+        ));
+    }
+    if name.contains('\\') {
+        return Err(format!(
+            "ref name '{}' contains backslash which is forbidden",
+            name
+        ));
+    }
+    // 仅允许可打印 ASCII 和 `/`
+    if !name.chars().all(|c| c.is_ascii_graphic() || c == '/') {
+        return Err(format!("ref name '{}' contains invalid characters", name));
+    }
+    Ok(())
+}
+
 fn refs_dir(repo: &Path) -> PathBuf {
     repo.join(".git")
 }
@@ -29,14 +60,17 @@ pub fn read_head(repo: &Path) -> Result<String, Box<dyn std::error::Error>> {
 
 pub fn write_head(repo: &Path, target: &str) -> Result<(), Box<dyn std::error::Error>> {
     let head = head_file(repo);
-    let dir = head.parent().unwrap_or_else(|| Path::new("."));
+    let dir = head
+        .parent()
+        .ok_or_else(|| format!("Invalid HEAD path: {}", head.display()))?;
     fs::create_dir_all(dir)?;
 
-    fs::write(&head, format!("{}\n", target))?;
+    crate::utils::atomic_write(&head, format!("{}\n", target).as_bytes())?;
     Ok(())
 }
 
 pub fn read_ref(repo: &Path, name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    validate_ref_name(name)?;
     let path = ref_path(repo, name);
     let content = fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read ref {}: {}", path.display(), e))?;
@@ -44,11 +78,16 @@ pub fn read_ref(repo: &Path, name: &str) -> Result<String, Box<dyn std::error::E
 }
 
 pub fn write_ref(repo: &Path, name: &str, sha1: &str) -> Result<(), Box<dyn std::error::Error>> {
+    validate_ref_name(name)?;
+    // 额外校验 SHA-1 格式
+    if sha1.len() != 40 || !sha1.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(format!("Invalid SHA-1 '{}' for ref '{}'", sha1, name).into());
+    }
     let path = ref_path(repo, name);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&path, format!("{}\n", sha1))?;
+    crate::utils::atomic_write(&path, format!("{}\n", sha1).as_bytes())?;
     Ok(())
 }
 
@@ -81,6 +120,7 @@ pub fn get_current_branch(repo: &Path) -> Result<Option<String>, Box<dyn std::er
 /// 删除分支。
 #[allow(dead_code)]
 pub fn delete_branch(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    validate_ref_name(name)?;
     let path = ref_path(repo, &format!("refs/heads/{}", name));
     if !path.exists() {
         return Err(format!("branch '{}' not found", name).into());
@@ -141,6 +181,7 @@ pub fn list_tags(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>>
 #[cfg(feature = "tag")]
 #[allow(dead_code)]
 pub fn delete_tag(repo: &Path, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    validate_ref_name(name)?;
     let path = ref_path(repo, &format!("refs/tags/{}", name));
     if path.exists() {
         fs::remove_file(&path)?;
@@ -173,10 +214,14 @@ mod tests {
         setup_git_dir(&repo);
 
         fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
-        fs::write(repo.join(".git/refs/heads/main"), "abc123def456\n").unwrap();
+        fs::write(
+            repo.join(".git/refs/heads/main"),
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+        )
+        .unwrap();
 
         let result = read_head(&repo).unwrap();
-        assert_eq!(result, "abc123def456");
+        assert_eq!(result, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
         let _ = fs::remove_dir_all(&repo);
     }
@@ -227,9 +272,14 @@ mod tests {
         let repo = setup_repo("roundtrip");
         setup_git_dir(&repo);
 
-        write_ref(&repo, "refs/heads/main", "abc123").unwrap();
+        write_ref(
+            &repo,
+            "refs/heads/main",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+        .unwrap();
         let result = read_ref(&repo, "refs/heads/main").unwrap();
-        assert_eq!(result, "abc123");
+        assert_eq!(result, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
         let _ = fs::remove_dir_all(&repo);
     }
@@ -239,8 +289,8 @@ mod tests {
         let repo = setup_repo("branches");
         setup_git_dir(&repo);
 
-        create_branch(&repo, "main", "abc123").unwrap();
-        create_branch(&repo, "feature", "def456").unwrap();
+        create_branch(&repo, "main", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+        create_branch(&repo, "feature", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
 
         let mut branches = list_branches(&repo).unwrap();
         branches.sort();
@@ -266,8 +316,8 @@ mod tests {
         let repo = setup_repo("taglist");
         setup_git_dir(&repo);
 
-        create_tag(&repo, "v1.0.0", "abc123").unwrap();
-        create_tag(&repo, "v2.0.0", "def456").unwrap();
+        create_tag(&repo, "v1.0.0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+        create_tag(&repo, "v2.0.0", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb").unwrap();
 
         let mut tags = list_tags(&repo).unwrap();
         tags.sort();
@@ -293,7 +343,7 @@ mod tests {
         let repo = setup_repo("delbranch");
         setup_git_dir(&repo);
 
-        create_branch(&repo, "topic", "abc123").unwrap();
+        create_branch(&repo, "topic", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
         assert_eq!(list_branches(&repo).unwrap().len(), 1);
 
         delete_branch(&repo, "topic").unwrap();
@@ -317,7 +367,7 @@ mod tests {
         let repo = setup_repo("currentb");
         setup_git_dir(&repo);
 
-        create_branch(&repo, "main", "abc123").unwrap();
+        create_branch(&repo, "main", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
         fs::write(repo.join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
 
         let current = get_current_branch(&repo).unwrap();
@@ -349,7 +399,7 @@ mod tests {
         let repo = setup_repo("deltag");
         setup_git_dir(&repo);
 
-        create_tag(&repo, "v1.0.0", "abc123").unwrap();
+        create_tag(&repo, "v1.0.0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
         assert_eq!(list_tags(&repo).unwrap().len(), 1);
 
         delete_tag(&repo, "v1.0.0").unwrap();
@@ -366,6 +416,36 @@ mod tests {
 
         // Should not error on deleting non-existent tag
         assert!(delete_tag(&repo, "nonexistent").is_ok());
+
+        let _ = fs::remove_dir_all(&repo);
+    }
+
+    #[test]
+    fn test_ref_name_validation_rejects_traversal() {
+        let valid_sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+        // 拒绝包含 ".." 的 ref 名
+        assert!(validate_ref_name("refs/heads/../../evil").is_err());
+        assert!(validate_ref_name("../../etc/passwd").is_err());
+        assert!(validate_ref_name("refs/heads/foo..bar").is_err());
+
+        // 拒绝包含反斜杠的 ref 名
+        assert!(validate_ref_name("refs\\heads\\evil").is_err());
+
+        // 拒绝空名
+        assert!(validate_ref_name("").is_err());
+
+        // 接受正常 ref 名
+        assert!(validate_ref_name("refs/heads/main").is_ok());
+        assert!(validate_ref_name("refs/heads/feature/branch").is_ok());
+        assert!(validate_ref_name("refs/tags/v1.0.0").is_ok());
+        assert!(validate_ref_name(&format!("refs/heads/{}", valid_sha)).is_ok());
+
+        // write_ref 也应拒绝路径穿越
+        let repo = setup_repo("reftrav");
+        setup_git_dir(&repo);
+        assert!(write_ref(&repo, "../../evil", valid_sha).is_err());
+        assert!(write_ref(&repo, "refs/heads/valid", valid_sha).is_ok());
 
         let _ = fs::remove_dir_all(&repo);
     }
