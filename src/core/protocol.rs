@@ -140,6 +140,9 @@ fn parse_pkt_line(line: &str) -> Option<Vec<u8>> {
 
 pub type ObjectList = Vec<(String, Vec<u8>)>;
 
+/// 单个 packfile 允许的最大对象数，防止恶意预分配导致 OOM。
+const MAX_PACK_OBJECTS: usize = 1_000_000;
+
 pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Error>> {
     if data.len() < 12 {
         return Err("Packfile too short".into());
@@ -149,6 +152,14 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
     }
     let _version = u32::from_be_bytes([data[4], data[5], data[6], data[7]]);
     let num_objects = u32::from_be_bytes([data[8], data[9], data[10], data[11]]) as usize;
+
+    if num_objects > MAX_PACK_OBJECTS {
+        return Err(format!(
+            "Packfile contains {} objects, exceeding limit of {}",
+            num_objects, MAX_PACK_OBJECTS
+        )
+        .into());
+    }
 
     struct RawObj {
         obj_start: usize,
@@ -212,7 +223,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
                 2 => "tree",
                 3 => "blob",
                 4 => "tag",
-                _ => unreachable!(),
+                t => return Err(format!("Unexpected object type {} in packfile", t).into()),
             };
             let header = format!("{} {}\0", type_str, raw.decompressed.len());
             let mut obj_data = Vec::with_capacity(header.len() + raw.decompressed.len());
