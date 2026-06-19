@@ -43,25 +43,13 @@ pub enum Commands {
 
     #[command(about = "Initialize a new git repository")]
     Init {
-        #[arg(
-            short,
-            long,
-            help = "Target directory path (default: current directory)"
-        )]
+        #[arg(short, long, help = "Target directory path (default: current directory)")]
         path: Option<String>,
 
-        #[arg(
-            short,
-            long,
-            help = "Gitignore template (rust, python, node, go, java)"
-        )]
+        #[arg(long, help = "Gitignore template (rust, python, node, go, java)")]
         pattern: Option<String>,
 
-        #[arg(
-            short = 'l',
-            long,
-            help = "License template (mit, apache-2.0, gpl-3.0)"
-        )]
+        #[arg(short = 'l', long, help = "License template (mit, apache-2.0, gpl-3.0)")]
         licence: Option<String>,
     },
 
