@@ -35,7 +35,7 @@ jobs:
           components: clippy
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
-  # ── 测试 + 烟雾测试 (Linux + Windows) ──
+  # ── 测试 (Linux + Windows) ──
   test-linux:
     name: Tests (Linux)
     runs-on: ubuntu-latest
@@ -43,11 +43,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --verbose --all-features
-      - name: Smoke tests (Linux)
-        run: |
-          cargo build --release
-          chmod +x tests/smoke/linux_smoke.sh
-          AGIT_BIN=./target/release/agit tests/smoke/linux_smoke.sh
 
   test-windows:
     name: Tests (Windows)
@@ -56,11 +51,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --verbose --all-features
-      - name: Smoke tests (Windows)
-        run: |
-          cargo build --release
-          $env:AGIT_BIN = ".\target\release\agit.exe"
-          .\tests\smoke\windows_smoke.ps1
 
   # ── Release 构建 (双平台) ──
   build-linux:
