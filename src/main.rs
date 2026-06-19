@@ -41,7 +41,11 @@ fn main() {
         }
         Some(Commands::Rm { cached, files }) => commands::rm::run(*cached, files),
         Some(Commands::Mv { source, dest }) => commands::mv::run(source, dest),
-        Some(Commands::Init) => commands::init::run(),
+        Some(Commands::Init {
+            path,
+            pattern,
+            licence,
+        }) => commands::init::run(path.as_deref(), pattern.as_deref(), licence.as_deref()),
         Some(Commands::Add { files }) => commands::add::run(files),
         Some(Commands::Config {
             global,

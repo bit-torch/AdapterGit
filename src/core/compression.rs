@@ -13,7 +13,7 @@ pub fn compress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 }
 
 pub fn decompress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let mut decoder = ZlibDecoder::new(data);
+    let decoder = ZlibDecoder::new(data);
     let mut result = Vec::with_capacity(data.len().min(8192));
     let mut limited = decoder.take(MAX_DECOMPRESSED_SIZE + 1);
     limited.read_to_end(&mut result)?;
@@ -29,7 +29,7 @@ pub fn decompress(data: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
 }
 
 pub fn decompress_stream(data: &[u8]) -> Result<(Vec<u8>, usize), Box<dyn std::error::Error>> {
-    let mut decoder = ZlibDecoder::new(data);
+    let decoder = ZlibDecoder::new(data);
     let consumed = decoder.total_in() as usize;
     let mut result = Vec::with_capacity(data.len().min(8192));
     let mut limited = decoder.take(MAX_DECOMPRESSED_SIZE + 1);

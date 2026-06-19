@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "agit")]
 #[command(about = "AI-native Git tool (Pure Rust)")]
-#[command(version)]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 pub struct Cli {
     #[arg(long, global = true, help = "Enable AI-powered suggestions")]
     pub ai: bool,
@@ -42,7 +42,28 @@ pub enum Commands {
     },
 
     #[command(about = "Initialize a new git repository")]
-    Init,
+    Init {
+        #[arg(
+            short,
+            long,
+            help = "Target directory path (default: current directory)"
+        )]
+        path: Option<String>,
+
+        #[arg(
+            short,
+            long,
+            help = "Gitignore template (rust, python, node, go, java)"
+        )]
+        pattern: Option<String>,
+
+        #[arg(
+            short = 'l',
+            long,
+            help = "License template (mit, apache-2.0, gpl-3.0)"
+        )]
+        licence: Option<String>,
+    },
 
     #[command(about = "Add files to staging area")]
     Add {
