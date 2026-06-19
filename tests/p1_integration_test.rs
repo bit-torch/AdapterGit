@@ -463,7 +463,10 @@ fn test_init_pattern_python() {
     assert!(gitignore.exists());
     let content = fs::read_to_string(&gitignore).unwrap();
     assert!(content.contains("__pycache__/"));
-    assert!(content.contains("*.py[cod]"), "python template uses glob char class");
+    assert!(
+        content.contains("*.py[cod]"),
+        "python template uses glob char class"
+    );
     let _ = fs::remove_dir_all(&repo);
 }
 
@@ -518,7 +521,15 @@ fn test_init_combined_path_pattern_licence() {
     let repo = setup_repo("icombo");
     run_ok(
         &repo,
-        &["init", "--path", "proj", "--pattern", "node", "-l", "gpl-3.0"],
+        &[
+            "init",
+            "--path",
+            "proj",
+            "--pattern",
+            "node",
+            "-l",
+            "gpl-3.0",
+        ],
     );
     let proj = repo.join("proj");
     assert!(proj.join(".git").exists());
