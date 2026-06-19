@@ -1,6 +1,6 @@
 [package]
 name = "agit"
-version = "0.6.4"
+version = "0.7.0"
 edition = "2021"
 description = "AI-native Git tool - pure Rust implementation"
 license = "Apache-2.0"
