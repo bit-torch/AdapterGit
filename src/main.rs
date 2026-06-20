@@ -132,6 +132,11 @@ fn main() {
             *skip,
             *abort,
         ),
+        Some(Commands::CherryPick {
+            commits,
+            r#continue,
+            abort,
+        }) => commands::cherry_pick::run(commits, *r#continue, *abort),
     };
 
     if let Err(e) = result {
@@ -160,6 +165,7 @@ fn command_name(cmd: &Commands) -> String {
         }
         Commands::Merge { .. } => "merge".to_string(),
         Commands::Rebase { .. } => "rebase".to_string(),
+        Commands::CherryPick { .. } => "cherry-pick".to_string(),
         Commands::Tag { action } => match action {
             TagAction::Delete { .. } => "tag -d".to_string(),
             _ => "tag".to_string(),

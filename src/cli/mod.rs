@@ -248,6 +248,18 @@ pub enum Commands {
         #[arg(long, help = "Abort the rebase in progress")]
         abort: bool,
     },
+
+    #[command(about = "Apply changes from existing commits")]
+    CherryPick {
+        #[arg(help = "Commits to cherry-pick")]
+        commits: Vec<String>,
+
+        #[arg(long, help = "Continue the cherry-pick in progress")]
+        r#continue: bool,
+
+        #[arg(long, help = "Abort the cherry-pick in progress")]
+        abort: bool,
+    },
 }
 
 #[derive(Subcommand)]
