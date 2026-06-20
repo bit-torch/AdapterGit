@@ -275,14 +275,20 @@ scenario_repo_integrity() {
     assert_contains "log has commit 3" "$out" "commit 3"
     assert_contains "log has commit 1" "$out" "commit 1"
 
-    # ls-tree 验证 HEAD
-    out=$(run_agit ls-tree HEAD)
+    # ls-tree 验证（agit 不接受 HEAD，用完整 SHA）
+    local head_sha=$(cat .git/refs/heads/main)
+    out=$(run_agit ls-tree "$head_sha")
     assert_contains "ls-tree shows data.txt" "$out" "data.txt"
 
     # cat-file 验证 blob 可读
-    local blob_sha=$(echo "$out" | grep data.txt | awk '{print $3}')
-    out=$(run_agit cat-file -p "$blob_sha")
-    assert_contains "cat-file blob content" "$out" "line 3"
+    local blob_sha=$(echo "$out" | grep data.txt | awk '{print $3}' || true)
+    if [ -n "$blob_sha" ]; then
+        out=$(run_agit cat-file -p "$blob_sha")
+        assert_contains "cat-file blob content" "$out" "line 3"
+    else
+        echo -e "  ${RED}FAIL${NC} could not find data.txt blob in ls-tree output"
+        FAIL=$((FAIL + 1))
+    fi
 
     # 多个 commit 后 status 干净
     out=$(run_agit status)

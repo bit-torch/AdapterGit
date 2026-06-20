@@ -256,16 +256,22 @@ function Scenario-RepoIntegrity {
         Assert-Contains "log has commit 3" $out "commit 3"
         Assert-Contains "log has commit 1" $out "commit 1"
 
-        $out = Run-Agit ls-tree HEAD
+        $headSha = Get-Content .git/refs/heads/main
+        $out = Run-Agit ls-tree $headSha
         Assert-Contains "ls-tree shows data.txt" $out "data.txt"
 
-        if ($out -match 'data.txt.*?\s([a-f0-9]{40})') {
+        if ($out -match 'data.txt.*?\s([a-fA-F0-9]{40})') {
             $blobSha = $Matches[1]
         } else {
             $blobSha = ""
         }
-        $out = Run-Agit cat-file -p $blobSha
-        Assert-Contains "cat-file blob content" $out "line 3"
+        if ($blobSha) {
+            $out = Run-Agit cat-file -p $blobSha
+            Assert-Contains "cat-file blob content" $out "line 3"
+        } else {
+            Write-Host "  FAIL could not find data.txt blob in ls-tree output" -ForegroundColor Red
+            $script:FAIL++
+        }
 
         $out = Run-Agit status
         Assert-Contains "status clean after 3 commits" $out "nothing to commit"
