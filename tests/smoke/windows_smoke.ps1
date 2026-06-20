@@ -119,11 +119,8 @@ function Scenario-NewProject {
         $out = Run-Agit commit -m "feat: initial commit"
         Assert-Contains "commit succeeds" $out "(root-commit)"
 
-        if ($out -match '([a-f0-9]{40})') {
-            $commitHash = $Matches[1]
-        } else {
-            $commitHash = ""
-        }
+        # 从 ref 文件读完整 commit hash（commit 输出是缩写 hash）
+        $commitHash = Get-Content .git/refs/heads/main
 
         $out = Run-Agit status
         Assert-Contains "status clean" $out "nothing to commit"
@@ -268,7 +265,7 @@ function Scenario-RepoIntegrity {
         $out = Run-Agit ls-tree $treeSha
         Assert-Contains "ls-tree shows data.txt" $out "data.txt"
 
-        if ($out -match 'data.txt.*?\s([a-fA-F0-9]{40})') {
+        if ($out -match '([a-fA-F0-9]{40})\s+data.txt') {
             $blobSha = $Matches[1]
         } else {
             $blobSha = ""
