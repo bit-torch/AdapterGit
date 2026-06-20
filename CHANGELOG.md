@@ -4,6 +4,39 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
+## [v0.9.0] — Unreleased (2026-06-20)
+
+> CI/CD 增强与 Git 一致性测试 — CI/CD Pipeline & Git Compatibility
+
+### CI/CD
+- 新增 **macOS 测试**：全平台矩阵 (Linux + macOS + Windows)
+- 新增 **烟雾测试 (Smoke)**：端到端用户场景在 CI 中自动运行
+- 新增 **Security Audit**：cargo-audit 依赖漏洞扫描
+- Release 构建现在依赖于 smoke tests 通过
+
+### Tests
+- 新增 **Git 兼容性测试** (`tests/git_compat_test.rs`)：9 个对比测试
+  - init / add+commit / status / branch+checkout / merge FF / log / rm+mv / tag
+  - 无原生 Git 时自动跳过
+- 测试总数：159 (90 单元 + 9 兼容 + 60 集成)
+
+---
+
+## [v0.8.0] — 2026-06-20
+
+> 变基与遴选 — Rebase & Cherry-Pick
+
+### Features
+- `rebase` 命令: 完整变基操作 (--onto, --continue, --skip, --abort)
+- `cherry-pick` 命令: 遴选单个或多提交 (--continue, --abort)
+- `core::rebase` 模块: 共享的后端逻辑
+- Detached HEAD commit 支持
+
+### Tests
+- 134 测试 (89 单元 + 45 集成)
+
+---
+
 ## [v0.6.1] — 2025-06-14
 
 > 代码审计修复版本 — Code Audit Fixes

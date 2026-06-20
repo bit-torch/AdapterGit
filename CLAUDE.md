@@ -64,6 +64,7 @@ utils/error.rs   → AgitError enum
 3. **Single Logical Change** — every commit must be one atomic, self-contained change. No "Fix stuff" or "Update code".
 4. **Multi-commit PR is OK** — splitting across commits is encouraged (e.g. `refactor:` → `feat:` → `test:`), but never squash unrelated changes into one.
 5. **Conventional Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Scope optional: `feat(core): ...`.
+5a. **No `@` in commit messages** — 提交信息前后禁止添加 `@` 符号。使用标准 Conventional Commits 格式，不加前缀或后缀的 `@`。
 
 ### Quality Gate
 

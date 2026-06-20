@@ -21,6 +21,9 @@ if (-not (Test-Path $AGIT)) {
     $AGIT = ".\target\release\agit.exe"
 }
 
+# 转为绝对路径（后续场景会 Set-Location 到临时目录，相对路径会失效）
+$AGIT = [System.IO.Path]::GetFullPath($AGIT)
+
 Write-Host "==> agit smoke tests (Windows)" -ForegroundColor Yellow
 Write-Host "    binary: $AGIT"
 $ver = & $AGIT --version 2>&1
@@ -114,13 +117,10 @@ function Scenario-NewProject {
         Assert-FileContains ".gitignore created" ".gitignore" "target/"
 
         $out = Run-Agit commit -m "feat: initial commit"
-        Assert-Contains "commit succeeds" $out "Created commit"
+        Assert-Contains "commit succeeds" $out "(root-commit)"
 
-        if ($out -match '([a-f0-9]{40})') {
-            $commitHash = $Matches[1]
-        } else {
-            $commitHash = ""
-        }
+        # 从 ref 文件读完整 commit hash（commit 输出是缩写 hash）
+        $commitHash = Get-Content .git/refs/heads/main
 
         $out = Run-Agit status
         Assert-Contains "status clean" $out "nothing to commit"
@@ -166,11 +166,13 @@ function Scenario-FixBug {
 
         $out = Run-Agit diff
         Assert-Contains "diff shows app.txt" $out "app.txt"
-        Assert-Contains "diff shows feat.txt" $out "feat.txt"
+        # feat.txt 是未跟踪文件，diff 不显示，通过 status 验证
+        $out = Run-Agit status
+        Assert-Contains "status shows feat.txt" $out "feat.txt"
 
         Run-Agit add app.txt feat.txt | Out-Null
         $out = Run-Agit commit -m "fix: resolve bug #42"
-        Assert-Contains "commit on branch" $out "Created commit"
+        Assert-Contains "commit on branch" $out "resolve bug #42"
 
         Assert-Eq "app.txt content" "v2-fixed" (Get-Content app.txt -Raw).Trim()
         Assert-FileExists "feat.txt exists" "feat.txt"
@@ -253,16 +255,28 @@ function Scenario-RepoIntegrity {
         Assert-Contains "log has commit 3" $out "commit 3"
         Assert-Contains "log has commit 1" $out "commit 1"
 
-        $out = Run-Agit ls-tree HEAD
+        $headSha = Get-Content .git/refs/heads/main
+        $commitOut = Run-Agit cat-file -p $headSha
+        if ($commitOut -match '^tree ([a-fA-F0-9]{40})') {
+            $treeSha = $Matches[1]
+        } else {
+            $treeSha = ""
+        }
+        $out = Run-Agit ls-tree $treeSha
         Assert-Contains "ls-tree shows data.txt" $out "data.txt"
 
-        if ($out -match 'data.txt.*?\s([a-f0-9]{40})') {
+        if ($out -match '([a-fA-F0-9]{40})\s+data.txt') {
             $blobSha = $Matches[1]
         } else {
             $blobSha = ""
         }
-        $out = Run-Agit cat-file -p $blobSha
-        Assert-Contains "cat-file blob content" $out "line 3"
+        if ($blobSha) {
+            $out = Run-Agit cat-file -p $blobSha
+            Assert-Contains "cat-file blob content" $out "line 3"
+        } else {
+            Write-Host "  FAIL could not find data.txt blob in ls-tree output" -ForegroundColor Red
+            $script:FAIL++
+        }
 
         $out = Run-Agit status
         Assert-Contains "status clean after 3 commits" $out "nothing to commit"
