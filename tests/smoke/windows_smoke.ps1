@@ -21,6 +21,9 @@ if (-not (Test-Path $AGIT)) {
     $AGIT = ".\target\release\agit.exe"
 }
 
+# 转为绝对路径（后续场景会 Set-Location 到临时目录，相对路径会失效）
+$AGIT = [System.IO.Path]::GetFullPath($AGIT)
+
 Write-Host "==> agit smoke tests (Windows)" -ForegroundColor Yellow
 Write-Host "    binary: $AGIT"
 $ver = & $AGIT --version 2>&1

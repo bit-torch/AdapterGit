@@ -23,6 +23,11 @@ if [ ! -x "$AGIT" ]; then
     AGIT="./target/release/agit"
 fi
 
+# 转为绝对路径（后续场景会 cd 到临时目录，相对路径会失效）
+if [ "${AGIT#/}" = "$AGIT" ]; then
+    AGIT="$PWD/$AGIT"
+fi
+
 echo -e "${YELLOW}==> agit smoke tests (Linux)${NC}"
 echo "    binary: $AGIT"
 echo "    version: $($AGIT --version)"

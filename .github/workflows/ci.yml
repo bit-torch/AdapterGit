@@ -86,7 +86,7 @@ jobs:
       - name: Run smoke tests
         run: |
           chmod +x tests/smoke/linux_smoke.sh
-          AGIT_BIN=./target/release/agit tests/smoke/linux_smoke.sh
+          AGIT_BIN="${{ github.workspace }}/target/release/agit" tests/smoke/linux_smoke.sh
 
   smoke-windows:
     name: Smoke Tests (Windows)
@@ -100,7 +100,7 @@ jobs:
       - name: Run smoke tests
         shell: pwsh
         run: |
-          $env:AGIT_BIN = ".\target\release\agit.exe"
+          $env:AGIT_BIN = "${{ github.workspace }}\target\release\agit.exe"
           .\tests\smoke\windows_smoke.ps1
 
   # ── Release 构建 (双平台) ──
