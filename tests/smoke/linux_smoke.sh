@@ -126,8 +126,8 @@ scenario_new_project() {
     out=$(run_agit commit -m "feat: initial commit")
     assert_contains "commit succeeds" "$out" "(root-commit)"
 
-    # 抓 commit hash
-    local commit_hash=$(echo "$out" | grep -oE '[a-f0-9]{40}' | head -1)
+    # 从 ref 文件读完整 commit hash
+    local commit_hash=$(cat .git/refs/heads/main)
 
     # status (clean)
     out=$(run_agit status)
