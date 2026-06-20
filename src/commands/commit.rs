@@ -81,6 +81,20 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()
     } else if head_trimmed.len() == 40 && head_trimmed.chars().all(|c| c.is_ascii_hexdigit()) {
+        // 允许 rebase / cherry-pick 进行中的分离 HEAD 提交
+        let in_rebase = git_dir.join("REBASE_TODO").exists();
+        let in_cherry_pick = git_dir.join("CHERRY_PICK_TODO").exists();
+        if in_rebase || in_cherry_pick {
+            // 直接写入 HEAD（不更新分支引用）
+            refs::write_head(&repo_root, &commit_sha1)?;
+            let parent_info = if commit.parents.is_empty() {
+                " (root-commit)"
+            } else {
+                ""
+            };
+            println!("[{:.7}]{}{}", commit_sha1, parent_info, msg.trim_end());
+            return Ok(());
+        }
         return Err("You are in 'detached HEAD' state. Please create a branch first.".into());
     } else if head_trimmed.is_empty() {
         return Err("HEAD is empty or corrupted. Cannot determine current branch.".into());

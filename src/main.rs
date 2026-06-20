@@ -126,6 +126,24 @@ fn main() {
             RemoteAction::Add { name, url } => commands::remote::run_add(name, url),
             RemoteAction::List => commands::remote::run_list(),
         },
+        Some(Commands::Rebase {
+            upstream,
+            onto,
+            r#continue,
+            skip,
+            abort,
+        }) => commands::rebase::run(
+            upstream.as_deref(),
+            onto.as_deref(),
+            *r#continue,
+            *skip,
+            *abort,
+        ),
+        Some(Commands::CherryPick {
+            commits,
+            r#continue,
+            abort,
+        }) => commands::cherry_pick::run(commits, *r#continue, *abort),
     };
 
     if let Err(e) = result {
@@ -153,6 +171,8 @@ fn command_name(cmd: &Commands) -> String {
             }
         }
         Commands::Merge { .. } => "merge".to_string(),
+        Commands::Rebase { .. } => "rebase".to_string(),
+        Commands::CherryPick { .. } => "cherry-pick".to_string(),
         #[cfg(feature = "tag")]
         Commands::Tag { action } => match action {
             TagAction::Delete { .. } => "tag -d".to_string(),

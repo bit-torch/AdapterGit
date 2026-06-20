@@ -1,67 +1,10 @@
+//! 集成测试：高级功能（.gitignore, stash, tag, diff, log, rm, mv）
+//! 使用 tests/common/mod.rs 中的共享测试工具。
+
 use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
 
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-
-fn agit_binary() -> PathBuf {
-    if let Ok(path) = std::env::var("CARGO_BIN_EXE_agit") {
-        return PathBuf::from(path);
-    }
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("target");
-    path.push("debug");
-    path.push("agit");
-    if cfg!(windows) {
-        path.set_extension("exe");
-    }
-    path
-}
-
-fn setup_repo(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("agit_p1_test_{}_{}", std::process::id(), name));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    dir
-}
-
-fn run_agit(repo: &PathBuf, args: &[&str]) -> std::process::Output {
-    let bin = agit_binary();
-    let mut cmd = Command::new(&bin);
-    cmd.args(args)
-        .current_dir(repo)
-        .env_remove("AGIT_USER_NAME")
-        .env_remove("AGIT_USER_EMAIL")
-        .env("AGIT_USER_NAME", "Test User")
-        .env("AGIT_USER_EMAIL", "test@agit.local");
-
-    #[cfg(windows)]
-    {
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-    cmd.output().expect("Failed to run agit")
-}
-
-fn run_ok(repo: &PathBuf, args: &[&str]) -> String {
-    let output = run_agit(repo, args);
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        panic!(
-            "agit {:?} failed:\nstdout: {}\nstderr: {}",
-            args, stdout, stderr
-        );
-    }
-    stdout
-}
-
-#[allow(dead_code)]
-fn run_err(repo: &PathBuf, args: &[&str]) -> String {
-    let output = run_agit(repo, args);
-    String::from_utf8_lossy(&output.stderr).to_string()
-}
+mod common;
+use common::*;
 
 // ============================================================
 // .gitignore 集成测试
@@ -317,6 +260,7 @@ fn test_log_oneline() {
     run_ok(&repo, &["commit", "-m", "first"]);
     let out = run_ok(&repo, &["log", "--oneline"]);
     assert!(out.contains("first"), "should contain commit message");
+    assert!(!out.contains("Author:"));
     let _ = fs::remove_dir_all(&repo);
 }
 
@@ -329,10 +273,17 @@ fn test_log_limit() {
         run_ok(&repo, &["add", "f.txt"]);
         run_ok(&repo, &["commit", "-m", &format!("c{}", i)]);
     }
-    let out = run_ok(&repo, &["log", "-n", "2"]);
-    // 默认格式包含 "commit"（带 ANSI 颜色码），用 contains 而非 starts_with
-    let lines: Vec<&str> = out.lines().filter(|l| l.contains("commit")).collect();
-    assert_eq!(lines.len(), 2, "log -n 2 should show 2 commits");
+    let out = run_ok(&repo, &["log", "-n", "3"]);
+    let commit_lines: Vec<&str> = out
+        .lines()
+        .filter(|l| l.contains("commit ") && l.len() > 20)
+        .collect();
+    assert_eq!(
+        commit_lines.len(),
+        3,
+        "should show exactly 3 commits, got: {}",
+        out
+    );
     let _ = fs::remove_dir_all(&repo);
 }
 

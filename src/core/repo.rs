@@ -1,3 +1,7 @@
+use crate::core::index::Index;
+use crate::core::objects::blob::Blob;
+use crate::core::objects::commit::Commit;
+use crate::core::{refs, storage};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -34,4 +38,127 @@ pub fn get_current_timestamp() -> (i64, String) {
         .unwrap_or_default();
     let timestamp = now.as_secs() as i64;
     (timestamp, format!("{} +0800", timestamp))
+}
+
+/// 解析 commit/tree-ish 引用为完整 SHA-1。
+/// 支持 HEAD、分支名、标签名、remote ref、完整 SHA、缩写 SHA、~N 后缀。
+pub(crate) fn resolve_commit(
+    repo: &Path,
+    spec: &str,
+) -> Result<String, Box<dyn std::error::Error>> {
+    // 处理 ~N 后缀：遍历父提交
+    if let Some(tilde_pos) = spec.find('~') {
+        let base = &spec[..tilde_pos];
+        let n: usize = if tilde_pos + 1 < spec.len() {
+            spec[tilde_pos + 1..].parse().unwrap_or(1)
+        } else {
+            1
+        };
+        let mut sha = resolve_commit(repo, base)?;
+        for _ in 0..n {
+            sha = get_parent(repo, &sha)?;
+        }
+        return Ok(sha);
+    }
+
+    // 完整 SHA-1
+    if spec.len() == 40
+        && spec.chars().all(|c| c.is_ascii_hexdigit())
+        && storage::read_object(repo, spec).is_ok()
+    {
+        return Ok(spec.to_string());
+    }
+    // 缩写 SHA（7-39 位十六进制）
+    if spec.len() >= 7 && spec.len() < 40 && spec.chars().all(|c| c.is_ascii_hexdigit()) {
+        if let Some(full_sha) = find_full_sha(repo, spec) {
+            return Ok(full_sha);
+        }
+    }
+    // HEAD
+    if spec == "HEAD" {
+        return refs::read_head(repo);
+    }
+    // 分支名
+    let branch_ref = format!("refs/heads/{}", spec);
+    if let Ok(sha) = refs::read_ref(repo, &branch_ref) {
+        return Ok(sha);
+    }
+    // 标签名
+    let tag_ref = format!("refs/tags/{}", spec);
+    if let Ok(sha) = refs::read_ref(repo, &tag_ref) {
+        return Ok(sha);
+    }
+    // remote ref
+    let remote_ref = format!("refs/remotes/{}", spec);
+    if let Ok(sha) = refs::read_ref(repo, &remote_ref) {
+        return Ok(sha);
+    }
+
+    Err(format!(
+        "fatal: ambiguous argument '{}': unknown revision or path not in working tree",
+        spec
+    )
+    .into())
+}
+
+/// 获取 commit 的第一个 parent SHA。
+pub(crate) fn get_parent(repo: &Path, sha: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let (obj_type, content) = storage::read_object(repo, sha)?;
+    if obj_type != "commit" {
+        return Err(format!("object {} is not a commit", sha).into());
+    }
+    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let commit = Commit::deserialize(&commit_data)?;
+    commit
+        .parents
+        .first()
+        .cloned()
+        .ok_or_else(|| format!("commit {} has no parent", sha).into())
+}
+
+/// 在 .git/objects 中查找缩写 SHA 的完整值。
+fn find_full_sha(repo: &Path, prefix: &str) -> Option<String> {
+    let prefix_dir = prefix[..2].to_lowercase();
+    let rest = &prefix[2..].to_lowercase();
+    let objects_dir = repo.join(".git").join("objects");
+    let dir_path = objects_dir.join(&prefix_dir);
+    if !dir_path.is_dir() {
+        return None;
+    }
+    let mut matches: Vec<String> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&dir_path) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(rest) {
+                matches.push(format!("{}{}", prefix_dir, name));
+            }
+        }
+    }
+    if matches.len() == 1 {
+        Some(matches[0].clone())
+    } else {
+        None
+    }
+}
+
+/// 检查工作区是否干净（tracked 文件是否被修改或删除）。
+pub(crate) fn is_working_tree_clean(
+    repo: &Path,
+    index: &Index,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    for (path, entry) in index.entries.iter() {
+        let full_path = repo.join(path);
+        if full_path.exists() {
+            let content =
+                fs::read(&full_path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+            let blob = Blob::new(content);
+            if blob.hash() != entry.sha1 {
+                return Ok(false);
+            }
+        } else {
+            // 文件在 index 中但不在工作区 → 被删除
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
