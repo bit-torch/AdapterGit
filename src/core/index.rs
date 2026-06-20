@@ -31,8 +31,8 @@ impl Index {
 
     pub fn save(&self, repo: &Path) -> Result<(), Box<dyn std::error::Error>> {
         let index_path = repo.join(".git").join("index");
-        let data = self.serialize();
-        fs::write(&index_path, &data)?;
+        let data = self.serialize()?;
+        crate::utils::atomic_write(&index_path, &data)?;
         Ok(())
     }
 
@@ -58,7 +58,7 @@ impl Index {
         self.entries.get(path)
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         let mut data = Vec::new();
 
         let entry_count = self.entries.len() as u32;
@@ -70,7 +70,9 @@ impl Index {
             let entry_start = data.len(); // 记录条目起始偏移（用于对齐）
 
             // 统计区 40 字节，mode 写实际值（0o100644 → 0x000081A4）
-            let mode_stat: u32 = u32::from_str_radix(&entry.mode, 8).unwrap_or(0o100644);
+            let mode_stat: u32 = u32::from_str_radix(&entry.mode, 8).map_err(|e| {
+                format!("Invalid mode '{}' for '{}': {}", entry.mode, entry.path, e)
+            })?;
             data.extend_from_slice(&0u32.to_be_bytes()); // ctime sec
             data.extend_from_slice(&0u32.to_be_bytes()); // ctime nsec
             data.extend_from_slice(&0u32.to_be_bytes()); // mtime sec
@@ -83,7 +85,10 @@ impl Index {
             data.extend_from_slice(&0u32.to_be_bytes()); // file size
 
             // SHA-1 (20 bytes binary)
-            data.extend_from_slice(&hex_to_bytes(&entry.sha1));
+            data.extend_from_slice(
+                &hex_to_bytes(&entry.sha1)
+                    .map_err(|e| format!("Invalid SHA-1 hex for '{}': {}", entry.path, e))?,
+            );
 
             // Flags (u16BE) — 仅路径长度，无扩展位
             let flags: u16 = entry.flags & 0x0FFF;
@@ -101,9 +106,9 @@ impl Index {
 
         // SHA-1 校验和
         let sha1 = crate::core::hash::hash_bytes(&data);
-        data.extend_from_slice(&hex_to_bytes(&sha1));
+        data.extend_from_slice(&hex_to_bytes(&sha1)?);
 
-        data
+        Ok(data)
     }
 
     pub fn deserialize(data: &[u8]) -> Result<Self, Box<dyn std::error::Error>> {
@@ -175,10 +180,16 @@ impl Index {
     }
 }
 
-fn hex_to_bytes(hex: &str) -> Vec<u8> {
+fn hex_to_bytes(hex: &str) -> Result<Vec<u8>, String> {
+    if !hex.len().is_multiple_of(2) {
+        return Err(format!("hex string has odd length: {}", hex.len()));
+    }
     (0..hex.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap_or(0))
+        .map(|i| {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|e| format!("invalid hex at pos {}: {}", i, e))
+        })
         .collect()
 }
 
@@ -246,7 +257,7 @@ mod tests {
             "world.txt",
         );
 
-        let data = index.serialize();
+        let data = index.serialize().unwrap();
         let deserialized = Index::deserialize(&data).unwrap();
 
         assert_eq!(deserialized.entries.len(), 2);
@@ -266,7 +277,7 @@ mod tests {
             "3b18e512dba79e4c8300dd08aeb37f8e728b8dad",
             "hello.txt",
         );
-        let data = index.serialize();
+        let data = index.serialize().unwrap();
 
         // 统计区 mode 在 entry 偏移 24 (第 7 个 u32)
         let stat_mode =

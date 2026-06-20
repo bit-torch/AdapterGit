@@ -92,7 +92,6 @@ jobs:
           Copy-Item target/release/agit.exe release/agit.exe
           Copy-Item LICENSE release/LICENSE
           Compress-Archive -Path release/* -DestinationPath agit-windows-x86_64.zip -Force
-          # 同时保留单文件 exe 供直接下载
           Copy-Item target/release/agit.exe agit-windows-x86_64.exe
       - uses: actions/upload-artifact@v4
         with:

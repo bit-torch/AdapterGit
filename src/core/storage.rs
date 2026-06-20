@@ -6,6 +6,21 @@ fn objects_dir(repo: &Path) -> PathBuf {
     repo.join(".git").join("objects")
 }
 
+/// 验证 SHA-1 十六进制字符串格式（40 字符，小写 hex）。
+fn validate_sha1(sha1: &str) -> Result<(), String> {
+    if sha1.len() != 40 {
+        return Err(format!(
+            "Invalid SHA-1 '{}': expected 40 hex chars, got {}",
+            sha1,
+            sha1.len()
+        ));
+    }
+    if !sha1.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(format!("Invalid SHA-1 '{}': non-hex characters", sha1));
+    }
+    Ok(())
+}
+
 fn object_path(repo: &Path, sha1: &str) -> PathBuf {
     objects_dir(repo).join(&sha1[..2]).join(&sha1[2..])
 }
@@ -36,6 +51,7 @@ pub fn read_object(
     repo: &Path,
     sha1: &str,
 ) -> Result<(String, Vec<u8>), Box<dyn std::error::Error>> {
+    validate_sha1(sha1)?;
     let path = object_path(repo, sha1);
     let compressed =
         fs::read(&path).map_err(|e| format!("Failed to read object {}: {}", sha1, e))?;
@@ -57,7 +73,7 @@ pub fn read_object(
 }
 
 pub fn object_exists(repo: &Path, sha1: &str) -> bool {
-    object_path(repo, sha1).exists()
+    validate_sha1(sha1).is_ok() && object_path(repo, sha1).exists()
 }
 
 #[cfg(test)]
