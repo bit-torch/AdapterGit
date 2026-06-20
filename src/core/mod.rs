@@ -6,6 +6,7 @@ pub mod index;
 pub mod merge;
 pub mod objects;
 pub mod protocol;
+pub mod rebase;
 pub mod refs;
 pub mod remote_utils;
 pub mod repo;
