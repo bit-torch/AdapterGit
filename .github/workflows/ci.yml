@@ -24,6 +24,7 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt -- --check
+      - run: cargo check --all-targets --all-features
 
   clippy:
     name: Clippy Lints
@@ -42,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --verbose --all-features
+      - run: cargo test --verbose --all-features --all-targets
 
   test-windows:
     name: Tests (Windows)
@@ -50,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --verbose --all-features
+      - run: cargo test --verbose --all-features --all-targets
 
   # ── Release 构建 (双平台) ──
   build-linux:

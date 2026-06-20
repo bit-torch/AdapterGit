@@ -22,6 +22,7 @@ pub fn ai_commit_marker() -> &'static str {
 pub const DANGEROUS_COMMANDS: &[&str] = &[
     "mergetool",
     "rebase",
+    "cherry-pick", // 可能引入不兼容的变更
     "bisect",
     "push",       // 可能推送到远程
     "stash drop", // 删除暂存
