@@ -537,6 +537,7 @@ impl HttpTransport {
         Ok(refs)
     }
 
+    #[allow(dead_code)]
     pub fn clone_full(&self, want_sha1: &str) -> Result<ObjectList, Box<dyn std::error::Error>> {
         let mut body = Vec::new();
         body.extend_from_slice(&pkt_line_encode(

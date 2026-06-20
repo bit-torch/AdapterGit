@@ -106,6 +106,7 @@ impl SshUrl {
 /// 加载并应用 `~/.ssh/config`（如果存在）。
 ///
 /// 根据别名解析真实主机名、用户和端口。
+#[allow(dead_code)]
 pub fn apply_ssh_config(host: &str) -> SshConfigEntry {
     let config_path = ssh_config_path();
     if let Ok(content) = std::fs::read_to_string(&config_path) {
@@ -118,6 +119,7 @@ pub fn apply_ssh_config(host: &str) -> SshConfigEntry {
 }
 
 /// SSH 配置条目
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
 pub struct SshConfigEntry {
     /// Host 指令的模式（用于匹配，如 "gh"、"*.example.com"）
@@ -160,6 +162,7 @@ impl SshConfigEntry {
 }
 
 /// 解析 `~/.ssh/config` 内容
+#[allow(dead_code)]
 fn parse_ssh_config(content: &str) -> Vec<SshConfigEntry> {
     let mut entries = Vec::new();
     let mut current_pattern: Option<String> = None;
@@ -230,6 +233,7 @@ fn parse_ssh_config(content: &str) -> Vec<SshConfigEntry> {
 }
 
 /// 展开 `~` 为家目录
+#[allow(dead_code)]
 fn shellexpand(path: &str) -> String {
     if path.starts_with("~/") {
         if let Some(home) = dirs_home() {
@@ -245,6 +249,7 @@ fn shellexpand(path: &str) -> String {
 }
 
 /// 获取家目录
+#[allow(dead_code)]
 fn dirs_home() -> Option<PathBuf> {
     #[cfg(windows)]
     {
@@ -265,6 +270,7 @@ fn dirs_home() -> Option<PathBuf> {
 }
 
 /// 获取 `~/.ssh/config` 路径
+#[allow(dead_code)]
 fn ssh_config_path() -> PathBuf {
     let home = dirs_home().unwrap_or_else(|| PathBuf::from("."));
     home.join(".ssh").join("config")
