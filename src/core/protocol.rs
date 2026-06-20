@@ -1,6 +1,43 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+use crate::core::ssh_url::SshUrl;
+
+// ── Transport trait ──────────────────────────────────────────
+
+/// 传输层抽象 trait，支持 HTTP 和 SSH 两种传输方式。
+pub trait Transport {
+    /// 发现远程引用 (refs)
+    fn discover_refs(&self) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>>;
+
+    /// 获取对象 (带 want/have 协商)
+    fn fetch_objects(
+        &self,
+        wants: &[String],
+        haves: &[String],
+    ) -> Result<ObjectList, Box<dyn std::error::Error>>;
+
+    /// 推送 packfile
+    fn push_pack(
+        &self,
+        ref_update: &str,
+        pack_data: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+/// 根据 URL 方案创建对应的传输实例。
+pub fn create_transport(url: &str) -> Result<Box<dyn Transport>, Box<dyn std::error::Error>> {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        Ok(Box::new(HttpTransport::from_url(url)?))
+    } else if url.starts_with("ssh://") || SshUrl::parse(url).is_some() {
+        Ok(Box::new(
+            crate::core::ssh_transport::SshTransport::from_url(url)?,
+        ))
+    } else {
+        Err(format!("Unsupported URL scheme: {}", url).into())
+    }
+}
+
 enum TransportStream {
     Plain(TcpStream),
     Tls(Box<native_tls::TlsStream<TcpStream>>),
@@ -500,6 +537,7 @@ impl HttpTransport {
         Ok(refs)
     }
 
+    #[allow(dead_code)]
     pub fn clone_full(&self, want_sha1: &str) -> Result<ObjectList, Box<dyn std::error::Error>> {
         let mut body = Vec::new();
         body.extend_from_slice(&pkt_line_encode(
@@ -592,6 +630,28 @@ impl HttpTransport {
     }
 }
 
+impl Transport for HttpTransport {
+    fn discover_refs(&self) -> Result<Vec<(String, String)>, Box<dyn std::error::Error>> {
+        self.discover_refs()
+    }
+
+    fn fetch_objects(
+        &self,
+        wants: &[String],
+        haves: &[String],
+    ) -> Result<ObjectList, Box<dyn std::error::Error>> {
+        self.fetch_objects(wants, haves)
+    }
+
+    fn push_pack(
+        &self,
+        ref_update: &str,
+        pack_data: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.push_pack(ref_update, pack_data)
+    }
+}
+
 fn parse_http_response(data: &[u8]) -> Result<(u16, Vec<u8>), Box<dyn std::error::Error>> {
     let text = String::from_utf8_lossy(data);
     let lines: Vec<&str> = text.split("\r\n").collect();
@@ -651,7 +711,7 @@ fn dechunk_body(body: &[u8]) -> Option<Vec<u8>> {
     Some(result)
 }
 
-fn find_pack_start(data: &[u8]) -> usize {
+pub fn find_pack_start(data: &[u8]) -> usize {
     for i in 0..data.len().saturating_sub(4) {
         if &data[i..i + 4] == b"PACK" {
             return i;

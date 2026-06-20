@@ -10,4 +10,6 @@ pub mod rebase;
 pub mod refs;
 pub mod remote_utils;
 pub mod repo;
+pub mod ssh_transport;
+pub mod ssh_url;
 pub mod storage;

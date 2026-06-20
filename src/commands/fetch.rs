@@ -1,4 +1,4 @@
-use crate::core::protocol::HttpTransport;
+use crate::core::protocol::create_transport;
 use crate::core::refs;
 use crate::core::remote_utils;
 use crate::core::repo;
@@ -8,7 +8,7 @@ pub fn run(url: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
     let remote_url = resolve_url(&repo_root, url)?;
     let branch = remote_utils::get_current_branch(&repo_root)?;
 
-    let transport = HttpTransport::from_url(&remote_url)?;
+    let transport = create_transport(&remote_url)?;
     let remote_refs = transport.discover_refs()?;
 
     let remote_branch_ref = format!("refs/heads/{}", branch);

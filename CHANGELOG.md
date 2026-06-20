@@ -4,7 +4,27 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.9.0] — Unreleased (2026-06-20)
+## [v0.10.0] — Unreleased
+
+> SSH 传输协议 — SSH Transport Protocol
+
+### Features
+- **SSH 传输协议**: 通过系统 `ssh` 命令支持 `git@host:path` 和 `ssh://` URL
+- **Transport trait**: 统一 HTTP/SSH 传输抽象（discover_refs / fetch_objects / push_pack）
+- **SSH URL 解析器**: 支持 SCP 格式、ssh:// 标准格式、~/.ssh/config 主机别名和通配符
+- **create_transport()**: 根据 URL scheme 自动分发 HTTP 或 SSH
+
+### Architecture
+- `SshTransport`: 零额外依赖，子进程调用系统 ssh，透明继承密钥/known_hosts/agent
+- `HttpTransport`: 重构为 Transport trait 实现
+- clone/fetch/push 命令统一使用 Transport trait
+
+### Tests
+- 168 测试 (99 单元 + 9 兼容 + 60 集成)
+
+---
+
+## [v0.9.0] — 2026-06-20
 
 > CI/CD 增强与 Git 一致性测试 — CI/CD Pipeline & Git Compatibility
 
