@@ -169,7 +169,9 @@ function Scenario-FixBug {
 
         $out = Run-Agit diff
         Assert-Contains "diff shows app.txt" $out "app.txt"
-        Assert-Contains "diff shows feat.txt" $out "feat.txt"
+        # feat.txt 是未跟踪文件，diff 不显示，通过 status 验证
+        $out = Run-Agit status
+        Assert-Contains "status shows feat.txt" $out "feat.txt"
 
         Run-Agit add app.txt feat.txt | Out-Null
         $out = Run-Agit commit -m "fix: resolve bug #42"
@@ -257,7 +259,13 @@ function Scenario-RepoIntegrity {
         Assert-Contains "log has commit 1" $out "commit 1"
 
         $headSha = Get-Content .git/refs/heads/main
-        $out = Run-Agit ls-tree $headSha
+        $commitOut = Run-Agit cat-file -p $headSha
+        if ($commitOut -match '^tree ([a-fA-F0-9]{40})') {
+            $treeSha = $Matches[1]
+        } else {
+            $treeSha = ""
+        }
+        $out = Run-Agit ls-tree $treeSha
         Assert-Contains "ls-tree shows data.txt" $out "data.txt"
 
         if ($out -match 'data.txt.*?\s([a-fA-F0-9]{40})') {

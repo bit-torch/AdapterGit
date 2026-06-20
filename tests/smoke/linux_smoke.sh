@@ -176,10 +176,12 @@ scenario_fix_bug() {
     echo "v2-fixed" > app.txt
     echo "new-feature" > feat.txt
 
-    # diff 查看
+    # diff 查看（仅已跟踪文件，feat.txt 是未跟踪文件不出现）
     out=$(run_agit diff)
     assert_contains "diff shows app.txt" "$out" "app.txt"
-    assert_contains "diff shows feat.txt" "$out" "feat.txt"
+    # feat.txt 是未跟踪文件，diff 不显示，通过 status 验证
+    out=$(run_agit status)
+    assert_contains "status shows feat.txt" "$out" "feat.txt"
 
     # 暂存 + 提交
     run_agit add app.txt feat.txt > /dev/null
@@ -275,9 +277,10 @@ scenario_repo_integrity() {
     assert_contains "log has commit 3" "$out" "commit 3"
     assert_contains "log has commit 1" "$out" "commit 1"
 
-    # ls-tree 验证（agit 不接受 HEAD，用完整 SHA）
+    # ls-tree 验证（先解析 commit → tree SHA）
     local head_sha=$(cat .git/refs/heads/main)
-    out=$(run_agit ls-tree "$head_sha")
+    local tree_sha=$(run_agit cat-file -p "$head_sha" | head -1 | awk '{print $2}')
+    out=$(run_agit ls-tree "$tree_sha")
     assert_contains "ls-tree shows data.txt" "$out" "data.txt"
 
     # cat-file 验证 blob 可读
