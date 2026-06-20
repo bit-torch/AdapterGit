@@ -1,67 +1,10 @@
+//! 集成测试：高级功能（.gitignore, stash, tag, diff, log, rm, mv）
+//! 使用 tests/common/mod.rs 中的共享测试工具。
+
 use std::fs;
-use std::path::PathBuf;
-use std::process::Command;
 
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
-
-fn agit_binary() -> PathBuf {
-    if let Ok(path) = std::env::var("CARGO_BIN_EXE_agit") {
-        return PathBuf::from(path);
-    }
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.push("target");
-    path.push("debug");
-    path.push("agit");
-    if cfg!(windows) {
-        path.set_extension("exe");
-    }
-    path
-}
-
-fn setup_repo(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("agit_p1_test_{}_{}", std::process::id(), name));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-    dir
-}
-
-fn run_agit(repo: &PathBuf, args: &[&str]) -> std::process::Output {
-    let bin = agit_binary();
-    let mut cmd = Command::new(&bin);
-    cmd.args(args)
-        .current_dir(repo)
-        .env_remove("AGIT_USER_NAME")
-        .env_remove("AGIT_USER_EMAIL")
-        .env("AGIT_USER_NAME", "Test User")
-        .env("AGIT_USER_EMAIL", "test@agit.local");
-
-    #[cfg(windows)]
-    {
-        const CREATE_NO_WINDOW: u32 = 0x08000000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-    cmd.output().expect("Failed to run agit")
-}
-
-fn run_ok(repo: &PathBuf, args: &[&str]) -> String {
-    let output = run_agit(repo, args);
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        panic!(
-            "agit {:?} failed:\nstdout: {}\nstderr: {}",
-            args, stdout, stderr
-        );
-    }
-    stdout
-}
-
-#[allow(dead_code)]
-fn run_err(repo: &PathBuf, args: &[&str]) -> String {
-    let output = run_agit(repo, args);
-    String::from_utf8_lossy(&output.stderr).to_string()
-}
+mod common;
+use common::*;
 
 // ============================================================
 // .gitignore 集成测试
@@ -132,15 +75,13 @@ fn test_stash_push_and_pop() {
 
     fs::write(repo.join("f.txt"), "v2").unwrap();
     run_ok(&repo, &["stash", "push"]);
-    assert_eq!(fs::read_to_string(repo.join("f.txt")).unwrap(), "v1"); // reset to HEAD
+    assert_eq!(fs::read_to_string(repo.join("f.txt")).unwrap(), "v1");
 
-    // make a new commit on top
     fs::write(repo.join("f.txt"), "v3").unwrap();
     run_ok(&repo, &["add", "f.txt"]);
     run_ok(&repo, &["commit", "-m", "after stash"]);
 
     run_ok(&repo, &["stash", "pop"]);
-    // stash restores v2
     let content = fs::read_to_string(repo.join("f.txt")).unwrap_or_default();
     assert_eq!(content, "v2", "stash pop should restore v2");
 
@@ -180,11 +121,9 @@ fn test_stash_multiple() {
 fn test_stash_no_changes_error() {
     let repo = setup_repo("stash_nochg");
     run_ok(&repo, &["init"]);
-    // Need a commit so HEAD exists, then stash with clean tree is a no-op
     fs::write(repo.join("f.txt"), "data").unwrap();
     run_ok(&repo, &["add", "f.txt"]);
     run_ok(&repo, &["commit", "-m", "init"]);
-    // Working tree is clean — stash should have nothing to save
     let out = run_err(&repo, &["stash", "push"]);
     assert!(
         out.contains("No local changes to save"),
@@ -336,7 +275,6 @@ fn test_log_oneline() {
 
     let out = run_ok(&repo, &["log", "--oneline"]);
     assert!(out.contains("hello world") || out.contains("second"));
-    // oneline should NOT contain multi-line formatting
     assert!(!out.contains("Author:"));
 
     let _ = fs::remove_dir_all(&repo);
@@ -352,8 +290,6 @@ fn test_log_limit() {
         run_ok(&repo, &["commit", "-m", &format!("commit {}", i)]);
     }
     let out = run_ok(&repo, &["log", "-n", "3"]);
-    // 检查是否只显示了3条提交（通过统计短 hash 出现次数）
-    // log 输出 commit <sha> 行数应等于3
     let commit_lines: Vec<&str> = out
         .lines()
         .filter(|l| l.contains("commit ") && l.len() > 20)
