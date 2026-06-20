@@ -1,5 +1,5 @@
 use crate::core::index::Index;
-use crate::core::protocol::HttpTransport;
+use crate::core::protocol::create_transport;
 use crate::core::refs;
 use crate::core::remote_utils;
 use crate::core::repo;
@@ -11,7 +11,7 @@ use std::path::Path;
 pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("Cloning into '{}'...", repo_name_from_url(url));
 
-    let transport = HttpTransport::from_url(url)?;
+    let transport = create_transport(url)?;
     let refs_list = transport.discover_refs()?;
 
     let head_ref = refs_list
@@ -35,7 +35,7 @@ pub fn run(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     }
     fs::create_dir_all(&repo_dir)?;
 
-    let objects = transport.clone_full(&head_ref)?;
+    let objects = transport.fetch_objects(&[head_ref.clone()], &[])?;
 
     init_git_dir(&repo_dir)?;
     remote_utils::write_objects(&repo_dir, &objects)?;
