@@ -49,6 +49,7 @@ pub fn run_agit(repo: &PathBuf, args: &[&str]) -> std::process::Output {
 }
 
 /// 运行 agit 并断言成功，返回 stdout 字符串
+#[allow(dead_code)]
 pub fn run_ok(repo: &PathBuf, args: &[&str]) -> String {
     let output = run_agit(repo, args);
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();

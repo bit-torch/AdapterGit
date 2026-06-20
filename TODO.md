@@ -96,10 +96,10 @@ AdapterGit 项目待办事项清单。最后更新: 2026-06-20 (v0.8.0 开发完
 |----|------|--------|------|------|
 | 7.1 | 单元测试 | P0 | ✅ 已完成 | **87** 个单元测试全部通过 |
 | 7.2 | 集成测试 | P0 | ✅ 已完成 | **32** 个端到端工作流测试 (10+22) |
-| 7.3 | 与原生 Git 一致性测试 | P1 | ⏳ 待开始 | 对比 git CLI 输出 |
-| 7.4 | CI 流水线 (GitHub Actions) | P1 | ⏳ 待开始 | test + clippy + fmt on push/PR |
-| 7.5 | 跨平台编译验证 | P2 | ⏳ 待开始 | Linux/macOS/Windows CI matrix |
-| 7.6 | Release 构建 + 发布 | P1 | ⏳ 待开始 | cargo build --release + GitHub Release |
+| 7.3 | 与原生 Git 一致性测试 | P1 | ✅ 已完成 | 9 个对比测试 (init/add/commit/status/branch/merge/log/rm/tag) |
+| 7.4 | CI 流水线 (GitHub Actions) | P1 | ✅ 已完成 | fmt + clippy + test + smoke + security on push/PR |
+| 7.5 | 跨平台编译验证 | P2 | ✅ 已完成 | Linux/macOS/Windows CI matrix + 双平台 smoke 测试 |
+| 7.6 | Release 构建 + 发布 | P1 | ✅ 已完成 | cargo build --release + GitHub Release on tag
 
 ## Phase 8: 高级命令
 
@@ -135,11 +135,11 @@ AdapterGit 项目待办事项清单。最后更新: 2026-06-20 (v0.8.0 开发完
 | 4 | AI 模式和输出 | 86% (6/7) | 🔨 |
 | 5 | 网络功能 | 100% (5/5) | ✅ |
 | 6 | 配置和扩展 | 60% (3/5) | 🔨 |
-| 7 | 测试和 CI | 50% (3/6) | 🔨 |
+| 7 | 测试和 CI | 100% (6/6) | ✅ |
 | 8 | 高级命令 | 25% (2/8) | 🔨 |
 | 9 | 分发和打包 | 0% (0/6) | ⏳ |
 
-**总体: 49/68 ≈ 72%**
+**总体: 52/68 ≈ 76%**
 
 ### 里程碑
 
@@ -152,5 +152,5 @@ AdapterGit 项目待办事项清单。最后更新: 2026-06-20 (v0.8.0 开发完
 | v0.5.0 | 高级本地命令 | ✅ 已发布 | branch, checkout, merge, stash, reset, rm, mv |
 | v0.6.0 | 安全加固 + 测试扩展 | ✅ 已发布 | 安全审计修复, 87 单元 + 32 集成 |
 | **v0.8.0** | **变基 + 遴选 + 测试** | ✅ **当前** | **rebase, cherry-pick, 89+45=134 测试全过** |
-| **v0.9.0** | **SSH + 协议 v2** | 🎯 **下一阶段** | SSH 传输, Git protocol v2, blame, reflog |
+| **v0.9.0** | **CI/CD + SSH + 协议 v2** | 🎯 **下一阶段** | CI 增强, Git 一致性测试, SSH 传输, blame, reflog |
 | v1.0.0 | 完整 Git 子集 + 全平台分发 | 🏁 目标 | 全命令覆盖 + 多平台安装包 |
