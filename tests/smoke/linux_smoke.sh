@@ -124,7 +124,7 @@ scenario_new_project() {
 
     # commit
     out=$(run_agit commit -m "feat: initial commit")
-    assert_contains "commit succeeds" "$out" "Created commit"
+    assert_contains "commit succeeds" "$out" "(root-commit)"
 
     # 抓 commit hash
     local commit_hash=$(echo "$out" | grep -oE '[a-f0-9]{40}' | head -1)
@@ -184,7 +184,7 @@ scenario_fix_bug() {
     # 暂存 + 提交
     run_agit add app.txt feat.txt > /dev/null
     out=$(run_agit commit -m "fix: resolve bug #42")
-    assert_contains "commit on branch" "$out" "Created commit"
+    assert_contains "commit on branch" "$out" "resolve bug #42"
 
     # 确认文件内容
     assert_eq "app.txt content" "v2-fixed" "$(cat app.txt)"

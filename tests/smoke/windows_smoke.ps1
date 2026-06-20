@@ -117,7 +117,7 @@ function Scenario-NewProject {
         Assert-FileContains ".gitignore created" ".gitignore" "target/"
 
         $out = Run-Agit commit -m "feat: initial commit"
-        Assert-Contains "commit succeeds" $out "Created commit"
+        Assert-Contains "commit succeeds" $out "(root-commit)"
 
         if ($out -match '([a-f0-9]{40})') {
             $commitHash = $Matches[1]
@@ -173,7 +173,7 @@ function Scenario-FixBug {
 
         Run-Agit add app.txt feat.txt | Out-Null
         $out = Run-Agit commit -m "fix: resolve bug #42"
-        Assert-Contains "commit on branch" $out "Created commit"
+        Assert-Contains "commit on branch" $out "resolve bug #42"
 
         Assert-Eq "app.txt content" "v2-fixed" (Get-Content app.txt -Raw).Trim()
         Assert-FileExists "feat.txt exists" "feat.txt"
