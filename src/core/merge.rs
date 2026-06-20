@@ -110,7 +110,7 @@ pub fn merge_branch(
 }
 
 /// 查找两个 commit 的共同祖先（简易 BFS）。
-fn find_merge_base(
+pub(crate) fn find_merge_base(
     repo: &Path,
     sha1: &str,
     sha2: &str,
@@ -182,8 +182,30 @@ pub(crate) fn three_way_merge(
     let ours_files = read_tree_files(repo, ours_sha)?;
     let theirs_files = read_tree_files(repo, theirs_sha)?;
 
-    let mut has_conflicts = false;
     let mut new_index = index::Index::new();
+    let has_conflicts = three_way_merge_with_files(
+        repo,
+        &base_files,
+        &ours_files,
+        &theirs_files,
+        &mut new_index,
+        None,
+    )?;
+    new_index.save(repo)?;
+    Ok(has_conflicts)
+}
+
+/// 3-way merge 核心逻辑：接受预计算的文件映射。
+/// `custom_theirs_label` — 冲突标记 `>>>>>>>` 后使用的自定义标签（None 则用路径名）。
+pub(crate) fn three_way_merge_with_files(
+    repo: &Path,
+    base_files: &BTreeMap<String, FileInfo>,
+    ours_files: &BTreeMap<String, FileInfo>,
+    theirs_files: &BTreeMap<String, FileInfo>,
+    new_index: &mut index::Index,
+    custom_theirs_label: Option<&str>,
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let mut has_conflicts = false;
 
     let all_paths: BTreeMap<String, bool> = {
         let mut paths = BTreeMap::new();
@@ -205,27 +227,27 @@ pub(crate) fn three_way_merge(
         match (base, ours, theirs) {
             // 双方都未修改
             (Some(b), Some(o), Some(t)) if b == o && b == t => {
-                write_file_and_index(repo, path, o, &mut new_index)?;
+                write_file_and_index(repo, path, o, new_index)?;
             }
             // 只有 theirs 修改了
             (Some(b), Some(o), Some(t)) if b == o && b != t => {
-                write_file_and_index(repo, path, t, &mut new_index)?;
+                write_file_and_index(repo, path, t, new_index)?;
             }
             // 只有 ours 修改了
             (Some(b), Some(o), Some(t)) if b != o && b == t => {
-                write_file_and_index(repo, path, o, &mut new_index)?;
+                write_file_and_index(repo, path, o, new_index)?;
             }
             // 双方同样修改了
             (_, Some(o), Some(t)) if o.sha1 == t.sha1 => {
-                write_file_and_index(repo, path, o, &mut new_index)?;
+                write_file_and_index(repo, path, o, new_index)?;
             }
             // 新增文件 (仅在 ours)
             (None, Some(o), None) => {
-                write_file_and_index(repo, path, o, &mut new_index)?;
+                write_file_and_index(repo, path, o, new_index)?;
             }
             // 新增文件 (仅在 theirs)
             (None, None, Some(t)) => {
-                write_file_and_index(repo, path, t, &mut new_index)?;
+                write_file_and_index(repo, path, t, new_index)?;
             }
             // 删除文件 (双方都删了)
             (Some(_), None, None) => {
@@ -235,9 +257,10 @@ pub(crate) fn three_way_merge(
             // 冲突: 双方都修改了同一个文件
             _ => {
                 has_conflicts = true;
+                let theirs_label = custom_theirs_label.unwrap_or(path);
                 let conflict_content = create_conflict_marker(
                     repo,
-                    path,
+                    theirs_label,
                     base.map(|f| f.sha1.as_str()),
                     ours.map(|f| f.sha1.as_str()),
                     theirs.map(|f| f.sha1.as_str()),
@@ -249,25 +272,25 @@ pub(crate) fn three_way_merge(
                 }
                 fs::write(&file_path, &conflict_content)?;
 
-                // 索引中使用 ours 的 blob（冲突标记版本，之后 commit 会解决）
+                // 索引中使用冲突标记 blob
                 let sha1 = storage::write_object(repo, "blob", &conflict_content)?;
                 new_index.add_entry("100644", &sha1, path);
             }
         }
     }
 
-    new_index.save(repo)?;
     Ok(has_conflicts)
 }
 
+/// 文件信息：SHA-1 和 mode。
 #[derive(Debug, PartialEq)]
-struct FileInfo {
-    sha1: String,
-    mode: String,
+pub(crate) struct FileInfo {
+    pub sha1: String,
+    pub mode: String,
 }
 
 /// 从 commit SHA 出发，读取 tree 中的所有文件映射。
-fn read_tree_files(
+pub(crate) fn read_tree_files(
     repo: &Path,
     commit_sha: &str,
 ) -> Result<BTreeMap<String, FileInfo>, Box<dyn std::error::Error>> {
@@ -306,6 +329,14 @@ fn read_tree_files_recursive(
     Ok(files)
 }
 
+/// 读取 commit 的 tree 文件映射（公开 API，用于 rebase/cherry-pick）。
+pub(crate) fn read_commit_tree_files(
+    repo: &Path,
+    commit_sha: &str,
+) -> Result<BTreeMap<String, FileInfo>, Box<dyn std::error::Error>> {
+    read_tree_files(repo, commit_sha)
+}
+
 /// 将文件写入工作目录并加入索引。
 fn write_file_and_index(
     repo: &Path,
@@ -328,9 +359,10 @@ fn write_file_and_index(
 }
 
 /// 生成冲突标记内容。
+/// `theirs_label` — `>>>>>>>` 后显示的标签（合并时用路径名，rebase 时用 commit SHA）。
 fn create_conflict_marker(
     repo: &Path,
-    path: &str,
+    theirs_label: &str,
     _base_sha: Option<&str>,
     ours_sha: Option<&str>,
     theirs_sha: Option<&str>,
@@ -361,7 +393,7 @@ fn create_conflict_marker(
     if !theirs_content.ends_with(b"\n") {
         result.push(b'\n');
     }
-    result.extend_from_slice(format!(">>>>>>> {}\n", path).as_bytes());
+    result.extend_from_slice(format!(">>>>>>> {}\n", theirs_label).as_bytes());
 
     Ok(result)
 }
