@@ -14,6 +14,7 @@ pub mod merge;
 pub mod mv;
 pub mod pull;
 pub mod push;
+pub mod rebase;
 pub mod remote;
 pub mod reset;
 pub mod rm;

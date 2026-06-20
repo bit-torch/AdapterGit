@@ -230,6 +230,24 @@ pub enum Commands {
         #[command(subcommand)]
         action: RemoteAction,
     },
+
+    #[command(about = "Reapply commits on top of another base tip")]
+    Rebase {
+        #[arg(help = "Upstream branch/commit to rebase onto")]
+        upstream: Option<String>,
+
+        #[arg(long, help = "Starting point to place commits onto")]
+        onto: Option<String>,
+
+        #[arg(long, help = "Continue the rebase in progress")]
+        r#continue: bool,
+
+        #[arg(long, help = "Skip the current commit")]
+        skip: bool,
+
+        #[arg(long, help = "Abort the rebase in progress")]
+        abort: bool,
+    },
 }
 
 #[derive(Subcommand)]
