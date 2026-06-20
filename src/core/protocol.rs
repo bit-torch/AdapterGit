@@ -1,6 +1,8 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+use crate::core::ssh_url::SshUrl;
+
 // ── Transport trait ──────────────────────────────────────────
 
 /// 传输层抽象 trait，支持 HTTP 和 SSH 两种传输方式。
@@ -21,6 +23,19 @@ pub trait Transport {
         ref_update: &str,
         pack_data: &[u8],
     ) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+/// 根据 URL 方案创建对应的传输实例。
+pub fn create_transport(url: &str) -> Result<Box<dyn Transport>, Box<dyn std::error::Error>> {
+    if url.starts_with("http://") || url.starts_with("https://") {
+        Ok(Box::new(HttpTransport::from_url(url)?))
+    } else if url.starts_with("ssh://") || SshUrl::parse(url).is_some() {
+        Ok(Box::new(
+            crate::core::ssh_transport::SshTransport::from_url(url)?,
+        ))
+    } else {
+        Err(format!("Unsupported URL scheme: {}", url).into())
+    }
 }
 
 enum TransportStream {
