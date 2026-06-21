@@ -40,6 +40,7 @@ pub fn create_transport(url: &str) -> Result<Box<dyn Transport>, Box<dyn std::er
 
 enum TransportStream {
     Plain(TcpStream),
+    #[cfg(feature = "tls")]
     Tls(Box<native_tls::TlsStream<TcpStream>>),
 }
 
@@ -47,6 +48,7 @@ impl Read for TransportStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match self {
             TransportStream::Plain(s) => s.read(buf),
+            #[cfg(feature = "tls")]
             TransportStream::Tls(s) => s.read(buf),
         }
     }
@@ -56,6 +58,7 @@ impl Write for TransportStream {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
             TransportStream::Plain(s) => s.write(buf),
+            #[cfg(feature = "tls")]
             TransportStream::Tls(s) => s.write(buf),
         }
     }
@@ -63,6 +66,7 @@ impl Write for TransportStream {
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
             TransportStream::Plain(s) => s.flush(),
+            #[cfg(feature = "tls")]
             TransportStream::Tls(s) => s.flush(),
         }
     }
@@ -444,6 +448,7 @@ pub struct HttpTransport {
     host: String,
     port: u16,
     path: String,
+    #[allow(dead_code)]
     use_ssl: bool,
 }
 
@@ -482,13 +487,17 @@ impl HttpTransport {
         let tcp = TcpStream::connect(&addr)?;
         tcp.set_read_timeout(Some(std::time::Duration::from_secs(60)))?;
 
+        #[cfg(feature = "tls")]
         if self.use_ssl {
             let connector = native_tls::TlsConnector::builder().build()?;
             let tls = connector.connect(&self.host, tcp)?;
-            Ok(TransportStream::Tls(Box::new(tls)))
-        } else {
-            Ok(TransportStream::Plain(tcp))
+            return Ok(TransportStream::Tls(Box::new(tls)));
         }
+        #[cfg(not(feature = "tls"))]
+        if self.use_ssl {
+            return Err("HTTPS is not supported in lite build. Rebuild with --features tls".into());
+        }
+        Ok(TransportStream::Plain(tcp))
     }
 
     fn http_get(&self, path: &str) -> Result<(u16, Vec<u8>), Box<dyn std::error::Error>> {
