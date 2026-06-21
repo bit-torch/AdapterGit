@@ -293,6 +293,12 @@ pub enum Commands {
         #[arg(help = "Ref to show reflog for (default: HEAD)")]
         ref_name: Option<String>,
     },
+
+    #[command(about = "Find by binary search the change that introduced a bug")]
+    Bisect {
+        #[command(subcommand)]
+        action: BisectAction,
+    },
 }
 
 #[cfg(feature = "tag")]
@@ -351,4 +357,46 @@ pub enum RemoteAction {
 
     #[command(about = "List remotes")]
     List,
+}
+
+#[derive(Subcommand)]
+pub enum BisectAction {
+    #[command(about = "Start a bisect session")]
+    Start {
+        #[arg(help = "Bad revision (default: HEAD)")]
+        bad: Option<String>,
+
+        #[arg(help = "Good revision(s)")]
+        good: Vec<String>,
+    },
+
+    #[command(about = "Mark current/ specified revision as good")]
+    Good {
+        #[arg(help = "Revision to mark as good (default: HEAD)")]
+        rev: Option<String>,
+    },
+
+    #[command(about = "Mark current/ specified revision as bad")]
+    Bad {
+        #[arg(help = "Revision to mark as bad (default: HEAD)")]
+        rev: Option<String>,
+    },
+
+    #[command(about = "Skip the current/ specified revision")]
+    Skip {
+        #[arg(help = "Revision to skip (default: HEAD)")]
+        rev: Option<String>,
+    },
+
+    #[command(about = "Finish bisect and return to original HEAD")]
+    Reset,
+
+    #[command(about = "Show bisect log")]
+    Log,
+
+    #[command(about = "Run automated bisect with test script")]
+    Run {
+        #[arg(help = "Test command and arguments", num_args = 1.., required = true)]
+        cmd: Vec<String>,
+    },
 }

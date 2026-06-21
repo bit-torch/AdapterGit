@@ -9,7 +9,7 @@ mod utils;
 use clap::Parser;
 #[cfg(feature = "tag")]
 use cli::TagAction;
-use cli::{Cli, Commands, RemoteAction, StashAction};
+use cli::{BisectAction, Cli, Commands, RemoteAction, StashAction};
 use std::env;
 
 fn main() {
@@ -146,6 +146,34 @@ fn main() {
         }) => commands::cherry_pick::run(commits, *r#continue, *abort),
         Some(Commands::Blame { revision, file }) => commands::blame::run(revision.as_deref(), file),
         Some(Commands::Reflog { ref_name }) => commands::reflog::run(ref_name.as_deref()),
+        Some(Commands::Bisect { action }) => match action {
+            BisectAction::Start { bad, good } => {
+                commands::bisect::run(&commands::bisect::BisectSubCmd::Start {
+                    bad: bad.as_deref(),
+                    good,
+                })
+            }
+            BisectAction::Good { rev } => {
+                commands::bisect::run(&commands::bisect::BisectSubCmd::Good {
+                    rev: rev.as_deref(),
+                })
+            }
+            BisectAction::Bad { rev } => {
+                commands::bisect::run(&commands::bisect::BisectSubCmd::Bad {
+                    rev: rev.as_deref(),
+                })
+            }
+            BisectAction::Skip { rev } => {
+                commands::bisect::run(&commands::bisect::BisectSubCmd::Skip {
+                    rev: rev.as_deref(),
+                })
+            }
+            BisectAction::Reset => commands::bisect::run(&commands::bisect::BisectSubCmd::Reset),
+            BisectAction::Log => commands::bisect::run(&commands::bisect::BisectSubCmd::Log),
+            BisectAction::Run { cmd } => {
+                commands::bisect::run(&commands::bisect::BisectSubCmd::Run { cmd })
+            }
+        },
     };
 
     if let Err(e) = result {
