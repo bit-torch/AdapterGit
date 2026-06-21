@@ -156,5 +156,5 @@ AdapterGit 项目待办事项清单。最后更新: 2026-06-20 (v0.10.0 开发�
 | **v0.10.0** | **SSH 传输协议** | ✅ **已发布** | SSH 传输 (子进程), Transport trait |
 | **v0.11.0** | **Blame + Reflog** | ✅ **已发布** | blame, reflog, 103 单元测试 |
 | **v0.12.0** | **Bisect** | ✅ **已发布** | bisect (start/good/bad/skip/reset/log/run), 109 单元测试 |
-| **v0.13.0** | **双版本分发 + AI 提交** | 🚀 **当前** | lite/full, musl, .deb, macOS, Docker, LLM commit |
+| **v0.13.0** | **双版本分发 + AI 提交** | ✅ **已发布** | lite/full, musl, .deb, macOS, Docker, LLM commit |
 | v1.0.0 | 完整 Git 子集 + 全平台分发 | 🏁 目标 | 全命令覆盖 + 多平台安装包 |
