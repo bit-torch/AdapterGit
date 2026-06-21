@@ -428,7 +428,8 @@ fn test_init_pattern_unknown_warns() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("unknown gitignore pattern"));
     assert!(stderr.contains("Available:"));
-    assert!(!repo.join(".gitignore").exists());
+    // .gitignore 始终创建（含 .agit/ 安全守卫），即使 pattern 无效
+    assert!(repo.join(".gitignore").exists());
     let _ = fs::remove_dir_all(&repo);
 }
 
