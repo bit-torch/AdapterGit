@@ -4,6 +4,27 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
+## [v0.13.0] — Unreleased
+
+> 双版本分发 + AI 提交 — Dual-Edition Distribution & AI Commit
+
+### Features
+- **lite/full feature flags**: lite (no TLS, pure local), full (TLS + AI)
+- **AI commit message**: `agit commit --ai` auto-generates message via LLM from staged diff
+- **LLM API module**: OpenAI-compatible, configurable via `AGIT_LLM_API_KEY/URL/MODEL`
+
+### Distribution
+- **musl static build**: `x86_64-unknown-linux-musl` CI artifact
+- **macOS release**: x86_64 binary tar.gz
+- **Linux .deb**: via cargo-deb
+- **Docker image**: multi-stage alpine musl build
+
+### CI
+- test-lite job (no TLS compilation check)
+- 4-platform auto-release (Linux GNU + musl + macOS + Windows)
+
+---
+
 ## [v0.12.0] — 2026-06-21
 
 > Bisect — 二分查找
