@@ -1,3 +1,6 @@
+#[cfg(feature = "ai")]
+pub mod llm;
+
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static AI_MODE: AtomicBool = AtomicBool::new(false);

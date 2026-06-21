@@ -15,10 +15,20 @@ flate2 = "1"
 sha1 = "0.10"
 anyhow = "1"
 url = "2"
-native-tls = "0.2"
+native-tls = { version = "0.2", optional = true }
 toml = "0.8"
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], optional = true }
 
 [features]
-default = ["tag"]
-# Future: annotated tag object support (tag create/list/delete CLI)
+default = ["tag", "tls"]
 tag = []
+tls = ["native-tls"]
+ai = ["reqwest"]
+# lite 版: cargo build --no-default-features -F tag  (纯本地操作, 无 TLS)
+# full 版: cargo build --all-features  (全功能, 含 TLS + AI)
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
