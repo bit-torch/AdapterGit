@@ -1,7 +1,7 @@
 use crate::core::index::Index;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
-use crate::core::{checkout, refs, repo, storage};
+use crate::core::{checkout, reflog, refs, repo, storage};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -39,6 +39,7 @@ pub fn run(
         }
     };
 
+    let old_head = head_sha.clone();
     if hard {
         reset_hard(&repo_root, &target_sha)?;
     } else if soft {
@@ -47,6 +48,16 @@ pub fn run(
         // --mixed 为默认行为
         reset_mixed(&repo_root, &target_sha)?;
     }
+
+    let cfg = crate::config::load();
+    let _ = reflog::append_reflog(
+        &repo_root,
+        "HEAD",
+        &old_head,
+        &target_sha,
+        &cfg.user_name,
+        &format!("reset: moving to {}", &target_sha[..7]),
+    );
 
     Ok(())
 }

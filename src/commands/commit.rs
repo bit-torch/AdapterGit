@@ -4,6 +4,7 @@ use crate::core::index::Index;
 use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
+use crate::core::reflog;
 use crate::core::refs;
 use crate::core::repo;
 use crate::core::storage;
@@ -95,6 +96,16 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
         let in_cherry_pick = git_dir.join("CHERRY_PICK_TODO").exists();
         if in_rebase || in_cherry_pick {
             // 直接写入 HEAD（不更新分支引用）
+            let old_head = refs::read_head(&repo_root)
+                .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
+            let _ = reflog::append_reflog(
+                &repo_root,
+                "HEAD",
+                &old_head,
+                &commit_sha1,
+                &cfg.user_name,
+                &format!("commit: {}", msg.trim()),
+            );
             refs::write_head(&repo_root, &commit_sha1)?;
             let parent_info = if commit.parents.is_empty() {
                 " (root-commit)"
@@ -113,7 +124,25 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     } else {
         return Err(format!("Unexpected HEAD content: '{}'", head_trimmed).into());
     };
+    let old_head = refs::read_head(&repo_root)
+        .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
     refs::write_ref(&repo_root, &branch_ref, &commit_sha1)?;
+    let _ = reflog::append_reflog(
+        &repo_root,
+        "HEAD",
+        &old_head,
+        &commit_sha1,
+        &cfg.user_name,
+        &format!("commit: {}", msg.trim()),
+    );
+    let _ = reflog::append_reflog(
+        &repo_root,
+        &branch_ref,
+        &old_head,
+        &commit_sha1,
+        &cfg.user_name,
+        &format!("commit: {}", msg.trim()),
+    );
 
     // 清理合并状态文件
     if in_merge {

@@ -1,8 +1,9 @@
 use crate::core::index::Index;
-use crate::core::{checkout, refs, repo};
+use crate::core::{checkout, reflog, refs, repo};
 
 pub fn run(branch: &str, force: bool) -> Result<(), Box<dyn std::error::Error>> {
     let repo_root = repo::find_repo_root()?;
+    let cfg = crate::config::load();
 
     // 检查分支是否存在
     let ref_path = format!("refs/heads/{}", branch);
@@ -34,5 +35,18 @@ pub fn run(branch: &str, force: bool) -> Result<(), Box<dyn std::error::Error>> 
         }
     }
 
-    checkout::switch_branch(&repo_root, branch)
+    let old_head = refs::read_head(&repo_root)
+        .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
+    checkout::switch_branch(&repo_root, branch)?;
+    let new_head = refs::read_head(&repo_root)?;
+    let _ = reflog::append_reflog(
+        &repo_root,
+        "HEAD",
+        &old_head,
+        &new_head,
+        &cfg.user_name,
+        &format!("checkout: moving to {}", branch),
+    );
+
+    Ok(())
 }
