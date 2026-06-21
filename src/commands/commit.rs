@@ -1,6 +1,7 @@
 use crate::ai;
 use crate::config;
 use crate::core::index::Index;
+#[cfg(feature = "ai")]
 use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
@@ -194,9 +195,8 @@ fn generate_ai_message(repo_root: &std::path::Path, index: &Index) -> String {
         println!(
             "[AI] No API key configured.\n\
              Configure via:\n  \
-             1. env:  AGIT_LLM_API_KEY=sk-xxx AGIT_LLM_PROVIDER=deepseek\n  \
-             2. file: ~/.agitconfig.toml  [llm] api_key=\"sk-xxx\" provider=\"deepseek\"\n  \
-             3. repo: .agit/config.toml   same format\n\
+             1. env (one-shot):  AGIT_LLM_API_KEY=sk-xxx AGIT_LLM_PROVIDER=deepseek\n  \
+             2. file (persist):  ~/.agitconfig.toml\n     [llm]\n     api_key = \"sk-xxx\"\n     provider = \"deepseek\"\n\
              Supported providers: openai, deepseek, anthropic, moonshot, zhipu, ollama"
         );
     }
@@ -216,6 +216,7 @@ fn generate_ai_message(_repo_root: &std::path::Path, _index: &Index) -> String {
 }
 
 /// 构建暂存区文件变更摘要（供 AI 使用）。
+#[cfg(feature = "ai")]
 fn build_staged_summary(repo_root: &std::path::Path, index: &Index) -> String {
     let mut lines = vec!["Staged changes:".to_string()];
 

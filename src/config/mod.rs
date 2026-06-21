@@ -10,11 +10,13 @@ pub struct Config {
     pub user_email: String,
     pub aliases: HashMap<String, String>,
     /// LLM API 配置（api_key / provider / model）
+    #[allow(dead_code)]
     pub llm: LlmConfig,
 }
 
 /// LLM 配置段。
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct LlmConfig {
     pub api_key: Option<String>,
     pub provider: Option<String>,
@@ -51,6 +53,7 @@ struct LlmSection {
 }
 
 /// 内置 LLM 厂商预设：(provider, api_url, default_model)
+#[allow(dead_code)]
 pub const LLM_PROVIDERS: &[(&str, &str, &str)] = &[
     ("openai", "https://api.openai.com/v1", "gpt-4o-mini"),
     ("deepseek", "https://api.deepseek.com/v1", "deepseek-chat"),
@@ -69,6 +72,7 @@ pub const LLM_PROVIDERS: &[(&str, &str, &str)] = &[
 ];
 
 /// 根据 provider 名查找预设的 API URL 和 model。
+#[allow(dead_code)]
 pub fn resolve_llm_provider(provider: &str) -> Option<(&'static str, &'static str)> {
     LLM_PROVIDERS
         .iter()
@@ -96,11 +100,19 @@ impl Config {
                     &mut file_user_email,
                     &mut aliases,
                 );
-                merge_llm_config(&cfg, &mut llm_api_key, &mut llm_provider, &mut llm_model);
+                // 全局配置允许 api_key
+                merge_llm_config(
+                    &cfg,
+                    &mut llm_api_key,
+                    &mut llm_provider,
+                    &mut llm_model,
+                    true,
+                );
             }
         }
 
         // 2. 读取仓库级配置文件 .agit/config.toml（覆盖全局）
+        // 注意：api_key 不从仓库级配置读取，防止泄漏到仓库中
         if let Some(repo) = repo_path {
             let repo_config = repo.join(".agit").join("config.toml");
             if let Some(cfg) = read_config_file(&repo_config) {
@@ -110,7 +122,14 @@ impl Config {
                     &mut file_user_email,
                     &mut aliases,
                 );
-                merge_llm_config(&cfg, &mut llm_api_key, &mut llm_provider, &mut llm_model);
+                // api_key 不从仓库级配置读取（include_api_key=false）
+                merge_llm_config(
+                    &cfg,
+                    &mut llm_api_key,
+                    &mut llm_provider,
+                    &mut llm_model,
+                    false,
+                );
             }
         }
 
@@ -182,10 +201,14 @@ fn merge_llm_config(
     api_key: &mut Option<String>,
     provider: &mut Option<String>,
     model: &mut Option<String>,
+    include_api_key: bool,
 ) {
     if let Some(ref llm) = cfg.llm {
-        if let Some(ref key) = llm.api_key {
-            *api_key = Some(key.clone());
+        // api_key 只从全局配置读取，不从仓库级配置读取（防泄漏）
+        if include_api_key {
+            if let Some(ref key) = llm.api_key {
+                *api_key = Some(key.clone());
+            }
         }
         if let Some(ref p) = llm.provider {
             *provider = Some(p.clone());
