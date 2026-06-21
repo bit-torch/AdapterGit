@@ -4,7 +4,7 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.12.0] — Unreleased
+## [v0.12.0] — 2026-06-21
 
 > Bisect — 二分查找
 
