@@ -320,7 +320,7 @@ fn read_tree_files_recursive(
             files.extend(sub);
         } else {
             files.insert(
-                entry_path.to_string_lossy().to_string(),
+                entry_path.to_string_lossy().replace('\\', "/"),
                 FileInfo {
                     sha1: entry.sha1.clone(),
                     mode: entry.mode.clone(),
@@ -425,7 +425,7 @@ fn collect_tree_paths(
 
     for entry in &tree.entries {
         let entry_path = prefix.join(&entry.name);
-        let path_str = entry_path.to_string_lossy().to_string();
+        let path_str = entry_path.to_string_lossy().replace('\\', "/");
 
         if entry.mode == "40000" {
             let sub = collect_tree_paths(repo, &entry.sha1, &entry_path)?;
@@ -493,7 +493,11 @@ fn restore_tree_recursive(
                 fs::create_dir_all(parent)?;
             }
             fs::write(&file_path, &blob.content)?;
-            idx.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
+            idx.add_entry(
+                &entry.mode,
+                &entry.sha1,
+                &entry_path.to_string_lossy().replace('\\', "/"),
+            );
         }
     }
     Ok(())
