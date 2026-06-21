@@ -393,7 +393,7 @@ mod tests {
         let c3 = make_commit(&repo, tree, Some(&c2), "c3");
         let bad = make_commit(&repo, tree, Some(&c3), "bad");
 
-        let range = compute_range(&repo, &bad, &[c1.clone()]).unwrap();
+        let range = compute_range(&repo, &bad, std::slice::from_ref(&c1)).unwrap();
         // 范围: c2, c3, bad (不含 c1 及其祖先 root)
         assert_eq!(range.len(), 3);
         assert_eq!(range[0], c2);
