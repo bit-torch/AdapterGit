@@ -1,4 +1,5 @@
 pub mod add;
+pub mod blame;
 pub mod branch;
 pub mod cat_file;
 pub mod checkout;
@@ -16,6 +17,7 @@ pub mod mv;
 pub mod pull;
 pub mod push;
 pub mod rebase;
+pub mod reflog;
 pub mod remote;
 pub mod reset;
 pub mod rm;
