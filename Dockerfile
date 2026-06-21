@@ -1,7 +1,8 @@
-# ── 多阶段构建：musl 静态编译 → alpine 最小镜像 ──
-FROM rust:1.89-alpine AS builder
+# ── 多阶段构建：Debian slim 运行时 ──
+# 注：Alpine/musl 暂不可用，需 Linux 测试环境
+FROM rust:1.89-slim-bookworm AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
@@ -10,9 +11,9 @@ COPY . .
 RUN cargo build --release --all-features
 
 # ── 运行时镜像 ──
-FROM alpine:3.21
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache ca-certificates git openssh-client
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git openssh-client && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/agit /usr/local/bin/agit
 
