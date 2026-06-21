@@ -60,7 +60,7 @@ fn local_tz_offset() -> String {
     //    取当前 UTC 秒数，计算它对应的小时数，再用简易方法估算偏移
     #[cfg(unix)]
     {
-        if let Ok(offset) = unix_tz_offset() {
+        if let Some(offset) = unix_tz_offset() {
             return offset;
         }
     }
