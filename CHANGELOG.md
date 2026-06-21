@@ -4,7 +4,23 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.11.0] — Unreleased
+## [v0.12.0] — Unreleased
+
+> Bisect — 二分查找
+
+### Features
+- **bisect**: 二分查找引入 bug 的提交（start / good / bad / skip / reset / log / run）
+- **bisect run**: 自动执行测试脚本进行二分查找
+
+### Core
+- `core/bisect`: 状态管理 + 范围计算 + 二分选择算法，持久化到 `refs/bisect/*`
+
+### Tests
+- 178 测试 (109 单元 + 69 集成)
+
+---
+
+## [v0.11.0] — 2026-06-21
 
 > Blame & Reflog — 逐行追溯与引用日志
 
