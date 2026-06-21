@@ -37,7 +37,71 @@ pub fn get_current_timestamp() -> (i64, String) {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
     let timestamp = now.as_secs() as i64;
-    (timestamp, format!("{} +0800", timestamp))
+    let tz = local_tz_offset();
+    (timestamp, format!("{} {}", timestamp, tz))
+}
+
+/// 获取本地时区偏移字符串（如 "+0800"）。
+fn local_tz_offset() -> String {
+    // 使用 time() + localtime() 计算 UTC 偏移
+    // 这两个函数在所有主流平台均可使用
+    extern "C" {
+        fn time(t: *mut i64) -> i64;
+        fn localtime(t: *const i64) -> *mut CTime;
+    }
+
+    #[repr(C)]
+    struct CTime {
+        tm_sec: i32,
+        tm_min: i32,
+        tm_hour: i32,
+        tm_mday: i32,
+        tm_mon: i32,
+        tm_year: i32,
+        tm_wday: i32,
+        tm_yday: i32,
+        tm_isdst: i32,
+        #[cfg(not(target_os = "windows"))]
+        tm_gmtoff: i64,
+        #[cfg(not(target_os = "windows"))]
+        tm_zone: *const u8,
+    }
+
+    unsafe {
+        let mut now: i64 = 0;
+        time(&mut now);
+        let tm = localtime(&now);
+        if tm.is_null() {
+            return "+0000".to_string();
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            let offset = (*tm).tm_gmtoff;
+            let hours = offset / 3600;
+            let mins = (offset.abs() % 3600) / 60;
+            format!("{:+03}{:02}", hours, mins)
+        }
+        #[cfg(target_os = "windows")]
+        {
+            // Windows 没有 tm_gmtoff，用 TIME_ZONE_INFORMATION 替代
+            use std::mem::zeroed;
+            #[repr(C)]
+            struct TimeZoneInfo {
+                bias: i32,
+                _rest: [u16; 42],
+            }
+            extern "system" {
+                fn GetTimeZoneInformation(tz: *mut TimeZoneInfo) -> u32;
+            }
+            let mut tz: TimeZoneInfo = zeroed();
+            GetTimeZoneInformation(&mut tz);
+            // bias 是 UTC = local + bias (分钟)，所以 offset = -bias
+            let offset_min = -tz.bias;
+            let hours = offset_min / 60;
+            let mins = offset_min.abs() % 60;
+            format!("{:+03}{:02}", hours, mins)
+        }
+    }
 }
 
 /// 解析 commit/tree-ish 引用为完整 SHA-1。

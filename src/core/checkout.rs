@@ -72,7 +72,11 @@ fn rebuild_index_from_tree(
         if entry.mode == "40000" {
             rebuild_index_from_tree(repo, &entry.sha1, &entry_path, idx)?;
         } else {
-            idx.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
+            idx.add_entry(
+                &entry.mode,
+                &entry.sha1,
+                &entry_path.to_string_lossy().replace('\\', "/"),
+            );
         }
     }
     Ok(())
@@ -153,7 +157,11 @@ fn restore_tree(
                 }
                 fs::write(&file_path, &blob.content)?;
 
-                new_index.add_entry(&entry.mode, &entry.sha1, &entry_path.to_string_lossy());
+                new_index.add_entry(
+                    &entry.mode,
+                    &entry.sha1,
+                    &entry_path.to_string_lossy().replace('\\', "/"),
+                );
             }
         }
     }
@@ -190,7 +198,7 @@ fn collect_tree_paths(
 
     for entry in &tree.entries {
         let entry_path = prefix.join(&entry.name);
-        let path_str = entry_path.to_string_lossy().to_string();
+        let path_str = entry_path.to_string_lossy().replace('\\', "/");
 
         if entry.mode == "40000" {
             let sub = collect_tree_paths(repo, &entry.sha1, &entry_path)?;

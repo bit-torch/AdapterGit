@@ -4,6 +4,7 @@ use crate::core::index::Index;
 use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
+use crate::core::reflog;
 use crate::core::refs;
 use crate::core::repo;
 use crate::core::storage;
@@ -79,8 +80,13 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let commit_sha1 = commit.hash();
     storage::write_object(&repo_root, "commit", &commit.serialize_raw())?;
 
-    let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
-        .map_err(|e| format!("Failed to read HEAD: {}", e))?;
+    let head_path = repo_root.join(".git").join("HEAD");
+    let head_content = if head_path.exists() {
+        std::fs::read_to_string(&head_path)?
+    } else {
+        // 新仓库，HEAD 尚未创建 → 初始化为 main
+        String::new()
+    };
     let head_trimmed = head_content.trim();
     let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()
@@ -90,6 +96,16 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
         let in_cherry_pick = git_dir.join("CHERRY_PICK_TODO").exists();
         if in_rebase || in_cherry_pick {
             // 直接写入 HEAD（不更新分支引用）
+            let old_head = refs::read_head(&repo_root)
+                .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
+            let _ = reflog::append_reflog(
+                &repo_root,
+                "HEAD",
+                &old_head,
+                &commit_sha1,
+                &cfg.user_name,
+                &format!("commit: {}", msg.trim()),
+            );
             refs::write_head(&repo_root, &commit_sha1)?;
             let parent_info = if commit.parents.is_empty() {
                 " (root-commit)"
@@ -101,11 +117,32 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
         }
         return Err("You are in 'detached HEAD' state. Please create a branch first.".into());
     } else if head_trimmed.is_empty() {
-        return Err("HEAD is empty or corrupted. Cannot determine current branch.".into());
+        // HEAD 为空：初始化默认分支 main（首次 commit）
+        let default_branch = "ref: refs/heads/main";
+        refs::write_head(&repo_root, default_branch)?;
+        "refs/heads/main".to_string()
     } else {
         return Err(format!("Unexpected HEAD content: '{}'", head_trimmed).into());
     };
+    let old_head = refs::read_head(&repo_root)
+        .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
     refs::write_ref(&repo_root, &branch_ref, &commit_sha1)?;
+    let _ = reflog::append_reflog(
+        &repo_root,
+        "HEAD",
+        &old_head,
+        &commit_sha1,
+        &cfg.user_name,
+        &format!("commit: {}", msg.trim()),
+    );
+    let _ = reflog::append_reflog(
+        &repo_root,
+        &branch_ref,
+        &old_head,
+        &commit_sha1,
+        &cfg.user_name,
+        &format!("commit: {}", msg.trim()),
+    );
 
     // 清理合并状态文件
     if in_merge {

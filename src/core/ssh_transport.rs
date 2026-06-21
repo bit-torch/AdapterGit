@@ -69,10 +69,11 @@ impl SshTransport {
 
         // 写入输入
         if !input.is_empty() {
-            child
+            let stdin = child
                 .stdin
                 .as_mut()
-                .unwrap()
+                .ok_or("SSH stdin pipe not available (process may have exited)")?;
+            stdin
                 .write_all(input)
                 .map_err(|e| format!("Failed to write to ssh stdin: {}", e))?;
             // 关闭 stdin 以告知对方输入结束
@@ -81,10 +82,11 @@ impl SshTransport {
 
         // 读取输出
         let mut output = Vec::new();
-        child
+        let stdout = child
             .stdout
             .as_mut()
-            .unwrap()
+            .ok_or("SSH stdout pipe not available (process may have exited)")?;
+        stdout
             .read_to_end(&mut output)
             .map_err(|e| format!("Failed to read ssh stdout: {}", e))?;
 

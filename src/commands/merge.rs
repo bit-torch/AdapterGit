@@ -1,5 +1,5 @@
 use crate::config;
-use crate::core::{checkout, merge, refs, repo};
+use crate::core::{checkout, merge, reflog, refs, repo};
 use std::fs;
 
 pub fn run(
@@ -47,7 +47,19 @@ pub fn run(
         cfg.user_name, cfg.user_email, timestamp, time_str
     );
 
-    merge::merge_branch(&repo_root, branch, &author, &author)
+    let old_head = refs::read_head(&repo_root)
+        .unwrap_or_else(|_| "0000000000000000000000000000000000000000".into());
+    merge::merge_branch(&repo_root, branch, &author, &author)?;
+    let new_head = refs::read_head(&repo_root)?;
+    let _ = reflog::append_reflog(
+        &repo_root,
+        "HEAD",
+        &old_head,
+        &new_head,
+        &cfg.user_name,
+        &format!("merge {}: {}", branch, branch),
+    );
+    Ok(())
 }
 
 /// 中止正在进行的合并，恢复到合并前的状态。

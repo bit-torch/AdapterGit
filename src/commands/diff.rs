@@ -59,7 +59,10 @@ pub fn run(
         let old_content = head_tree_map
             .get(path)
             .and_then(|sha1| read_blob_content(&repo_root, sha1))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                eprintln!("warning: failed to read blob for '{}' in HEAD tree", path);
+                Vec::new()
+            });
 
         let full_path = repo_root.join(path);
         let new_content = if full_path.exists() {
@@ -90,8 +93,11 @@ pub fn run(
                 if name_only {
                     println!("{}", path);
                 } else {
-                    let old_content =
-                        read_blob_content(&repo_root, &head_tree_map[path]).unwrap_or_default();
+                    let old_content = read_blob_content(&repo_root, &head_tree_map[path])
+                        .unwrap_or_else(|| {
+                            eprintln!("warning: failed to read blob for '{}'", path);
+                            Vec::new()
+                        });
                     let a_path = format!("a/{}", path);
                     let b_path = format!("b/{}", path);
                     let diff = generate_unified_diff_deleted(&a_path, &b_path, &old_content);
@@ -204,11 +210,17 @@ fn print_tree_diff(
         let content1 = map1
             .get(path)
             .and_then(|s| read_blob_content(repo, s))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                eprintln!("warning: failed to read blob for '{}' in tree1", path);
+                Vec::new()
+            });
         let content2 = map2
             .get(path)
             .and_then(|s| read_blob_content(repo, s))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                eprintln!("warning: failed to read blob for '{}' in tree2", path);
+                Vec::new()
+            });
 
         if content1 != content2 {
             if name_only {
@@ -247,7 +259,10 @@ fn print_tree_vs_working(
         let old_content = tree_map
             .get(path)
             .and_then(|s| read_blob_content(repo, s))
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                eprintln!("warning: failed to read blob for '{}' in tree", path);
+                Vec::new()
+            });
         let full_path = repo.join(path);
         let new_content = if full_path.exists() {
             fs::read(&full_path).unwrap_or_else(|e| {
