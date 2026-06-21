@@ -1,3 +1,4 @@
+pub mod bisect;
 pub mod checkout;
 pub mod compression;
 pub mod hash;
