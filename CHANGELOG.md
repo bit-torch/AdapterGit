@@ -4,7 +4,23 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.10.0] — Unreleased
+## [v0.11.0] — Unreleased
+
+> Blame & Reflog — 逐行追溯与引用日志
+
+### Features
+- **blame**: 逐行追溯文件每行的最后修改提交（LCS 行比对算法）
+- **reflog**: 查看引用变更历史（HEAD / 分支 / 标签）
+
+### Core
+- `core/reflog`: 引用日志读写模块，支持 `.git/logs/` 解析和原子追加
+
+### Tests
+- 172 测试 (103 单元 + 69 集成)
+
+---
+
+## [v0.10.0] — 2026-06-21
 
 > SSH 传输协议 — SSH Transport Protocol
 

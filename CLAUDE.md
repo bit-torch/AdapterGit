@@ -63,6 +63,8 @@ utils/error.rs   → AgitError enum
 
 3. **Single Logical Change** — every commit must be one atomic, self-contained change. No "Fix stuff" or "Update code".
 4. **Multi-commit PR is OK** — splitting across commits is encouraged (e.g. `refactor:` → `feat:` → `test:`), but never squash unrelated changes into one.
+4a. **Commit per logical unit** — 每个 commit 只包含一个逻辑单元（如一个模块、一个命令、一个 CLI 注册）。不要把多个不相关的改动堆在一坨提交。多个文件同时修改时，按依赖顺序分批提交。
+4b. **Format per commit** — 每个 commit 前单独运行 `cargo fmt`，确保 fmt 结果归属于当前提交。不要等所有改动写完再一起 fmt。
 5. **Conventional Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Scope optional: `feat(core): ...`.
 5a. **No `@` in commit messages** — 提交信息前后禁止添加 `@` 符号。使用标准 Conventional Commits 格式，不加前缀或后缀的 `@`。
 
@@ -70,7 +72,7 @@ utils/error.rs   → AgitError enum
 
 6. **Tests required** — new features must have unit + integration tests. `cargo test` must pass with 0 failures before push.
 7. **Clippy clean** — `cargo clippy` must produce 0 warnings before push.
-8. **Formatted** — `cargo fmt` must produce no diff before push.
+8. **Formatted** — `cargo fmt` must produce no diff before push; 在最终 push 前再做一次全量检查。
 
 ### Code
 
