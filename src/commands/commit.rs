@@ -79,8 +79,13 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     let commit_sha1 = commit.hash();
     storage::write_object(&repo_root, "commit", &commit.serialize_raw())?;
 
-    let head_content = std::fs::read_to_string(repo_root.join(".git").join("HEAD"))
-        .map_err(|e| format!("Failed to read HEAD: {}", e))?;
+    let head_path = repo_root.join(".git").join("HEAD");
+    let head_content = if head_path.exists() {
+        std::fs::read_to_string(&head_path)?
+    } else {
+        // 新仓库，HEAD 尚未创建 → 初始化为 main
+        String::new()
+    };
     let head_trimmed = head_content.trim();
     let branch_ref = if let Some(ref_path) = head_trimmed.strip_prefix("ref: ") {
         ref_path.trim().to_string()
@@ -101,7 +106,10 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
         }
         return Err("You are in 'detached HEAD' state. Please create a branch first.".into());
     } else if head_trimmed.is_empty() {
-        return Err("HEAD is empty or corrupted. Cannot determine current branch.".into());
+        // HEAD 为空：初始化默认分支 main（首次 commit）
+        let default_branch = "ref: refs/heads/main";
+        refs::write_head(&repo_root, default_branch)?;
+        "refs/heads/main".to_string()
     } else {
         return Err(format!("Unexpected HEAD content: '{}'", head_trimmed).into());
     };
