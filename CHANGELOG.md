@@ -4,7 +4,7 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.13.0] — Unreleased
+## [v0.13.0] — 2026-06-21
 
 > 双版本分发 + AI 提交 — Dual-Edition Distribution & AI Commit
 
