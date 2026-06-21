@@ -1,6 +1,7 @@
 use crate::ai;
 use crate::config;
 use crate::core::index::Index;
+#[cfg(feature = "ai")]
 use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
@@ -174,9 +175,14 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
 #[cfg(feature = "ai")]
 fn generate_ai_message(repo_root: &std::path::Path, index: &Index) -> String {
     let summary = build_staged_summary(repo_root, index);
-    if let Some(config) = ai::llm::LlmConfig::from_env() {
-        println!("[AI] Generating commit message via {}...", config.model);
-        match ai::llm::generate_commit_message(&config, &summary, None) {
+    let cfg = crate::config::load();
+    if let Some(llm_cfg) = ai::llm::LlmConfig::from_config(&cfg) {
+        let provider = cfg.llm.provider.as_deref().unwrap_or("openai");
+        println!(
+            "[AI] Generating commit message via {} ({})...",
+            provider, llm_cfg.model
+        );
+        match ai::llm::generate_commit_message(&llm_cfg, &summary, None) {
             Ok(msg) => {
                 println!("[AI] Generated: {}", msg);
                 return msg;
@@ -186,7 +192,13 @@ fn generate_ai_message(repo_root: &std::path::Path, index: &Index) -> String {
             }
         }
     } else {
-        println!("[AI] AGIT_LLM_API_KEY not set, using basic template.");
+        println!(
+            "[AI] No API key configured.\n\
+             Configure via:\n  \
+             1. env (one-shot):  AGIT_LLM_API_KEY=sk-xxx AGIT_LLM_PROVIDER=deepseek\n  \
+             2. file (persist):  ~/.agitconfig.toml\n     [llm]\n     api_key = \"sk-xxx\"\n     provider = \"deepseek\"\n\
+             Supported providers: openai, deepseek, anthropic, moonshot, zhipu, ollama"
+        );
     }
     // 回退：基于文件列表生成简单消息
     let paths: Vec<&str> = index.entries.keys().map(|s| s.as_str()).collect();
@@ -204,6 +216,7 @@ fn generate_ai_message(_repo_root: &std::path::Path, _index: &Index) -> String {
 }
 
 /// 构建暂存区文件变更摘要（供 AI 使用）。
+#[cfg(feature = "ai")]
 fn build_staged_summary(repo_root: &std::path::Path, index: &Index) -> String {
     let mut lines = vec!["Staged changes:".to_string()];
 

@@ -1001,12 +1001,15 @@ pub fn run(
         "# git ls-files --others --exclude-standard\n",
     )?;
 
-    // ── .gitignore 模板 ──
+    // ── .gitignore ──
+    // 始终包含 .agit/ 防止 agit 配置（含密钥）被意外提交
+    let mut gitignore = String::from("# agit config directory (may contain secrets)\n.agit/\n\n");
+    let has_pattern = pattern.is_some();
     if let Some(pattern_name) = pattern {
         match get_pattern_text(pattern_name) {
-            Some(content) => {
-                fs::write(target.join(".gitignore"), content)?;
-                println!("  Created .gitignore ({})", pattern_name);
+            Some(template) => {
+                gitignore.push_str(template);
+                println!("  Created .gitignore (.agit/ + {})", pattern_name);
             }
             None => {
                 eprintln!(
@@ -1021,6 +1024,10 @@ pub fn run(
             }
         }
     }
+    if !has_pattern {
+        println!("  Created .gitignore (.agit/)");
+    }
+    fs::write(target.join(".gitignore"), gitignore)?;
 
     // ── 许可证模板 ──
     if let Some(licence_name) = licence {

@@ -9,6 +9,18 @@ pub struct Config {
     pub user_name: String,
     pub user_email: String,
     pub aliases: HashMap<String, String>,
+    /// LLM API 配置（api_key / provider / model）
+    #[allow(dead_code)]
+    pub llm: LlmConfig,
+}
+
+/// LLM 配置段。
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct LlmConfig {
+    pub api_key: Option<String>,
+    pub provider: Option<String>,
+    pub model: Option<String>,
 }
 
 /// TOML 配置文件的反序列化结构。
@@ -18,6 +30,8 @@ struct ConfigFile {
     user: Option<UserSection>,
     #[serde(default)]
     alias: Option<HashMap<String, String>>,
+    #[serde(default)]
+    llm: Option<LlmSection>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -28,12 +42,53 @@ struct UserSection {
     email: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, Deserialize)]
+struct LlmSection {
+    #[serde(default)]
+    api_key: Option<String>,
+    #[serde(default)]
+    provider: Option<String>,
+    #[serde(default)]
+    model: Option<String>,
+}
+
+/// 内置 LLM 厂商预设：(provider, api_url, default_model)
+#[allow(dead_code)]
+pub const LLM_PROVIDERS: &[(&str, &str, &str)] = &[
+    ("openai", "https://api.openai.com/v1", "gpt-4o-mini"),
+    ("deepseek", "https://api.deepseek.com/v1", "deepseek-chat"),
+    (
+        "anthropic",
+        "https://api.anthropic.com/v1",
+        "claude-haiku-3-5",
+    ),
+    ("moonshot", "https://api.moonshot.cn/v1", "moonshot-v1-8k"),
+    (
+        "zhipu",
+        "https://open.bigmodel.cn/api/paas/v4",
+        "glm-4-flash",
+    ),
+    ("ollama", "http://localhost:11434/v1", "llama3"),
+];
+
+/// 根据 provider 名查找预设的 API URL 和 model。
+#[allow(dead_code)]
+pub fn resolve_llm_provider(provider: &str) -> Option<(&'static str, &'static str)> {
+    LLM_PROVIDERS
+        .iter()
+        .find(|(name, _, _)| *name == provider.to_lowercase())
+        .map(|(_, url, model)| (*url, *model))
+}
+
 impl Config {
     /// 按优先级加载配置：环境变量 > 仓库级 .agit/config.toml > 全局 ~/.agitconfig.toml > 默认值。
     pub fn load(repo_path: Option<&Path>) -> Self {
         let mut file_user_name: Option<String> = None;
         let mut file_user_email: Option<String> = None;
         let mut aliases = HashMap::new();
+        let mut llm_api_key: Option<String> = None;
+        let mut llm_provider: Option<String> = None;
+        let mut llm_model: Option<String> = None;
 
         // 1. 读取全局配置文件 ~/.agitconfig.toml
         if let Some(home) = dirs_fallback() {
@@ -45,10 +100,19 @@ impl Config {
                     &mut file_user_email,
                     &mut aliases,
                 );
+                // 全局配置允许 api_key
+                merge_llm_config(
+                    &cfg,
+                    &mut llm_api_key,
+                    &mut llm_provider,
+                    &mut llm_model,
+                    true,
+                );
             }
         }
 
         // 2. 读取仓库级配置文件 .agit/config.toml（覆盖全局）
+        // 注意：api_key 不从仓库级配置读取，防止泄漏到仓库中
         if let Some(repo) = repo_path {
             let repo_config = repo.join(".agit").join("config.toml");
             if let Some(cfg) = read_config_file(&repo_config) {
@@ -57,6 +121,14 @@ impl Config {
                     &mut file_user_name,
                     &mut file_user_email,
                     &mut aliases,
+                );
+                // api_key 不从仓库级配置读取（include_api_key=false）
+                merge_llm_config(
+                    &cfg,
+                    &mut llm_api_key,
+                    &mut llm_provider,
+                    &mut llm_model,
+                    false,
                 );
             }
         }
@@ -74,10 +146,26 @@ impl Config {
             .or(file_user_email)
             .unwrap_or_else(|| "agit@localhost".to_string());
 
+        // LLM 环境变量覆盖配置文件
+        if let Ok(key) = env::var("AGIT_LLM_API_KEY") {
+            llm_api_key = Some(key);
+        }
+        if let Ok(provider) = env::var("AGIT_LLM_PROVIDER") {
+            llm_provider = Some(provider);
+        }
+        if let Ok(model) = env::var("AGIT_LLM_MODEL") {
+            llm_model = Some(model);
+        }
+
         Config {
             user_name,
             user_email,
             aliases,
+            llm: LlmConfig {
+                api_key: llm_api_key,
+                provider: llm_provider,
+                model: llm_model,
+            },
         }
     }
 }
@@ -104,6 +192,29 @@ fn merge_config(
     if let Some(ref alias_map) = cfg.alias {
         for (k, v) in alias_map {
             aliases.insert(k.clone(), v.clone());
+        }
+    }
+}
+
+fn merge_llm_config(
+    cfg: &ConfigFile,
+    api_key: &mut Option<String>,
+    provider: &mut Option<String>,
+    model: &mut Option<String>,
+    include_api_key: bool,
+) {
+    if let Some(ref llm) = cfg.llm {
+        // api_key 只从全局配置读取，不从仓库级配置读取（防泄漏）
+        if include_api_key {
+            if let Some(ref key) = llm.api_key {
+                *api_key = Some(key.clone());
+            }
+        }
+        if let Some(ref p) = llm.provider {
+            *provider = Some(p.clone());
+        }
+        if let Some(ref m) = llm.model {
+            *model = Some(m.clone());
         }
     }
 }

@@ -2,14 +2,28 @@
 //!
 //! 支持 OpenAI-compatible API，用于自动生成 commit message。
 //!
-//! 环境变量：
-//! - `AGIT_LLM_API_KEY` — API 密钥（必需）
-//! - `AGIT_LLM_API_URL` — API 端点（默认 `https://api.openai.com/v1`）
-//! - `AGIT_LLM_MODEL` — 模型名（默认 `gpt-4o-mini`）
+//! ## 配置方式（按优先级）
+//!
+//! 1. 环境变量 `AGIT_LLM_API_KEY` / `AGIT_LLM_PROVIDER` / `AGIT_LLM_MODEL`
+//! 2. 仓库级 `.agit/config.toml` 的 `[llm]` 段
+//! 3. 全局 `~/.agitconfig.toml` 的 `[llm]` 段
+//! 4. 默认：provider=openai, model=gpt-4o-mini
+//!
+//! ## 配置文件示例
+//!
+//! ```toml
+//! [llm]
+//! api_key = "sk-xxx"
+//! provider = "deepseek"   # openai / deepseek / anthropic / moonshot / zhipu / ollama
+//! model = "deepseek-chat" # 可选，不填自动匹配 provider 默认模型
+//! ```
+//!
+//! `AGIT_LLM_API_URL` 环境变量可直接覆盖 API 端点（优先级最高）。
 
+use crate::config;
 use serde::{Deserialize, Serialize};
 
-/// LLM API 配置。
+/// LLM API 运行时配置（已解析）。
 #[derive(Clone)]
 pub struct LlmConfig {
     pub api_key: String,
@@ -18,13 +32,33 @@ pub struct LlmConfig {
 }
 
 impl LlmConfig {
-    /// 从环境变量加载配置。
-    /// 如果 `AGIT_LLM_API_KEY` 未设置则返回 None。
-    pub fn from_env() -> Option<Self> {
-        let api_key = std::env::var("AGIT_LLM_API_KEY").ok()?;
-        let api_url = std::env::var("AGIT_LLM_API_URL")
-            .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
-        let model = std::env::var("AGIT_LLM_MODEL").unwrap_or_else(|_| "gpt-4o-mini".to_string());
+    /// 从 Config 系统加载 LLM 配置。
+    /// 优先级：AGIT_LLM_API_URL 环境变量 > provider 预设 > 默认 OpenAI
+    pub fn from_config(cfg: &config::Config) -> Option<Self> {
+        let api_key = cfg.llm.api_key.clone()?;
+
+        // 解析 API URL
+        let api_url = std::env::var("AGIT_LLM_API_URL").ok().unwrap_or_else(|| {
+            // 根据 provider 查预设
+            if let Some(ref provider) = cfg.llm.provider {
+                if let Some((url, _)) = config::resolve_llm_provider(provider) {
+                    return url.to_string();
+                }
+            }
+            // 默认 OpenAI
+            "https://api.openai.com/v1".to_string()
+        });
+
+        let model = cfg.llm.model.clone().unwrap_or_else(|| {
+            // 根据 provider 查默认 model
+            if let Some(ref provider) = cfg.llm.provider {
+                if let Some((_, default_model)) = config::resolve_llm_provider(provider) {
+                    return default_model.to_string();
+                }
+            }
+            "gpt-4o-mini".to_string()
+        });
+
         Some(LlmConfig {
             api_key,
             api_url,
@@ -63,14 +97,14 @@ struct MessageContent {
 }
 
 /// 调用 LLM API 获取 chat completion。
-///
-/// 返回生成的文本内容，失败时返回错误。
 pub fn chat_completion(
     config: &LlmConfig,
     system_prompt: &str,
     user_prompt: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
 
     let request = ChatRequest {
         model: config.model.clone(),
@@ -98,7 +132,13 @@ pub fn chat_completion(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().unwrap_or_default();
-        return Err(format!("LLM API error ({}): {}", status, body).into());
+        return Err(format!(
+            "LLM API error ({}): {}\n\
+             Hint: check AGIT_LLM_API_KEY and AGIT_LLM_PROVIDER.\n\
+             Supported providers: openai, deepseek, anthropic, moonshot, zhipu, ollama",
+            status, body
+        )
+        .into());
     }
 
     let chat_response: ChatResponse = response.json()?;
