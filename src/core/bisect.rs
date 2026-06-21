@@ -15,7 +15,7 @@ use crate::core::objects::commit::Commit;
 use crate::core::objects::format_object_data;
 use crate::core::{refs, storage};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// 当前二分查找的状态。
 #[derive(Debug, Clone)]
@@ -295,6 +295,7 @@ mod tests {
     use super::*;
     use crate::core::storage;
     use std::fs;
+    use std::path::PathBuf;
 
     fn setup_repo(name: &str) -> PathBuf {
         let dir =
@@ -393,10 +394,11 @@ mod tests {
         let bad = make_commit(&repo, tree, Some(&c3), "bad");
 
         let range = compute_range(&repo, &bad, &[c1.clone()]).unwrap();
-        // 期望: c3, c2 (不含 bad)
+        // 范围: c2, c3, bad (不含 c1 及其祖先 root)
         assert_eq!(range.len(), 3);
-        assert_eq!(range[0], c1);
-        assert_eq!(range[2], c3);
+        assert_eq!(range[0], c2);
+        assert_eq!(range[1], c3);
+        assert_eq!(range[2], bad);
 
         let _ = fs::remove_dir_all(&repo);
     }
