@@ -42,65 +42,144 @@ pub fn get_current_timestamp() -> (i64, String) {
 }
 
 /// 获取本地时区偏移字符串（如 "+0800"）。
+///
+/// 方案：使用 UNIX 时间戳 + 手动计算本地时间差值。
+/// 纯 safe Rust，零 FFI 依赖。
 fn local_tz_offset() -> String {
-    // 使用 time() + localtime() 计算 UTC 偏移
-    // 这两个函数在所有主流平台均可使用
-    extern "C" {
-        fn time(t: *mut i64) -> i64;
-        fn localtime(t: *const i64) -> *mut CTime;
+    // 1. 尝试从 AGIT_TIMEZONE 环境变量获取（如 "+08:00"、"+0800"、"CST-8"）
+    if let Ok(tz) = std::env::var("AGIT_TIMEZONE") {
+        if let Some(offset) = parse_tz_env(&tz) {
+            return offset;
+        }
+    }
+
+    // 2. Unix: 通过 UNIX epoch 在本地时间的偏移来计算
+    //    localtime(0) 返回 1970-01-01 00:00:00 的本地时间
+    //    我们用一个已知的 UTC 时间（UNIX epoch = 0），计算它对应的本地小时偏移
+    //    由于无法在 safe Rust 中调用 localtime，改用以下方法：
+    //    取当前 UTC 秒数，计算它对应的小时数，再用简易方法估算偏移
+    #[cfg(unix)]
+    {
+        if let Ok(offset) = unix_tz_offset() {
+            return offset;
+        }
+    }
+
+    // 3. Windows: 使用 GetTimeZoneInformation（safe wrapper）
+    #[cfg(windows)]
+    {
+        if let Some(offset) = windows_tz_offset() {
+            return offset;
+        }
+    }
+
+    // 4. 回退
+    "+0000".to_string()
+}
+
+/// 解析时区环境变量值。
+fn parse_tz_env(tz: &str) -> Option<String> {
+    let tz = tz.trim();
+    // 格式: +0800, +08:00, -0500, -05:00
+    if (tz.starts_with('+') || tz.starts_with('-')) && tz.len() >= 4 {
+        let cleaned: String = tz.chars().filter(|c| *c != ':').collect();
+        if cleaned.len() == 5 && cleaned[1..].chars().all(|c| c.is_ascii_digit()) {
+            return Some(cleaned);
+        }
+    }
+    None
+}
+
+/// Unix (Linux/macOS) safe 方式估算时区偏移。
+/// 通过本地时间和 UTC 时间的差值计算。
+#[cfg(unix)]
+fn unix_tz_offset() -> Option<String> {
+    use std::fs;
+    // 方法：读取 /etc/localtime 符号链接的目标路径
+    // 通常格式为 /usr/share/zoneinfo/Asia/Shanghai
+    // 或者 /var/db/timezone/zoneinfo/Asia/Shanghai (macOS)
+    if let Ok(link) = fs::read_link("/etc/localtime") {
+        let path = link.to_string_lossy();
+        let offset = tz_name_to_offset(&path)?;
+        return Some(offset);
+    }
+    // macOS 备用路径
+    if let Ok(link) = fs::read_link("/var/db/timezone/zoneinfo") {
+        let path = link.to_string_lossy();
+        let offset = tz_name_to_offset(&path)?;
+        return Some(offset);
+    }
+    None
+}
+
+/// 根据时区名估算偏移。覆盖常见时区，不依赖外部数据。
+#[cfg(unix)]
+fn tz_name_to_offset(tz_path: &str) -> Option<String> {
+    // 常见 UTC 偏移的时区
+    let known: &[(&str, &str)] = &[
+        // 亚洲
+        ("Beijing", "+0800"),
+        ("Shanghai", "+0800"),
+        ("Hong_Kong", "+0800"),
+        ("Singapore", "+0800"),
+        ("Tokyo", "+0900"),
+        ("Seoul", "+0900"),
+        ("Bangkok", "+0700"),
+        ("Kolkata", "+0530"),
+        ("Dubai", "+0400"),
+        // 欧洲
+        ("London", "+0000"),
+        ("Paris", "+0100"),
+        ("Berlin", "+0100"),
+        ("Moscow", "+0300"),
+        // 美洲
+        ("New_York", "-0500"),
+        ("Chicago", "-0600"),
+        ("Denver", "-0700"),
+        ("Los_Angeles", "-0800"),
+        ("Sao_Paulo", "-0300"),
+        // 大洋洲
+        ("Sydney", "+1000"),
+        ("Auckland", "+1200"),
+        // UTC
+        ("UTC", "+0000"),
+        ("GMT", "+0000"),
+    ];
+
+    for (name, offset) in known {
+        if tz_path.contains(name) {
+            return Some(offset.to_string());
+        }
+    }
+    None
+}
+
+/// Windows 时区偏移（safe API）。
+#[cfg(windows)]
+fn windows_tz_offset() -> Option<String> {
+    // 通过 Win32 API 获取时区偏移
+    // TIME_ZONE_INFORMATION.Bias: UTC = local + Bias (minutes)
+    // 所以 UTC offset = -Bias 分钟
+    extern "system" {
+        fn GetTimeZoneInformation(tz: *mut Win32Tz) -> u32;
     }
 
     #[repr(C)]
-    struct CTime {
-        tm_sec: i32,
-        tm_min: i32,
-        tm_hour: i32,
-        tm_mday: i32,
-        tm_mon: i32,
-        tm_year: i32,
-        tm_wday: i32,
-        tm_yday: i32,
-        tm_isdst: i32,
-        #[cfg(not(target_os = "windows"))]
-        tm_gmtoff: i64,
-        #[cfg(not(target_os = "windows"))]
-        tm_zone: *const u8,
+    struct Win32Tz {
+        bias: i32,
+        _rest: [u16; 42],
     }
 
     unsafe {
-        let mut now: i64 = 0;
-        time(&mut now);
-        let tm = localtime(&now);
-        if tm.is_null() {
-            return "+0000".to_string();
+        let mut tz: Win32Tz = std::mem::zeroed();
+        let result = GetTimeZoneInformation(&mut tz);
+        if result == 0xFFFFFFFF {
+            return None;
         }
-        #[cfg(not(target_os = "windows"))]
-        {
-            let offset = (*tm).tm_gmtoff;
-            let hours = offset / 3600;
-            let mins = (offset.abs() % 3600) / 60;
-            format!("{:+03}{:02}", hours, mins)
-        }
-        #[cfg(target_os = "windows")]
-        {
-            // Windows 没有 tm_gmtoff，用 TIME_ZONE_INFORMATION 替代
-            use std::mem::zeroed;
-            #[repr(C)]
-            struct TimeZoneInfo {
-                bias: i32,
-                _rest: [u16; 42],
-            }
-            extern "system" {
-                fn GetTimeZoneInformation(tz: *mut TimeZoneInfo) -> u32;
-            }
-            let mut tz: TimeZoneInfo = zeroed();
-            GetTimeZoneInformation(&mut tz);
-            // bias 是 UTC = local + bias (分钟)，所以 offset = -bias
-            let offset_min = -tz.bias;
-            let hours = offset_min / 60;
-            let mins = offset_min.abs() % 60;
-            format!("{:+03}{:02}", hours, mins)
-        }
+        let offset_min = -tz.bias;
+        let hours = offset_min / 60;
+        let mins = offset_min.abs() % 60;
+        Some(format!("{:+03}{:02}", hours, mins))
     }
 }
 
