@@ -1,6 +1,7 @@
 use crate::ai;
 use crate::config;
 use crate::core::index::Index;
+use crate::core::objects::blob::Blob;
 use crate::core::objects::commit::Commit;
 use crate::core::objects::tree::Tree;
 use crate::core::refs;
@@ -41,11 +42,14 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
             .unwrap_or_else(|_| "Merge".to_string())
             .trim()
             .to_string()
+    } else if is_ai {
+        // AI 模式无 -m：尝试从 LLM 生成 commit message
+        generate_ai_message(&repo_root, &index)
     } else {
         "Update".to_string()
     };
 
-    if is_ai {
+    if is_ai && !msg.starts_with("[AI-committed]") {
         msg = format!("{}{}", ai::ai_commit_marker(), msg);
     }
     if !msg.ends_with('\n') {
@@ -127,4 +131,64 @@ pub fn run(message: Option<String>, ai_flag: bool) -> Result<(), Box<dyn std::er
     );
 
     Ok(())
+}
+
+/// 使用 AI 从暂存区 diff 生成 commit message。
+#[cfg(feature = "ai")]
+fn generate_ai_message(repo_root: &std::path::Path, index: &Index) -> String {
+    let summary = build_staged_summary(repo_root, index);
+    if let Some(config) = ai::llm::LlmConfig::from_env() {
+        println!("[AI] Generating commit message via {}...", config.model);
+        match ai::llm::generate_commit_message(&config, &summary, None) {
+            Ok(msg) => {
+                println!("[AI] Generated: {}", msg);
+                return msg;
+            }
+            Err(e) => {
+                eprintln!("[AI] LLM call failed: {}", e);
+            }
+        }
+    } else {
+        println!("[AI] AGIT_LLM_API_KEY not set, using basic template.");
+    }
+    // 回退：基于文件列表生成简单消息
+    let paths: Vec<&str> = index.entries.keys().map(|s| s.as_str()).collect();
+    if paths.len() == 1 {
+        format!("Update {}", paths[0])
+    } else {
+        format!("Update {} files", paths.len())
+    }
+}
+
+#[cfg(not(feature = "ai"))]
+fn generate_ai_message(_repo_root: &std::path::Path, _index: &Index) -> String {
+    println!("[AI] LLM support not compiled (enable 'ai' feature).");
+    "AI Update".to_string()
+}
+
+/// 构建暂存区文件变更摘要（供 AI 使用）。
+fn build_staged_summary(repo_root: &std::path::Path, index: &Index) -> String {
+    let mut lines = vec!["Staged changes:".to_string()];
+
+    for (path, entry) in index.entries.iter() {
+        let full_path = repo_root.join(path);
+        let status = if full_path.exists() {
+            match std::fs::read(&full_path) {
+                Ok(content) => {
+                    let blob = Blob::new(content);
+                    if blob.hash() == entry.sha1 {
+                        "modified".to_string()
+                    } else {
+                        "modified (staged != working)".to_string()
+                    }
+                }
+                Err(_) => "modified".to_string(),
+            }
+        } else {
+            "deleted".to_string()
+        };
+        lines.push(format!("  {} ({})", path, status));
+    }
+
+    lines.join("\n")
 }
