@@ -278,6 +278,21 @@ pub enum Commands {
         #[arg(long, help = "Abort the cherry-pick in progress")]
         abort: bool,
     },
+
+    #[command(about = "Show what revision and author last modified each line of a file")]
+    Blame {
+        #[arg(help = "Revision (commit/branch/tag, default: HEAD)")]
+        revision: Option<String>,
+
+        #[arg(help = "File path to blame")]
+        file: String,
+    },
+
+    #[command(about = "Manage reflog information")]
+    Reflog {
+        #[arg(help = "Ref to show reflog for (default: HEAD)")]
+        ref_name: Option<String>,
+    },
 }
 
 #[cfg(feature = "tag")]

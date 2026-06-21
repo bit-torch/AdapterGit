@@ -144,6 +144,8 @@ fn main() {
             r#continue,
             abort,
         }) => commands::cherry_pick::run(commits, *r#continue, *abort),
+        Some(Commands::Blame { revision, file }) => commands::blame::run(revision.as_deref(), file),
+        Some(Commands::Reflog { ref_name }) => commands::reflog::run(ref_name.as_deref()),
     };
 
     if let Err(e) = result {
