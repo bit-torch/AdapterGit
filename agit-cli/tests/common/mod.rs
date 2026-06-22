@@ -10,7 +10,9 @@ pub fn agit_binary() -> PathBuf {
     if let Ok(path) = std::env::var("CARGO_BIN_EXE_agit") {
         return PathBuf::from(path);
     }
+    // CARGO_MANIFEST_DIR 现在是 agit-cli/，workspace 的 target 在上一级
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    path.push("..");
     path.push("target");
     path.push("debug");
     path.push("agit");
