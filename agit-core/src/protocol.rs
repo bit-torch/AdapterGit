@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-use crate::core::ssh_url::SshUrl;
+use crate::ssh_url::SshUrl;
 
 // ── Transport trait ──────────────────────────────────────────
 
@@ -30,9 +30,7 @@ pub fn create_transport(url: &str) -> Result<Box<dyn Transport>, Box<dyn std::er
     if url.starts_with("http://") || url.starts_with("https://") {
         Ok(Box::new(HttpTransport::from_url(url)?))
     } else if url.starts_with("ssh://") || SshUrl::parse(url).is_some() {
-        Ok(Box::new(
-            crate::core::ssh_transport::SshTransport::from_url(url)?,
-        ))
+        Ok(Box::new(crate::ssh_transport::SshTransport::from_url(url)?))
     } else {
         Err(format!("Unsupported URL scheme: {}", url).into())
     }
@@ -237,7 +235,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
 
         let (decompressed, consumed) = match obj_type {
             1..=4 | 6..=7 => {
-                let (content, n) = crate::core::compression::decompress_stream(&data[pos..])?;
+                let (content, n) = crate::compression::decompress_stream(&data[pos..])?;
                 (content, n)
             }
             _ => {
@@ -270,7 +268,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
             let mut obj_data = Vec::with_capacity(header.len() + raw.decompressed.len());
             obj_data.extend_from_slice(header.as_bytes());
             obj_data.extend_from_slice(&raw.decompressed);
-            let sha1 = crate::core::hash::hash_bytes(&obj_data);
+            let sha1 = crate::hash::hash_bytes(&obj_data);
             resolved.push((sha1, obj_data, raw.obj_start));
         }
     }
@@ -295,7 +293,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
                             Vec::with_capacity(header.len() + resolved_content.len());
                         obj_data.extend_from_slice(header.as_bytes());
                         obj_data.extend_from_slice(&resolved_content);
-                        let sha1 = crate::core::hash::hash_bytes(&obj_data);
+                        let sha1 = crate::hash::hash_bytes(&obj_data);
                         resolved.push((sha1, obj_data, raw.obj_start));
                     }
                 }
@@ -317,7 +315,7 @@ pub fn parse_packfile(data: &[u8]) -> Result<ObjectList, Box<dyn std::error::Err
                                 Vec::with_capacity(header.len() + resolved_content.len());
                             obj_data.extend_from_slice(header.as_bytes());
                             obj_data.extend_from_slice(&resolved_content);
-                            let sha1 = crate::core::hash::hash_bytes(&obj_data);
+                            let sha1 = crate::hash::hash_bytes(&obj_data);
                             resolved.push((sha1, obj_data, raw.obj_start));
                         }
                     }

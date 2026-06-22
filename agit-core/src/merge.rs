@@ -1,7 +1,7 @@
-use crate::core::objects::blob::Blob;
-use crate::core::objects::commit::Commit;
-use crate::core::objects::tree::Tree;
-use crate::core::{index, refs, storage};
+use crate::objects::blob::Blob;
+use crate::objects::commit::Commit;
+use crate::objects::tree::Tree;
+use crate::{index, refs, storage};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
@@ -113,7 +113,7 @@ pub fn merge_branch(
 }
 
 /// 查找两个 commit 的共同祖先（简易 BFS）。
-pub(crate) fn find_merge_base(
+pub fn find_merge_base(
     repo: &Path,
     sha1: &str,
     sha2: &str,
@@ -175,7 +175,7 @@ pub(crate) fn find_merge_base(
 
 /// 3-way merge: 比较 base/ours/theirs 的 tree，生成合并结果。
 /// 返回是否产生了冲突。
-pub(crate) fn three_way_merge(
+pub fn three_way_merge(
     repo: &Path,
     base_sha: &str,
     ours_sha: &str,
@@ -200,7 +200,7 @@ pub(crate) fn three_way_merge(
 
 /// 3-way merge 核心逻辑：接受预计算的文件映射。
 /// `custom_theirs_label` — 冲突标记 `>>>>>>>` 后使用的自定义标签（None 则用路径名）。
-pub(crate) fn three_way_merge_with_files(
+pub fn three_way_merge_with_files(
     repo: &Path,
     base_files: &BTreeMap<String, FileInfo>,
     ours_files: &BTreeMap<String, FileInfo>,
@@ -287,13 +287,13 @@ pub(crate) fn three_way_merge_with_files(
 
 /// 文件信息：SHA-1 和 mode。
 #[derive(Debug, PartialEq)]
-pub(crate) struct FileInfo {
+pub struct FileInfo {
     pub sha1: String,
     pub mode: String,
 }
 
 /// 从 commit SHA 出发，读取 tree 中的所有文件映射。
-pub(crate) fn read_tree_files(
+pub fn read_tree_files(
     repo: &Path,
     commit_sha: &str,
 ) -> Result<BTreeMap<String, FileInfo>, Box<dyn std::error::Error>> {
@@ -333,7 +333,7 @@ fn read_tree_files_recursive(
 }
 
 /// 读取 commit 的 tree 文件映射（公开 API，用于 rebase/cherry-pick）。
-pub(crate) fn read_commit_tree_files(
+pub fn read_commit_tree_files(
     repo: &Path,
     commit_sha: &str,
 ) -> Result<BTreeMap<String, FileInfo>, Box<dyn std::error::Error>> {

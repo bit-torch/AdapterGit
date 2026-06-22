@@ -1,4 +1,4 @@
-use crate::core::hash::hash_git_object;
+use crate::hash::hash_git_object;
 
 pub struct Tree {
     pub entries: Vec<TreeEntry>,
@@ -8,6 +8,12 @@ pub struct TreeEntry {
     pub mode: String,
     pub name: String,
     pub sha1: String,
+}
+
+impl Default for Tree {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Tree {
@@ -225,7 +231,7 @@ mod tests {
 
         let data = tree.serialize_raw();
         let deserialized =
-            Tree::deserialize(&crate::core::objects::format_object_data("tree", &data)).unwrap();
+            Tree::deserialize(&crate::objects::format_object_data("tree", &data)).unwrap();
 
         // 期望排序: a.txt, dir-a, dir (目录末尾有 "/"，排在 dir-a 之后), z.txt
         assert_eq!(deserialized.entries[0].name, "a.txt");

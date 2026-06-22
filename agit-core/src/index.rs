@@ -13,6 +13,12 @@ pub struct IndexEntry {
     pub path: String,
 }
 
+impl Default for Index {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Index {
     pub fn new() -> Self {
         Index {
@@ -105,7 +111,7 @@ impl Index {
         }
 
         // SHA-1 校验和
-        let sha1 = crate::core::hash::hash_bytes(&data);
+        let sha1 = crate::hash::hash_bytes(&data);
         data.extend_from_slice(&hex_to_bytes(&sha1)?);
 
         Ok(data)

@@ -1,7 +1,7 @@
-use crate::core::index::Index;
-use crate::core::objects::blob::Blob;
-use crate::core::objects::commit::Commit;
-use crate::core::{refs, storage};
+use crate::index::Index;
+use crate::objects::blob::Blob;
+use crate::objects::commit::Commit;
+use crate::{refs, storage};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -185,10 +185,7 @@ fn windows_tz_offset() -> Option<String> {
 
 /// 解析 commit/tree-ish 引用为完整 SHA-1。
 /// 支持 HEAD、分支名、标签名、remote ref、完整 SHA、缩写 SHA、~N 后缀。
-pub(crate) fn resolve_commit(
-    repo: &Path,
-    spec: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+pub fn resolve_commit(repo: &Path, spec: &str) -> Result<String, Box<dyn std::error::Error>> {
     // 处理 ~N 后缀：遍历父提交
     if let Some(tilde_pos) = spec.find('~') {
         let base = &spec[..tilde_pos];
@@ -245,12 +242,12 @@ pub(crate) fn resolve_commit(
 }
 
 /// 获取 commit 的第一个 parent SHA。
-pub(crate) fn get_parent(repo: &Path, sha: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_parent(repo: &Path, sha: &str) -> Result<String, Box<dyn std::error::Error>> {
     let (obj_type, content) = storage::read_object(repo, sha)?;
     if obj_type != "commit" {
         return Err(format!("object {} is not a commit", sha).into());
     }
-    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let commit_data = crate::objects::format_object_data("commit", &content);
     let commit = Commit::deserialize(&commit_data)?;
     commit
         .parents
@@ -285,7 +282,7 @@ fn find_full_sha(repo: &Path, prefix: &str) -> Option<String> {
 }
 
 /// 检查工作区是否干净（tracked 文件是否被修改或删除）。
-pub(crate) fn is_working_tree_clean(
+pub fn is_working_tree_clean(
     repo: &Path,
     index: &Index,
 ) -> Result<bool, Box<dyn std::error::Error>> {

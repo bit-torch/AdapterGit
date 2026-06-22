@@ -2,17 +2,17 @@
 //!
 //! 提供：pick_commit / collect_commits_between / create_commit_from_index / TODO 状态管理。
 
-use crate::core::index::Index;
-use crate::core::merge::{read_commit_tree_files, three_way_merge_with_files, FileInfo};
-use crate::core::objects::commit::Commit;
-use crate::core::objects::tree::Tree;
-use crate::core::{refs, storage};
+use crate::index::Index;
+use crate::merge::{read_commit_tree_files, three_way_merge_with_files, FileInfo};
+use crate::objects::commit::Commit;
+use crate::objects::tree::Tree;
+use crate::{refs, storage};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
 /// pick_commit 的结果。
-pub(crate) enum PickResult {
+pub enum PickResult {
     /// 干净应用，返回新 commit SHA。
     Clean(String),
     /// 产生冲突，工作区已写入冲突标记。
@@ -23,7 +23,7 @@ pub(crate) enum PickResult {
 ///
 /// 从 `head_sha` 回走到 `base_sha`（不含），返回时间正序列表。
 /// 如果 head == base 则返回空 Vec。
-pub(crate) fn collect_commits_between(
+pub fn collect_commits_between(
     repo: &Path,
     base_sha: &str,
     head_sha: &str,
@@ -49,7 +49,7 @@ pub(crate) fn collect_commits_between(
         if obj_type != "commit" {
             return Err(format!("object {} is not a commit", current).into());
         }
-        let commit_data = crate::core::objects::format_object_data("commit", &body);
+        let commit_data = crate::objects::format_object_data("commit", &body);
         let commit = Commit::deserialize(&commit_data)?;
 
         match commit.parents.first() {
@@ -67,14 +67,14 @@ pub(crate) fn collect_commits_between(
 ///
 /// `parent_sha` — 被 pick commit 的父提交（用于三路合并的 base）。
 /// 若为 None 表示根提交，base 为空 BTreeMap。
-pub(crate) fn pick_commit(
+pub fn pick_commit(
     repo: &Path,
     commit_sha: &str,
     parent_sha: Option<&str>,
 ) -> Result<PickResult, Box<dyn std::error::Error>> {
     // 读取被 pick 的 commit
     let (_, body) = storage::read_object(repo, commit_sha)?;
-    let commit_data = crate::core::objects::format_object_data("commit", &body);
+    let commit_data = crate::objects::format_object_data("commit", &body);
     let commit = Commit::deserialize(&commit_data)?;
 
     let head_sha = refs::read_head(repo)?;
@@ -119,7 +119,7 @@ pub(crate) fn pick_commit(
 /// 从当前索引创建 commit，直接写入 HEAD（支持分离 HEAD）。
 ///
 /// 返回新 commit SHA。
-pub(crate) fn create_commit_from_index(
+pub fn create_commit_from_index(
     repo: &Path,
     author: &str,
     committer: &str,
@@ -157,10 +157,7 @@ pub(crate) fn create_commit_from_index(
 // ── TODO 状态文件管理 ──────────────────────────────────────
 
 /// 写入 REBASE_TODO 文件（每行一个 SHA，最旧的在前）。
-pub(crate) fn write_todo(
-    repo: &Path,
-    commits: &[String],
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn write_todo(repo: &Path, commits: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let path = repo.join(".git").join("REBASE_TODO");
     let content: String = commits.iter().map(|s| format!("{}\n", s)).collect();
     fs::write(path, content)?;
@@ -168,7 +165,7 @@ pub(crate) fn write_todo(
 }
 
 /// 读取 REBASE_TODO 文件。
-pub(crate) fn read_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn read_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let path = repo.join(".git").join("REBASE_TODO");
     let content = fs::read_to_string(path)?;
     Ok(content
@@ -179,7 +176,7 @@ pub(crate) fn read_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::
 }
 
 /// 弹出 REBASE_TODO 的第一个 commit（返回后文件缩小一项）。
-pub(crate) fn pop_todo(repo: &Path) -> Result<Option<String>, Box<dyn std::error::Error>> {
+pub fn pop_todo(repo: &Path) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let mut commits = read_todo(repo)?;
     if commits.is_empty() {
         return Ok(None);
@@ -192,7 +189,7 @@ pub(crate) fn pop_todo(repo: &Path) -> Result<Option<String>, Box<dyn std::error
 // ── Cherry-pick TODO 状态文件 ──────────────────────────────
 
 /// 写入 CHERRY_PICK_TODO 文件。
-pub(crate) fn write_cherry_todo(
+pub fn write_cherry_todo(
     repo: &Path,
     commits: &[String],
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -203,7 +200,7 @@ pub(crate) fn write_cherry_todo(
 }
 
 /// 读取 CHERRY_PICK_TODO 文件。
-pub(crate) fn read_cherry_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn read_cherry_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let path = repo.join(".git").join("CHERRY_PICK_TODO");
     let content = fs::read_to_string(path)?;
     Ok(content
@@ -214,7 +211,7 @@ pub(crate) fn read_cherry_todo(repo: &Path) -> Result<Vec<String>, Box<dyn std::
 }
 
 /// 弹出 CHERRY_PICK_TODO 的第一个 commit。
-pub(crate) fn pop_cherry_todo(repo: &Path) -> Result<Option<String>, Box<dyn std::error::Error>> {
+pub fn pop_cherry_todo(repo: &Path) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let mut commits = read_cherry_todo(repo)?;
     if commits.is_empty() {
         return Ok(None);

@@ -1,4 +1,4 @@
-use crate::core::hash::hash_git_object;
+use crate::hash::hash_git_object;
 
 pub struct Blob {
     pub content: Vec<u8>,

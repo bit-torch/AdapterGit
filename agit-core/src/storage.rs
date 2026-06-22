@@ -1,4 +1,4 @@
-use crate::core::compression::{compress, decompress};
+use crate::compression::{compress, decompress};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -35,7 +35,7 @@ pub fn write_object(
     data.extend_from_slice(header.as_bytes());
     data.extend_from_slice(content);
 
-    let sha1 = crate::core::hash::hash_bytes(&data);
+    let sha1 = crate::hash::hash_bytes(&data);
     let compressed = compress(&data)?;
 
     let path = object_path(repo, &sha1);

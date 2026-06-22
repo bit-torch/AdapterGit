@@ -11,9 +11,9 @@
 //! - `.git/BISECT_LOG` — 操作日志
 //! - `.git/BISECT_START` — 原始的 HEAD 引用，用于 reset
 
-use crate::core::objects::commit::Commit;
-use crate::core::objects::format_object_data;
-use crate::core::{refs, storage};
+use crate::objects::commit::Commit;
+use crate::objects::format_object_data;
+use crate::{refs, storage};
 use std::fs;
 use std::path::Path;
 
@@ -293,7 +293,7 @@ pub fn read_bisect_log(repo: &Path) -> Result<String, Box<dyn std::error::Error>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::storage;
+    use crate::storage;
     use std::fs;
     use std::path::PathBuf;
 

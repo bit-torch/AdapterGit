@@ -1,6 +1,6 @@
-use crate::core::objects::blob::Blob;
-use crate::core::objects::tree::Tree;
-use crate::core::{index, refs, storage};
+use crate::objects::blob::Blob;
+use crate::objects::tree::Tree;
+use crate::{index, refs, storage};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
@@ -16,7 +16,7 @@ pub fn restore_from_commit(
         return Err(format!("object {} is not a commit", commit_sha).into());
     }
     let commit_data = with_object_header("commit", &body);
-    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+    let commit = crate::objects::commit::Commit::deserialize(&commit_data)?;
 
     let old_index = index::Index::load(repo)?;
     let old_tracked: BTreeSet<String> = old_index.entries.keys().cloned().collect();
@@ -47,7 +47,7 @@ pub fn rebuild_index_from_commit(
         return Err(format!("object {} is not a commit", commit_sha).into());
     }
     let commit_data = with_object_header("commit", &body);
-    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+    let commit = crate::objects::commit::Commit::deserialize(&commit_data)?;
     let mut new_index = index::Index::new();
     rebuild_index_from_tree(repo, &commit.tree, Path::new(""), &mut new_index)?;
     new_index.save(repo)?;
@@ -90,7 +90,7 @@ pub fn switch_branch(repo: &Path, branch_name: &str) -> Result<(), Box<dyn std::
         return Err(format!("ref '{}' does not point to a commit", branch_name).into());
     }
     let commit_data = with_object_header("commit", &body);
-    let commit = crate::core::objects::commit::Commit::deserialize(&commit_data)?;
+    let commit = crate::objects::commit::Commit::deserialize(&commit_data)?;
 
     // 记录当前索引中的文件，用于切换后清理废弃文件
     let old_index = index::Index::load(repo)?;

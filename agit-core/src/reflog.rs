@@ -79,7 +79,7 @@ pub fn append_reflog(
     author: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let (timestamp, timestamp_str) = crate::core::repo::get_current_timestamp();
+    let (timestamp, timestamp_str) = crate::repo::get_current_timestamp();
 
     let path = reflog_path(repo, ref_name);
     if let Some(parent) = path.parent() {

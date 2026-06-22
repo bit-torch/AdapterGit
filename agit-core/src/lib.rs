@@ -1,6 +1,7 @@
 pub mod bisect;
 pub mod checkout;
 pub mod compression;
+pub mod config;
 pub mod hash;
 pub mod ignore;
 pub mod index;
@@ -15,3 +16,4 @@ pub mod repo;
 pub mod ssh_transport;
 pub mod ssh_url;
 pub mod storage;
+pub mod utils;

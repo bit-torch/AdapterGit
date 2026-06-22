@@ -11,11 +11,11 @@
 use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 
-use crate::core::protocol::Transport;
-use crate::core::protocol::{
+use crate::protocol::Transport;
+use crate::protocol::{
     find_pack_start, parse_packfile, parse_refs_data, pkt_line_encode, pkt_line_flush, ObjectList,
 };
-use crate::core::ssh_url::SshUrl;
+use crate::ssh_url::SshUrl;
 
 /// SSH 传输实现
 pub struct SshTransport {

@@ -1,6 +1,6 @@
-use crate::core::objects::commit::Commit;
-use crate::core::objects::tree::Tree;
-use crate::core::protocol::ObjectList;
+use crate::objects::commit::Commit;
+use crate::objects::tree::Tree;
+use crate::protocol::ObjectList;
 use std::fs;
 use std::path::Path;
 
@@ -18,7 +18,7 @@ pub fn write_objects(
             if let Some(parent) = obj_path.parent() {
                 fs::create_dir_all(parent)?;
             }
-            let compressed = crate::core::compression::compress(data)?;
+            let compressed = crate::compression::compress(data)?;
             fs::write(&obj_path, &compressed)?;
         }
     }
@@ -37,14 +37,14 @@ pub fn apply_tree(
             format!("{}/{}", prefix, entry.name)
         };
 
-        let (obj_type, content) = crate::core::storage::read_object(repo, &entry.sha1)?;
+        let (obj_type, content) = crate::storage::read_object(repo, &entry.sha1)?;
 
         if obj_type == "tree" {
             let full_path = repo.join(&path);
             if !full_path.exists() {
                 fs::create_dir_all(&full_path)?;
             }
-            let tree_data = crate::core::objects::format_object_data("tree", &content);
+            let tree_data = crate::objects::format_object_data("tree", &content);
             let subtree = Tree::deserialize(&tree_data)?;
             apply_tree(repo, &path, &subtree)?;
         } else if obj_type == "blob" {
@@ -67,8 +67,8 @@ pub fn apply_tree_by_sha1(
     prefix: &str,
     tree_sha1: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let (_, tree_content) = crate::core::storage::read_object(repo, tree_sha1)?;
-    let tree_data = crate::core::objects::format_object_data("tree", &tree_content);
+    let (_, tree_content) = crate::storage::read_object(repo, tree_sha1)?;
+    let tree_data = crate::objects::format_object_data("tree", &tree_content);
     let tree = Tree::deserialize(&tree_data)?;
     apply_tree(repo, prefix, &tree)
 }
@@ -139,14 +139,14 @@ pub fn collect_recent_commits(
     let mut result = Vec::new();
     let mut current = sha1.to_string();
     for _ in 0..max {
-        let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
+        let (obj_type, content) = match crate::storage::read_object(repo, &current) {
             Ok(v) => v,
             Err(_) => break,
         };
         if obj_type != "commit" {
             break;
         }
-        let commit_data = crate::core::objects::format_object_data("commit", &content);
+        let commit_data = crate::objects::format_object_data("commit", &content);
         let commit = Commit::deserialize(&commit_data)?;
         if commit.parents.is_empty() {
             break;
@@ -161,8 +161,8 @@ pub fn resolve_commit_to_tree(
     repo: &Path,
     sha1: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let (_, content) = crate::core::storage::read_object(repo, sha1)?;
-    let commit_data = crate::core::objects::format_object_data("commit", &content);
+    let (_, content) = crate::storage::read_object(repo, sha1)?;
+    let commit_data = crate::objects::format_object_data("commit", &content);
     let commit = Commit::deserialize(&commit_data)?;
     Ok(commit.tree)
 }
@@ -188,7 +188,7 @@ pub fn collect_local_objects_for_push(
         if remote_sha1s.contains(&current) {
             continue;
         }
-        let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
+        let (obj_type, content) = match crate::storage::read_object(repo, &current) {
             Ok(v) => v,
             Err(_) => continue,
         };
@@ -196,10 +196,10 @@ pub fn collect_local_objects_for_push(
             continue;
         }
 
-        let full_object = crate::core::objects::format_object_data("commit", &content);
+        let full_object = crate::objects::format_object_data("commit", &content);
         objects.push((current.clone(), full_object));
 
-        let commit_data = crate::core::objects::format_object_data("commit", &content);
+        let commit_data = crate::objects::format_object_data("commit", &content);
         let commit = Commit::deserialize(&commit_data)?;
 
         collect_tree_objects(repo, &commit.tree, &mut objects)?;
@@ -226,14 +226,14 @@ fn collect_all_ancestors(
         if !seen.insert(current.clone()) {
             continue;
         }
-        let (obj_type, content) = match crate::core::storage::read_object(repo, &current) {
+        let (obj_type, content) = match crate::storage::read_object(repo, &current) {
             Ok(v) => v,
             Err(_) => continue,
         };
         if obj_type != "commit" {
             continue;
         }
-        let commit_data = crate::core::objects::format_object_data("commit", &content);
+        let commit_data = crate::objects::format_object_data("commit", &content);
         let commit = Commit::deserialize(&commit_data)?;
         result.push(current);
         for parent in commit.parents {
@@ -250,26 +250,26 @@ fn collect_tree_objects(
     tree_sha1: &str,
     objects: &mut Vec<(String, Vec<u8>)>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let (obj_type, content) = crate::core::storage::read_object(repo, tree_sha1)?;
+    let (obj_type, content) = crate::storage::read_object(repo, tree_sha1)?;
     if obj_type != "tree" {
         return Ok(());
     }
     objects.push((
         tree_sha1.to_string(),
-        crate::core::objects::format_object_data("tree", &content),
+        crate::objects::format_object_data("tree", &content),
     ));
 
-    let tree_data = crate::core::objects::format_object_data("tree", &content);
+    let tree_data = crate::objects::format_object_data("tree", &content);
     let tree = Tree::deserialize(&tree_data)?;
 
     for entry in &tree.entries {
-        let (e_type, e_content) = crate::core::storage::read_object(repo, &entry.sha1)?;
+        let (e_type, e_content) = crate::storage::read_object(repo, &entry.sha1)?;
         if e_type == "tree" {
             collect_tree_objects(repo, &entry.sha1, objects)?;
         } else if e_type == "blob" {
             objects.push((
                 entry.sha1.clone(),
-                crate::core::objects::format_object_data("blob", &e_content),
+                crate::objects::format_object_data("blob", &e_content),
             ));
         }
     }

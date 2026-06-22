@@ -1,0 +1,21 @@
+[package]
+name = "agit-core"
+version = "0.13.1"
+edition = "2021"
+description = "Pure-Rust Git core library — objects, refs, storage, protocol"
+license = "Apache-2.0"
+repository = "https://github.com/bit-torch/AdapterGit"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+flate2 = "1"
+sha1 = "0.10"
+anyhow = "1"
+url = "2"
+toml = "0.8"
+native-tls = { version = "0.2", optional = true }
+
+[features]
+default = ["tag", "tls"]
+tag = []
+tls = ["native-tls"]
