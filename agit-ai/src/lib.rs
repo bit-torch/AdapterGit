@@ -1,4 +1,4 @@
-//! LLM API 调用模块（需 `ai` feature）。
+//! agit-ai — AI-powered commit message generation for agit.
 //!
 //! 支持 OpenAI-compatible API，用于自动生成 commit message。
 //!
@@ -20,7 +20,7 @@
 //!
 //! `AGIT_LLM_API_URL` 环境变量可直接覆盖 API 端点（优先级最高）。
 
-use crate::config;
+use agit_core::config;
 use serde::{Deserialize, Serialize};
 
 /// LLM API 运行时配置（已解析）。

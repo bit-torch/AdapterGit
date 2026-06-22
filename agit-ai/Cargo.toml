@@ -1,0 +1,12 @@
+[package]
+name = "agit-ai"
+version = "0.13.1"
+edition = "2021"
+description = "AI-powered commit message generation for agit"
+license = "Apache-2.0"
+repository = "https://github.com/bit-torch/AdapterGit"
+
+[dependencies]
+agit-core = { path = "../agit-core" }
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
