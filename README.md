@@ -84,13 +84,22 @@ sudo dpkg -i agit_0.1.0_amd64.deb
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Build agit
+# Clone and enter the repo
 git clone https://github.com/bit-torch/AdapterGit.git
 cd agit
-cargo build --release
 
-# Static build (recommended)
-cargo build --release --target x86_64-unknown-linux-musl
+# Full edition (TLS + AI)
+cargo build --release --all-features
+
+# Lite edition (no TLS, no AI)
+cargo build --release --no-default-features -F tag
+
+# Build specific crate
+cargo build -p agit-core
+cargo build -p agit-cli
+
+# Static build (recommended for deployment)
+cargo build --release --target x86_64-unknown-linux-musl --all-features
 ```
 
 ## Usage Examples
@@ -389,15 +398,26 @@ agit follows [Conventional Commits](https://www.conventionalcommits.org/):
 ### Project Structure
 
 ```
-agit/
-├── src/
-│   ├── cli/      # Command-line parsing
-│   ├── git/      # Git core functionality
-│   ├── ai/       # AI mode implementation
-│   ├── output/   # Output formatting
-│   └── utils/    # Utility functions
-├── tests/        # Integration tests
-└── examples/     # Usage examples
+agit/                         # Workspace root
+├── Cargo.toml                # Workspace definition
+├── agit-core/                # Pure-Rust Git core library
+│   └── src/
+│       ├── objects/          # Blob, Tree, Commit, Tag
+│       ├── storage.rs        # Loose object R/W
+│       ├── refs.rs           # References (HEAD, branches, tags)
+│       ├── index.rs          # DIRC v2 staging area
+│       ├── protocol.rs       # Git smart-HTTP
+│       ├── merge.rs          # 3-way merge
+│       └── checkout.rs       # Branch switch / tree restore
+├── agit-ai/                  # AI mode (optional, feature-gated)
+│   └── src/
+│       └── lib.rs            # AI auto-tagging, safety guards
+├── agit-cli/                 # CLI binary
+│   └── src/
+│       ├── main.rs           # Entry point
+│       ├── commands/         # One file per subcommand
+│       └── output/           # JSON / YAML / no-color output
+└── tests/                    # Integration tests
 ```
 
 ## License

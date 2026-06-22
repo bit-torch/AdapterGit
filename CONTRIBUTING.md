@@ -49,8 +49,10 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 **构建项目**:
 ```bash
-cargo build
-cargo build --release  # Release 构建
+cargo build                       # Debug 构建
+cargo build --release             # Release 构建
+cargo build --release --all-features  # Full 版本（含 AI）
+cargo build --release --no-default-features -F tag  # Lite 版本
 ```
 
 #### 4. 运行测试
@@ -124,16 +126,29 @@ git push origin feat/add-clone-command
 ## 项目结构
 
 ```
-src/
-├── core/           # 核心 Git 算法
-├── cli/            # 命令行
-├── ai/             # AI 模式
-├── output/         # 输出格式化
-├── config/         # 配置
-└── utils/          # 工具函数
+agit/                         # Workspace 根目录
+├── Cargo.toml                # Workspace 定义
+├── agit-core/                # Rust 原生 Git 核心库
+│   └── src/
+│       ├── objects/          # Blob, Tree, Commit, Tag
+│       ├── storage.rs        # Loose 对象读写
+│       ├── refs.rs           # 引用管理（HEAD, 分支, 标签）
+│       ├── index.rs          # DIRC v2 暂存区
+│       ├── protocol.rs       # Git smart-HTTP 协议
+│       ├── merge.rs          # 3 路合并
+│       └── checkout.rs       # 分支切换 / 树恢复
+├── agit-ai/                  # AI 模式（可选，feature 门控）
+│   └── src/
+│       └── lib.rs            # AI 自动标记、安全防护
+├── agit-cli/                 # CLI 二进制入口
+│   └── src/
+│       ├── main.rs           # 入口点
+│       ├── commands/         # 每个子命令一个文件
+│       └── output/           # JSON / YAML / 无颜色输出
+└── tests/                    # 集成测试
 ```
 
-详见: [架构设计](docs/ARCHITECTURE.md)
+详见: [架构设计](ARCHITECTURE.md)
 
 ## 开发阶段
 

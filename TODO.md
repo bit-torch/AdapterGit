@@ -1,6 +1,18 @@
 # TODO - 待办事项
 
-AdapterGit 项目待办事项清单。最后更新: 2026-06-20 (v0.10.0 开发中)。
+AdapterGit 项目待办事项清单。最后更新: 2026-06-22 (v0.14.0 workspace 拆分完成)。
+
+## Phase 10: Workspace 拆分 ✅
+
+| ID | 任务 | 优先级 | 状态 | 备注 |
+|----|------|--------|------|------|
+| 10.1 | 清理 bundle 文件 + .gitignore | P0 | ✅ 已完成 | 删除 2 个 bundle, 添加 *.bundle |
+| 10.2 | 创建 workspace 根 Cargo.toml | P0 | ✅ 已完成 | 3 crate workspace |
+| 10.3 | 创建 agit-core 库 crate | P0 | ✅ 已完成 | core/ + config/ + utils/, 扁平化 |
+| 10.4 | 创建 agit-ai 库 crate | P0 | ✅ 已完成 | ai/llm.rs 独立为 crate |
+| 10.5 | 创建 agit-cli 二进制 crate | P0 | ✅ 已完成 | cli/ + commands/ + output/ + ai/ |
+| 10.6 | 迁移集成测试 | P0 | ✅ 已完成 | tests/ → agit-cli/tests/ |
+| 10.7 | 更新所有文档 | P0 | ✅ 已完成 | CLAUDE.md, README, ARCHITECTURE, CHANGELOG |
 
 ## Phase 1: 项目初始化 ✅
 
