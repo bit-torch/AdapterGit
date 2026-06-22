@@ -26,3 +26,6 @@ target
 /target
 
 release/
+
+# Bundle files (git bundle)
+*.bundle
