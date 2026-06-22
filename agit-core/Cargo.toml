@@ -1,6 +1,6 @@
 [package]
 name = "agit-core"
-version = "0.13.1"
+version = "0.14.0"
 edition = "2021"
 description = "Pure-Rust Git core library — objects, refs, storage, protocol"
 license = "Apache-2.0"
