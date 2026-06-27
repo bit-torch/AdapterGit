@@ -1,0 +1,26 @@
+[package]
+name = "agit-cli"
+version = "0.14.0"
+edition = "2021"
+description = "AI-native Git tool — CLI binary"
+license = "Apache-2.0"
+repository = "https://github.com/bit-torch/AdapterGit"
+
+[[bin]]
+name = "agit"
+path = "src/main.rs"
+
+[dependencies]
+agit-core = { path = "../agit-core" }
+agit-ai = { path = "../agit-ai", optional = true }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+toml = "0.8"
+
+[features]
+default = ["tag", "tls"]
+tag = ["agit-core/tag"]
+tls = ["agit-core/tls"]
+ai = ["agit-ai"]

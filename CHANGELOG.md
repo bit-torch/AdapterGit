@@ -4,6 +4,17 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
+## [v0.14.0] — 2026-06-22
+
+> Workspace 拆分 — Multi-crate Architecture
+
+### Refactor
+- **workspace 拆分**: 单 crate → 3 crate workspace (agit-core + agit-ai + agit-cli)
+- **agit-core**: 纯 Rust Git 核心库，可独立复用
+- **agit-ai**: AI 提交信息生成独立 crate，携带 reqwest 依赖
+- **agit-cli**: CLI 二进制，lite/full 双版本分发
+- **双版本**: `cargo build --no-default-features -F tag` = Lite, `--all-features` = Full
+
 ## [v0.13.0] — 2026-06-21
 
 > 双版本分发 + AI 提交 — Dual-Edition Distribution & AI Commit

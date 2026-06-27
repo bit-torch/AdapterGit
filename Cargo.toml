@@ -1,31 +1,6 @@
-[package]
-name = "agit"
-version = "0.13.1"
-edition = "2021"
-description = "AI-native Git tool - pure Rust implementation"
-license = "Apache-2.0"
-repository = "https://github.com/bit-torch/AdapterGit"
-
-[dependencies]
-clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
-flate2 = "1"
-sha1 = "0.10"
-anyhow = "1"
-url = "2"
-native-tls = { version = "0.2", optional = true }
-toml = "0.8"
-reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], optional = true }
-
-[features]
-default = ["tag", "tls"]
-tag = []
-tls = ["native-tls"]
-ai = ["reqwest"]
-# lite 版: cargo build --no-default-features -F tag  (纯本地操作, 无 TLS)
-# full 版: cargo build --all-features  (全功能, 含 TLS + AI)
+[workspace]
+members = ["agit-core", "agit-ai", "agit-cli"]
+resolver = "2"
 
 [profile.release]
 opt-level = "z"

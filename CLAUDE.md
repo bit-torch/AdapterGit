@@ -7,50 +7,97 @@ This file provides guidance to Claude Code when working in this repo.
 
 **agit (AdapterGit)** — a pure-Rust, zero-external-Git-dependency Git implementation. Objects, refs, index, smart-HTTP protocol all from scratch. Ships as a single static binary. Designed for AI agents, CI/CD, and portable use. Never blocks on interactive prompts.
 
-Version: 0.6.1 | Edition: 2021 | License: Apache-2.0
+Version: 0.14.0 | Edition: 2021 | License: Apache-2.0
+
+## Workspace Structure
+
+```
+D:\AdapterGit\                   ← Cargo workspace root
+├── agit-core/   (lib)           ← Git 核心库
+├── agit-ai/     (lib)           ← AI 功能（LLM 客户端）
+└── agit-cli/    (bin → agit)    ← CLI 二进制
+```
 
 ## Build / Test / Lint
 
 ```bash
-cargo build              # Debug
-cargo build --release    # Release
-cargo test               # All 119 tests (87 unit + 32 integration)
-cargo clippy             # Must pass w/ 0 warnings
-cargo fmt                # Must pass w/ no diff
+cargo build                           # workspace 全量构建
+cargo build --all-features            # Full 版 (tag + tls + ai)
+cargo build --no-default-features -F tag  # Lite 版 (纯本地, 无 TLS)
+
+cargo build -p agit-core              # 单独构建核心库
+cargo build -p agit-ai                # 单独构建 AI 库
+cargo build -p agit-cli               # 单独构建 CLI
+
+cargo test                            # 全部 178 测试 (109 单元 + 69 集成)
+cargo test -p agit-core               # 核心库单元测试
+cargo test -p agit-cli                # CLI 集成测试
+
+cargo clippy                          # Must pass w/ 0 warnings
+cargo fmt                             # Must pass w/ no diff
 ```
 
 ## Architecture
 
+### agit-core (lib) — Git 核心库
 ```
-main.rs          → Config → alias resolve → CLI parse → dispatch
-cli/mod.rs       → clap derive, 24+ subcommands, global flags (--ai --json --yaml --no-color)
-commands/        → One file per subcommand, each exposes run(…) → Result<(), Box<dyn Error>>
-core/
-  objects/       → blob, tree, commit, tag (feature-gated)
-  storage.rs     → Loose object R/W (.git/objects/XX/XXXXXX), zlib
-  refs.rs        → HEAD, refs/heads/*, refs/tags/*, refs/remotes/*, CRUD
-  index.rs       → DIRC v2 staging area
-  hash.rs        → SHA-1 (sha1 crate)
-  compression.rs → zlib via flate2
-  protocol.rs    → Git smart-HTTP: pkt-line, ref discovery, packfile parse, push
-  remote_utils.rs→ Shared helpers for network commands
-  checkout.rs    → Branch switch, tree restore, index rebuild
-  merge.rs       → 3-way merge + fast-forward + conflict markers
-  ignore.rs      → .gitignore parser (glob, negation, char-class, dir-only)
-  repo.rs        → find_repo_root(), timestamp helpers
-ai/mod.rs        → AI-mode flag, DANGEROUS_COMMANDS list
-output/mod.rs    → JSON/YAML/no-color mode flags + output formatting
-config/mod.rs    → Config: user.name, user.email, aliases (env > .agit/config.toml > ~/.agitconfig.toml > defaults)
-utils/error.rs   → AgitError enum
+agit-core/src/
+├── lib.rs              ← 模块声明（扁平化，无嵌套 core::）
+├── hash.rs             ← SHA-1 (sha1 crate)
+├── compression.rs      ← zlib via flate2
+├── storage.rs          ← Loose object R/W
+├── refs.rs             ← HEAD, refs/heads/*, refs/tags/*, refs/remotes/*, CRUD
+├── reflog.rs           ← Reflog 管理
+├── index.rs            ← DIRC v2 staging area
+├── ignore.rs           ← .gitignore parser
+├── repo.rs             ← find_repo_root(), timestamp helpers
+├── checkout.rs         ← Branch switch, tree restore, index rebuild
+├── merge.rs            ← 3-way merge + fast-forward + conflict markers
+├── rebase.rs           ← Rebase/cherry-pick 核心
+├── bisect.rs           ← Bisect 状态管理与算法
+├── protocol.rs         ← Git smart-HTTP: pkt-line, packfile, ref discovery
+├── ssh_transport.rs    ← SSH 传输（子进程 ssh）
+├── ssh_url.rs          ← SSH URL 解析 + ~/.ssh/config
+├── remote_utils.rs     ← 网络命令共享工具
+├── objects/
+│   ├── blob.rs, commit.rs, tree.rs, tag.rs (feature-gated)
+│   └── mod.rs
+├── config/
+│   └── mod.rs          ← Config: user.name, user.email, aliases, LLM
+└── utils/
+    ├── mod.rs           ← atomic_write()
+    └── error.rs         ← AgitError enum
+```
+
+### agit-ai (lib) — AI 功能
+```
+agit-ai/src/
+└── lib.rs              ← LlmConfig, chat_completion(), generate_commit_message()
+                          depends on agit-core::config, reqwest
+```
+
+### agit-cli (bin → agit) — CLI 二进制
+```
+agit-cli/src/
+├── main.rs             ← Config → alias resolve → CLI parse → dispatch
+├── cli/mod.rs          ← clap derive, 29 subcommands, global flags
+├── commands/           ← One file per subcommand, each run(…) → Result
+├── ai/mod.rs           ← AI-mode flag, DANGEROUS_COMMANDS, re-exports agit-ai
+├── output/mod.rs       ← JSON/YAML/no-color output
+└── tests/              ← Integration tests (69 tests)
+    └── common/mod.rs   ← Test helpers (agit_binary, setup_repo, run_agit)
 ```
 
 ## Key Patterns
 
-- **Global state**: `AI_MODE`, `JSON_MODE`, `YAML_MODE`, `NO_COLOR` are `AtomicBool` statics, set once in main before dispatch.
-- **Error handling**: Commands return `Box<dyn Error>`. Core uses `AgitError` enum. IO errors propagate via `?` — never swallow with `unwrap_or_default()` on file reads.
-- **Config cascade**: env vars (`AGIT_USER_NAME`/`AGIT_USER_EMAIL`) > repo `.agit/config.toml` > global `~/.agitconfig.toml` > defaults.
-- **Commit flow**: `Index::load()` → build `Tree` → write tree → build `Commit` (+parent from HEAD/MERGE_HEAD) → write commit → update ref.
-- **Network flow**: Clone = discover_refs → fetch_objects → parse_packfile → write_objects → checkout. Push = discover_refs → collect_local_objects → generate_pack → push_pack. Pull = fetch → merge/ff.
+- **Workspace**: 3 crates — `agit-core` (lib), `agit-ai` (lib), `agit-cli` (bin). Root `Cargo.toml` is workspace-only.
+- **Dual edition**: Lite = `--no-default-features -F tag` (no TLS, no AI). Full = `--all-features`.
+- **Feature propagation**: `agit-cli/tag → agit-core/tag`, `agit-cli/tls → agit-core/tls`, `agit-cli/ai → agit-ai`.
+- **Global state**: `AI_MODE`, `JSON_MODE`, `YAML_MODE`, `NO_COLOR` are `AtomicBool` statics in `agit-cli`.
+- **Error handling**: Commands return `Box<dyn Error>`. Core uses `AgitError` enum.
+- **Config cascade**: env vars > repo `.agit/config.toml` > global `~/.agitconfig.toml` > defaults.
+- **Commit flow**: `Index::load()` → build `Tree` → write tree → build `Commit` (+parent) → write commit → update ref.
+- **Network flow**: Clone = discover_refs → fetch_objects → parse_packfile → write_objects → checkout.
 
 ## Rules
 
@@ -61,21 +108,21 @@ utils/error.rs   → AgitError enum
 
 ### Commit
 
-3. **Single Logical Change** — every commit must be one atomic, self-contained change. No "Fix stuff" or "Update code".
-4. **Multi-commit PR is OK** — splitting across commits is encouraged (e.g. `refactor:` → `feat:` → `test:`), but never squash unrelated changes into one.
-4a. **Commit per logical unit** — 每个 commit 只包含一个逻辑单元（如一个模块、一个命令、一个 CLI 注册）。不要把多个不相关的改动堆在一坨提交。多个文件同时修改时，按依赖顺序分批提交。
-4b. **Format per commit** — 每个 commit 前单独运行 `cargo fmt`，确保 fmt 结果归属于当前提交。不要等所有改动写完再一起 fmt。
-5. **Conventional Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`. Scope optional: `feat(core): ...`.
-5a. **No `@` in commit messages** — 提交信息前后禁止添加 `@` 符号。使用标准 Conventional Commits 格式，不加前缀或后缀的 `@`。
+3. **Single Logical Change** — every commit must be one atomic, self-contained change.
+4. **Multi-commit PR is OK** — splitting across commits is encouraged (e.g. `refactor:` → `feat:` → `test:`).
+4a. **Commit per logical unit** — 每个 commit 只包含一个逻辑单元。
+4b. **Format per commit** — 每个 commit 前单独运行 `cargo fmt`。
+5. **Conventional Commits**: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`.
+5a. **No `@` in commit messages**.
 
 ### Quality Gate
 
-6. **Tests required** — new features must have unit + integration tests. `cargo test` must pass with 0 failures before push.
+6. **Tests required** — `cargo test` must pass with 0 failures before push.
 7. **Clippy clean** — `cargo clippy` must produce 0 warnings before push.
-8. **Formatted** — `cargo fmt` must produce no diff before push; 在最终 push 前再做一次全量检查。
+8. **Formatted** — `cargo fmt` must produce no diff before push.
 
 ### Code
 
-9. **No silent error swallowing** — use `?` or explicit `map_err` for IO. Never `unwrap_or_default()` on file reads.
+9. **No silent error swallowing** — use `?` or explicit `map_err` for IO.
 10. **Feature gate tag** — `#[cfg(feature = "tag")]` code must compile with both `--features tag` and `--no-default-features`.
 11. **Windows compatibility** — use `std::fs` APIs, normalize paths with `replace('\\', '/')`.

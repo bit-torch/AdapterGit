@@ -93,8 +93,8 @@ jobs:
         run: cargo build --release
       - name: Run smoke tests
         run: |
-          chmod +x tests/smoke/linux_smoke.sh
-          AGIT_BIN="${{ github.workspace }}/target/release/agit" tests/smoke/linux_smoke.sh
+          chmod +x agit-cli/tests/smoke/linux_smoke.sh
+          AGIT_BIN="${{ github.workspace }}/target/release/agit" agit-cli/tests/smoke/linux_smoke.sh
 
   smoke-windows:
     name: Smoke Tests (Windows)
@@ -109,7 +109,7 @@ jobs:
         shell: pwsh
         run: |
           $env:AGIT_BIN = "${{ github.workspace }}\target\release\agit.exe"
-          .\tests\smoke\windows_smoke.ps1
+          .\agit-cli\tests\smoke\windows_smoke.ps1
 
   # ── Release 构建 ──
 

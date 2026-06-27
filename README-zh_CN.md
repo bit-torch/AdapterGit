@@ -85,13 +85,22 @@ sudo dpkg -i agit_0.1.0_amd64.deb
 # 安装 Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 构建 agit
+# 克隆并进入仓库
 git clone https://github.com/bit-torch/AdapterGit.git
 cd agit
-cargo build --release
 
-# 静态编译（推荐）
-cargo build --release --target x86_64-unknown-linux-musl
+# Full 版本（完整功能，含 TLS + AI）
+cargo build --release --all-features
+
+# Lite 版本（不含 TLS 和 AI）
+cargo build --release --no-default-features -F tag
+
+# 构建指定 crate
+cargo build -p agit-core
+cargo build -p agit-cli
+
+# 静态编译（推荐用于部署）
+cargo build --release --target x86_64-unknown-linux-musl --all-features
 ```
 
 ## 📖 使用示例
@@ -375,15 +384,26 @@ agit 使用 Conventional Commits：
 
 ### 项目结构
 ```
-agit/
-├── src/
-│   ├── cli/      # 命令行解析
-│   ├── git/      # Git 核心功能
-│   ├── ai/       # AI 模式实现
-│   ├── output/   # 输出格式化
-│   └── utils/    # 工具函数
-├── tests/        # 集成测试
-└── examples/     # 使用示例
+agit/                         # Workspace 根目录
+├── Cargo.toml                # Workspace 定义
+├── agit-core/                # Rust 原生 Git 核心库
+│   └── src/
+│       ├── objects/          # Blob, Tree, Commit, Tag
+│       ├── storage.rs        # Loose 对象读写
+│       ├── refs.rs           # 引用管理（HEAD, 分支, 标签）
+│       ├── index.rs          # DIRC v2 暂存区
+│       ├── protocol.rs       # Git smart-HTTP 协议
+│       ├── merge.rs          # 3 路合并
+│       └── checkout.rs       # 分支切换 / 树恢复
+├── agit-ai/                  # AI 模式（可选，feature 门控）
+│   └── src/
+│       └── lib.rs            # AI 自动标记、安全防护
+├── agit-cli/                 # CLI 二进制入口
+│   └── src/
+│       ├── main.rs           # 入口点
+│       ├── commands/         # 每个子命令一个文件
+│       └── output/           # JSON / YAML / 无颜色输出
+└── tests/                    # 集成测试
 ```
 
 ## 📄 许可证
