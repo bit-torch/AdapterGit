@@ -374,15 +374,15 @@ Contributions are welcome! agit is open source and we appreciate all forms of co
 ```bash
 # 1. Fork and clone the repository
 git clone https://github.com/bit-torch/AdapterGit.git
-cd agit
+cd AdapterGit
 
 # 2. Install Rust
 rustup toolchain install stable
 
-# 3. Build
-cargo build
+# 3. Build (workspace: agit-core + agit-ai + agit-cli)
+cargo build --all-features
 
-# 4. Run tests
+# 4. Run tests (178 tests)
 cargo test
 ```
 

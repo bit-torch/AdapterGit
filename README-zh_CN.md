@@ -87,7 +87,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # 克隆并进入仓库
 git clone https://github.com/bit-torch/AdapterGit.git
-cd agit
+cd AdapterGit
 
 # Full 版本（完整功能，含 TLS + AI）
 cargo build --release --all-features
@@ -362,7 +362,7 @@ print(result.stdout)  # JSON 输出
 ```bash
 # 1. Fork 并克隆仓库
 git clone https://github.com/bit-torch/AdapterGit.git
-cd agit
+cd AdapterGit
 
 # 2. 安装 Rust
 rustup toolchain install stable
