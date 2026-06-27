@@ -1,6 +1,6 @@
 # TODO - 待办事项
 
-AdapterGit 项目待办事项清单。最后更新: 2026-06-22 (v0.14.0 workspace 拆分完成)。
+AdapterGit 项目待办事项清单。最后更新: 2026-06-27 (v0.14.0 发版)。
 
 ## Phase 10: Workspace 拆分 ✅
 
@@ -169,4 +169,5 @@ AdapterGit 项目待办事项清单。最后更新: 2026-06-22 (v0.14.0 workspac
 | **v0.11.0** | **Blame + Reflog** | ✅ **已发布** | blame, reflog, 103 单元测试 |
 | **v0.12.0** | **Bisect** | ✅ **已发布** | bisect (start/good/bad/skip/reset/log/run), 109 单元测试 |
 | **v0.13.0** | **双版本分发 + AI 提交** | ✅ **已发布** | lite/full, musl, .deb, macOS, Docker, LLM commit |
+| **v0.14.0** | **Workspace 拆分** | ✅ **已发布** | agit-core + agit-ai + agit-cli 三 crate |
 | v1.0.0 | 完整 Git 子集 + 全平台分发 | 🏁 目标 | 全命令覆盖 + 多平台安装包 |

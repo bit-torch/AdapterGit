@@ -132,7 +132,7 @@ jobs:
       - name: Build .deb package
         run: |
           cargo install cargo-deb --locked
-          cargo deb --no-build
+          cargo deb --no-build -p agit-cli
           cp target/debian/*.deb agit-linux-x86_64.deb 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:

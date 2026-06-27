@@ -4,16 +4,29 @@ All notable changes to AdapterGit (agit) will be documented in this file.
 
 ---
 
-## [v0.14.0] — 2026-06-22
+## [v0.14.0] — 2026-06-27
 
-> Workspace 拆分 — Multi-crate Architecture
+> Workspace 拆分 + 安全修复 — Multi-crate Architecture & Security Fix
 
 ### Refactor
 - **workspace 拆分**: 单 crate → 3 crate workspace (agit-core + agit-ai + agit-cli)
-- **agit-core**: 纯 Rust Git 核心库，可独立复用
+- **agit-core**: 纯 Rust Git 核心库，可独立复用（19 个模块）
 - **agit-ai**: AI 提交信息生成独立 crate，携带 reqwest 依赖
 - **agit-cli**: CLI 二进制，lite/full 双版本分发
 - **双版本**: `cargo build --no-default-features -F tag` = Lite, `--all-features` = Full
+
+### Security
+- **quinn-proto**: 升级 0.11.14 → 0.11.15 修复 RUSTSEC-2026-0185 (CVSS 7.5)
+
+### Fixes
+- **CI**: 修复 smoke test 路径适配 workspace 结构
+
+### Documentation
+- 更新全部 7 份文档：CLAUDE.md, README, README-zh_CN, ARCHITECTURE, CONTRIBUTING, CHANGELOG, TODO
+- 新增 `*.bundle` 到 .gitignore
+
+### Tests
+- 178 tests (109 单元 + 69 集成)，全部通过
 
 ## [v0.13.0] — 2026-06-21
 
