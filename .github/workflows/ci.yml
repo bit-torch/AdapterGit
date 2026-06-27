@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --verbose --no-default-features -F tag --all-targets
+      - run: cargo test -p agit-core -p agit-cli --verbose --no-default-features -F tag
 
   test-macos:
     name: Tests (macOS)
@@ -122,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release --verbose
+      - run: cargo build --release -p agit-cli --all-features --verbose
       - run: |
           mkdir -p release
           cp target/release/agit release/agit
@@ -157,7 +157,7 @@ jobs:
   #         targets: x86_64-unknown-linux-musl
   #     - name: Install musl-tools
   #       run: sudo apt-get update && sudo apt-get install -y musl-tools
-  #     - run: cargo build --release --verbose --target x86_64-unknown-linux-musl
+  #     - run: cargo build --release -p agit-cli --all-features --verbose --target x86_64-unknown-linux-musl
   #     - run: |
   #         mkdir -p release-musl
   #         cp target/x86_64-unknown-linux-musl/release/agit release-musl/agit
@@ -181,7 +181,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release --verbose
+      - run: cargo build --release -p agit-cli --all-features --verbose
       - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
@@ -206,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release --verbose
+      - run: cargo build --release -p agit-cli --all-features --verbose
       - run: |
           mkdir -p release-macos
           cp target/release/agit release-macos/agit
