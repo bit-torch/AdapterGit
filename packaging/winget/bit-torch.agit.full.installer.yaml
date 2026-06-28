@@ -1,0 +1,34 @@
+# Winget manifest for AdapterGit Full Edition
+# Submit via PR to: https://github.com/microsoft/winget-pkgs
+# Docs: https://github.com/microsoft/winget-pkgs/tree/master/doc
+
+PackageIdentifier: bit-torch.agit-full
+PackageVersion: 0.14.0
+PackageLocale: en-US
+Publisher: bit-torch
+PackageName: AdapterGit (Full Edition)
+License: Apache-2.0
+ShortDescription: AI-native pure-Rust Git tool — Full Edition with TLS + AI
+Description: |
+  AdapterGit (agit) is a pure-Rust Git implementation with zero external
+  Git dependencies. The Full Edition includes TLS/HTTPS support and
+  AI-powered commit message generation. Never blocks on interactive
+  prompts — designed for AI agents, CI/CD, and portable use.
+Tags:
+  - git
+  - vcs
+  - cli
+  - rust
+ReleaseNotesUrl: https://github.com/bit-torch/AdapterGit/releases/tag/v0.14.0
+ManifestType: installer
+InstallerType: zip
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/bit-torch/AdapterGit/releases/download/v0.14.0/agit-full-windows-x86_64.zip
+    InstallerSha256: REPLACE_WITH_SHA256
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: agit.exe
+    InstallerSwitches:
+      Silent: /s
+      SilentWithProgress: /s

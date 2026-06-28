@@ -1,0 +1,29 @@
+# Winget manifest for AdapterGit Lite Edition
+# Submit via PR to: https://github.com/microsoft/winget-pkgs
+
+PackageIdentifier: bit-torch.agit-lite
+PackageVersion: 0.14.0
+PackageLocale: en-US
+Publisher: bit-torch
+PackageName: AdapterGit (Lite Edition)
+License: Apache-2.0
+ShortDescription: AI-native pure-Rust Git tool — Lite Edition (portable, no TLS/AI)
+Description: |
+  AdapterGit (agit) Lite Edition is a single-file portable binary.
+  No TLS, no AI — pure local Git operations. Ideal for CI/CD,
+  Docker containers, USB drives, and temporary environments.
+Tags:
+  - git
+  - vcs
+  - cli
+  - rust
+  - portable
+ReleaseNotesUrl: https://github.com/bit-torch/AdapterGit/releases/tag/v0.14.0
+ManifestType: installer
+InstallerType: portable
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/bit-torch/AdapterGit/releases/download/v0.14.0/agit-lite-windows-x86_64.exe
+    InstallerSha256: REPLACE_WITH_SHA256
+    Commands:
+      - agit

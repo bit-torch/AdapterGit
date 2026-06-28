@@ -113,9 +113,9 @@ jobs:
 
   # ── Release 构建 ──
 
-  # Linux GNU (glibc)
-  build-linux:
-    name: Build Release (Linux GNU)
+  # Linux Full (glibc + TLS + AI)
+  build-linux-full:
+    name: Build Release Linux (Full)
     runs-on: ubuntu-latest
     needs: [check, clippy, test-linux, smoke-linux]
     if: startsWith(github.ref, 'refs/tags/v')
@@ -124,29 +124,185 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release -p agit-cli --all-features --verbose
       - run: |
-          mkdir -p release
-          cp target/release/agit release/agit
-          cp LICENSE release/LICENSE
-          tar -czf agit-linux-x86_64.tar.gz -C release .
-          cp target/release/agit agit-linux-x86_64
+          mkdir -p release-full
+          cp target/release/agit release-full/agit
+          cp LICENSE release-full/LICENSE
+          tar -czf agit-full-linux-x86_64.tar.gz -C release-full .
+          cp target/release/agit agit-full-linux-x86_64
       - name: Build .deb package
         run: |
           cargo install cargo-deb --locked
           cargo deb --no-build -p agit-cli
-          cp target/debian/*.deb agit-linux-x86_64.deb 2>/dev/null || true
+          cp target/debian/*.deb agit-full-linux-x86_64.deb 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
-          name: agit-linux-x86_64
+          name: agit-full-linux-x86_64
           path: |
-            agit-linux-x86_64.tar.gz
-            agit-linux-x86_64
-            agit-linux-x86_64.deb
+            agit-full-linux-x86_64.tar.gz
+            agit-full-linux-x86_64
+            agit-full-linux-x86_64.deb
           retention-days: 30
 
-  # Linux musl (静态链接) — 暂时禁用，需 Linux 测试环境
-  # TODO: musl 交叉编译需要 ring crate 的 C 编译器配置，当前缺少 musl-gcc 工具链
+  # Linux Lite (纯本地，无 TLS/AI)
+  build-linux-lite:
+    name: Build Release Linux (Lite)
+    runs-on: ubuntu-latest
+    needs: [check, clippy, test-linux, smoke-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p agit-cli --no-default-features -F tag --verbose
+      - run: cp target/release/agit agit-lite-linux-x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-lite-linux-x86_64
+          path: agit-lite-linux-x86_64
+          retention-days: 30
+
+  # Windows Full
+  build-windows-full:
+    name: Build Release Windows (Full)
+    runs-on: windows-latest
+    needs: [check, clippy, test-windows, smoke-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p agit-cli --all-features --verbose
+      - shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-full | Out-Null
+          Copy-Item target/release/agit.exe release-full/agit.exe
+          Copy-Item LICENSE release-full/LICENSE
+          Compress-Archive -Path release-full/* -DestinationPath agit-full-windows-x86_64.zip -Force
+          Copy-Item target/release/agit.exe agit-full-windows-x86_64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-full-windows-x86_64
+          path: |
+            agit-full-windows-x86_64.zip
+            agit-full-windows-x86_64.exe
+          retention-days: 30
+
+  # Windows Lite
+  build-windows-lite:
+    name: Build Release Windows (Lite)
+    runs-on: windows-latest
+    needs: [check, clippy, test-windows, smoke-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p agit-cli --no-default-features -F tag --verbose
+      - shell: pwsh
+        run: Copy-Item target/release/agit.exe agit-lite-windows-x86_64.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-lite-windows-x86_64
+          path: agit-lite-windows-x86_64.exe
+          retention-days: 30
+
+  # macOS Full
+  build-macos-full:
+    name: Build Release macOS (Full)
+    runs-on: macos-latest
+    needs: [check, clippy, test-macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p agit-cli --all-features --verbose
+      - run: |
+          mkdir -p release-full
+          cp target/release/agit release-full/agit
+          cp LICENSE release-full/LICENSE
+          tar -czf agit-full-macos-x86_64.tar.gz -C release-full .
+          cp target/release/agit agit-full-macos-x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-full-macos-x86_64
+          path: |
+            agit-full-macos-x86_64.tar.gz
+            agit-full-macos-x86_64
+          retention-days: 30
+
+  # macOS Lite
+  build-macos-lite:
+    name: Build Release macOS (Lite)
+    runs-on: macos-latest
+    needs: [check, clippy, test-macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build --release -p agit-cli --no-default-features -F tag --verbose
+      - run: cp target/release/agit agit-lite-macos-x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agit-lite-macos-x86_64
+          path: agit-lite-macos-x86_64
+          retention-days: 30
+
+  # ── Chocolatey 打包 ──
+
+  build-chocolatey-full:
+    name: Package Chocolatey (Full)
+    runs-on: windows-latest
+    needs: [build-windows-full]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-full-windows-x86_64
+      - name: Compute SHA256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path agit-full-windows-x86_64.zip -Algorithm SHA256).Hash.ToLower()
+          (Get-Content packaging/chocolatey/tools/chocolateyInstall-full.ps1) `
+            -replace 'REPLACE_WITH_SHA256', $hash | Set-Content packaging/chocolatey/tools/chocolateyInstall-full.ps1
+      - name: Build Chocolatey package
+        shell: pwsh
+        run: |
+          choco pack packaging/chocolatey/agit-full.nuspec --outputdirectory .
+          Get-ChildItem *.nupkg | ForEach-Object { Rename-Item $_ agitchoco-full-windows-x86_64.nupkg }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agitchoco-full-windows-x86_64
+          path: agitchoco-full-windows-x86_64.nupkg
+          retention-days: 30
+
+  build-chocolatey-lite:
+    name: Package Chocolatey (Lite)
+    runs-on: windows-latest
+    needs: [build-windows-lite]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-lite-windows-x86_64
+      - name: Compute SHA256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path agit-lite-windows-x86_64.exe -Algorithm SHA256).Hash.ToLower()
+          (Get-Content packaging/chocolatey/tools/chocolateyInstall-lite.ps1) `
+            -replace 'REPLACE_WITH_SHA256', $hash | Set-Content packaging/chocolatey/tools/chocolateyInstall-lite.ps1
+      - name: Build Chocolatey package
+        shell: pwsh
+        run: |
+          choco pack packaging/chocolatey/agit-lite.nuspec --outputdirectory .
+          Get-ChildItem *.nupkg | ForEach-Object { Rename-Item $_ agitchoco-lite-windows-x86_64.nupkg }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agitchoco-lite-windows-x86_64
+          path: agitchoco-lite-windows-x86_64.nupkg
+          retention-days: 30
+
+  # Linux musl (静态链接) — 暂时禁用
   # build-linux-musl:
-  #   name: Build Release (Linux musl)
+  #   name: Build Release Linux (musl static)
   #   runs-on: ubuntu-latest
   #   needs: [check, clippy, test-linux, smoke-linux]
   #   if: startsWith(github.ref, 'refs/tags/v')
@@ -172,78 +328,51 @@ jobs:
   #           agit-linux-musl-x86_64
   #         retention-days: 30
 
-  # Windows
-  build-windows:
-    name: Build Release (Windows)
-    runs-on: windows-latest
-    needs: [check, clippy, test-windows, smoke-windows]
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release -p agit-cli --all-features --verbose
-      - shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path release | Out-Null
-          Copy-Item target/release/agit.exe release/agit.exe
-          Copy-Item LICENSE release/LICENSE
-          Compress-Archive -Path release/* -DestinationPath agit-windows-x86_64.zip -Force
-          Copy-Item target/release/agit.exe agit-windows-x86_64.exe
-      - uses: actions/upload-artifact@v4
-        with:
-          name: agit-windows-x86_64
-          path: |
-            agit-windows-x86_64.zip
-            agit-windows-x86_64.exe
-          retention-days: 30
-
-  # macOS
-  build-macos:
-    name: Build Release (macOS)
-    runs-on: macos-latest
-    needs: [check, clippy, test-macos]
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --release -p agit-cli --all-features --verbose
-      - run: |
-          mkdir -p release-macos
-          cp target/release/agit release-macos/agit
-          cp LICENSE release-macos/LICENSE
-          tar -czf agit-macos-x86_64.tar.gz -C release-macos .
-          cp target/release/agit agit-macos-x86_64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: agit-macos-x86_64
-          path: |
-            agit-macos-x86_64.tar.gz
-            agit-macos-x86_64
-          retention-days: 30
-
   release:
     name: GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-linux, build-windows, build-macos]
+    needs:
+      [build-linux-full, build-linux-lite, build-windows-full, build-windows-lite, build-macos-full, build-macos-lite,
+       build-chocolatey-full, build-chocolatey-lite]
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: agit-linux-x86_64
+          name: agit-full-linux-x86_64
       - uses: actions/download-artifact@v4
         with:
-          name: agit-windows-x86_64
+          name: agit-lite-linux-x86_64
       - uses: actions/download-artifact@v4
         with:
-          name: agit-macos-x86_64
+          name: agit-full-windows-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-lite-windows-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-full-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: agit-lite-macos-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: agitchoco-full-windows-x86_64
+      - uses: actions/download-artifact@v4
+        with:
+          name: agitchoco-lite-windows-x86_64
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            agit-linux-x86_64.tar.gz
-            agit-linux-x86_64
-            agit-linux-x86_64.deb
-            agit-windows-x86_64.zip
-            agit-windows-x86_64.exe
-            agit-macos-x86_64.tar.gz
-            agit-macos-x86_64
+            agit-full-linux-x86_64.tar.gz
+            agit-full-linux-x86_64
+            agit-full-linux-x86_64.deb
+            agit-lite-linux-x86_64
+            agit-full-windows-x86_64.zip
+            agit-full-windows-x86_64.exe
+            agit-lite-windows-x86_64.exe
+            agit-full-macos-x86_64.tar.gz
+            agit-full-macos-x86_64
+            agit-lite-macos-x86_64
+            agitchoco-full-windows-x86_64.nupkg
+            agitchoco-lite-windows-x86_64.nupkg
           generate_release_notes: true

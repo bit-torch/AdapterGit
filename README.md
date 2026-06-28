@@ -58,9 +58,13 @@ Both editions share the same native Rust Git core (SHA-1, zlib, Blob/Tree/Commit
 
 ```bash
 # Linux / macOS
-curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-x86_64-unknown-linux-musl -o agit
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-linux-x86_64 -o agit
 chmod +x agit
 ./agit --help
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-windows-x86_64.exe -OutFile agit.exe
+.\agit.exe --help
 
 # Run directly — no installation required
 ./agit init
@@ -70,12 +74,15 @@ chmod +x agit
 
 ```bash
 # Linux (.deb)
-curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit_0.1.0_amd64.deb
-sudo dpkg -i agit_0.1.0_amd64.deb
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-linux-x86_64.deb
+sudo dpkg -i agit-full-linux-x86_64.deb
 
-# macOS (.dmg) — download and double-click to install
+# macOS — download .tar.gz and extract
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-macos-x86_64.tar.gz
+tar -xzf agit-full-macos-x86_64.tar.gz
+sudo cp agit /usr/local/bin/
 
-# Windows (.msi) — download and run the installer wizard
+# Windows (.zip) — download and extract to PATH
 ```
 
 ### Build from Source
@@ -86,7 +93,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone and enter the repo
 git clone https://github.com/bit-torch/AdapterGit.git
-cd agit
+cd AdapterGit
 
 # Full edition (TLS + AI)
 cargo build --release --all-features
@@ -157,7 +164,7 @@ alias gai='agit --ai'
 cargo install agit --features lite
 
 # Or download the single binary directly
-curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite -o agit
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-linux-x86_64 -o agit
 chmod +x agit
 sudo mv agit /usr/local/bin/  # optional, add to PATH
 ```
@@ -169,16 +176,22 @@ sudo mv agit /usr/local/bin/  # optional, add to PATH
 cargo install agit
 
 # Linux (deb)
-sudo dpkg -i agit_0.1.0_amd64.deb
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-linux-x86_64.deb
+sudo dpkg -i agit-full-linux-x86_64.deb
 
-# Linux (rpm)
-sudo rpm -i agit-0.1.0-1.x86_64.rpm
+# macOS
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-macos-x86_64.tar.gz
+tar -xzf agit-full-macos-x86_64.tar.gz && sudo cp agit /usr/local/bin/
 
-# macOS — download .dmg and double-click, or use Homebrew:
-brew install bit-torch/tap/agit
+# Windows
+Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-windows-x86_64.zip -OutFile agit-full.zip
+Expand-Archive agit-full.zip
 
-# Windows — download .msi installer, or use winget:
-winget install bit-torch.agit
+# Windows — winget (coming soon)
+# winget install bit-torch.agit-full
+
+# Windows — Chocolatey (coming soon)
+# choco install agit-full
 ```
 
 ### Manual Installation (both editions)

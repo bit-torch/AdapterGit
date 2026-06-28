@@ -59,9 +59,13 @@ agit 提供两个版本，均从底层原生实现 Git 核心逻辑，无任何�
 #### 🪶 Lite 版本（单文件便携）
 ```bash
 # Linux / macOS
-curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-x86_64-unknown-linux-musl -o agit
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-linux-x86_64 -o agit
 chmod +x agit
 ./agit --help
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-windows-x86_64.exe -OutFile agit.exe
+.\agit.exe --help
 
 # 直接运行，无需安装
 ./agit init
@@ -70,14 +74,16 @@ chmod +x agit
 #### 📦 Full 版本（安装包）
 ```bash
 # Linux (.deb)
-curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit_0.1.0_amd64.deb
-sudo dpkg -i agit_0.1.0_amd64.deb
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-linux-x86_64.deb
+sudo dpkg -i agit-full-linux-x86_64.deb
 
-# macOS (.dmg)
-# 下载 .dmg 文件，双击安装即可
+# macOS (.tar.gz)
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-macos-x86_64.tar.gz
+tar -xzf agit-full-macos-x86_64.tar.gz && sudo cp agit /usr/local/bin/
 
-# Windows (.msi)
-# 下载 .msi 安装包，双击运行安装向导
+# Windows (.zip)
+Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-windows-x86_64.zip -OutFile agit-full.zip
+Expand-Archive agit-full.zip
 ```
 
 ### 从源码构建
@@ -153,7 +159,7 @@ alias gai='agit --ai'
 cargo install agit --features lite
 
 # 或直接下载单文件
-curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite -o agit
+curl -L https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-lite-linux-x86_64 -o agit
 chmod +x agit
 sudo mv agit /usr/local/bin/  # 可选，移到 PATH
 ```
@@ -164,17 +170,16 @@ sudo mv agit /usr/local/bin/  # 可选，移到 PATH
 cargo install agit
 
 # Linux (deb)
-sudo dpkg -i agit_0.1.0_amd64.deb
-
-# Linux (rpm)
-sudo rpm -i agit-0.1.0-1.x86_64.rpm
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-linux-x86_64.deb
+sudo dpkg -i agit-full-linux-x86_64.deb
 
 # macOS
-# 下载 .dmg 双击安装，或使用 Homebrew：
-brew install bit-torch/tap/agit
+curl -LO https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-macos-x86_64.tar.gz
+tar -xzf agit-full-macos-x86_64.tar.gz && sudo cp agit /usr/local/bin/
 
 # Windows
-# 下载 .msi 安装包，双击运行安装向导
+Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-windows-x86_64.zip -OutFile agit-full.zip
+Expand-Archive agit-full.zip
 # 或使用 winget：
 winget install bit-torch.agit
 ```
