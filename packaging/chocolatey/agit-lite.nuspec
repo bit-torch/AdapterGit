@@ -6,7 +6,7 @@
     <title>AdapterGit (Lite Edition)</title>
     <authors>bit-torch</authors>
     <projectUrl>https://github.com/bit-torch/AdapterGit</projectUrl>
-    <license type="expression">Apache-2.0</license>
+    <licenseUrl>https://github.com/bit-torch/AdapterGit/blob/main/LICENSE</licenseUrl>
     <projectSourceUrl>https://github.com/bit-torch/AdapterGit</projectSourceUrl>
     <docsUrl>https://github.com/bit-torch/AdapterGit</docsUrl>
     <bugTrackerUrl>https://github.com/bit-torch/AdapterGit/issues</bugTrackerUrl>
