@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>agit-lite</id>
+    <version>0.14.0</version>
+    <title>AdapterGit (Lite Edition)</title>
+    <authors>bit-torch</authors>
+    <projectUrl>https://github.com/bit-torch/AdapterGit</projectUrl>
+    <license type="expression">Apache-2.0</license>
+    <projectSourceUrl>https://github.com/bit-torch/AdapterGit</projectSourceUrl>
+    <docsUrl>https://github.com/bit-torch/AdapterGit</docsUrl>
+    <bugTrackerUrl>https://github.com/bit-torch/AdapterGit/issues</bugTrackerUrl>
+    <tags>git vcs cli rust portable</tags>
+    <summary>AI-native Git tool — Lite Edition (portable, no TLS/AI)</summary>
+    <description><![CDATA[
+# AdapterGit (Lite Edition)
+
+Pure-Rust Git implementation — portable single binary.
+Zero external Git dependencies, never hangs, AI-safe.
+
+**Lite edition** is a single-file download-and-run binary:
+- No TLS (local operations only)
+- No AI features
+- Minimal size (~5MB)
+
+Ideal for CI/CD, Docker, USB drives, and temporary environments.
+    ]]></description>
+    <releaseNotes>https://github.com/bit-torch/AdapterGit/releases/tag/v0.14.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\chocolateyInstall-lite.ps1" target="tools\chocolateyInstall.ps1" />
+  </files>
+</package>

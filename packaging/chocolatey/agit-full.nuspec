@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>agit-full</id>
+    <version>0.14.0</version>
+    <title>AdapterGit (Full Edition)</title>
+    <authors>bit-torch</authors>
+    <projectUrl>https://github.com/bit-torch/AdapterGit</projectUrl>
+    <license type="expression">Apache-2.0</license>
+    <projectSourceUrl>https://github.com/bit-torch/AdapterGit</projectSourceUrl>
+    <docsUrl>https://github.com/bit-torch/AdapterGit</docsUrl>
+    <bugTrackerUrl>https://github.com/bit-torch/AdapterGit/issues</bugTrackerUrl>
+    <tags>git vcs cli rust</tags>
+    <summary>AI-native Git tool — Full Edition (TLS + AI)</summary>
+    <description><![CDATA[
+# AdapterGit (Full Edition)
+
+Pure-Rust Git implementation with zero external Git dependencies.
+Never hangs, AI-safe, supports structured output.
+
+**Full edition** includes:
+- TLS/HTTPS transport
+- AI-powered commit message generation
+- Full network support (clone, push, pull, fetch)
+
+## Features
+- 29+ Git commands implemented natively in Rust
+- Zero TUI blocking — safe for AI agents
+- Structured JSON/YAML output
+- Dual edition: full (installer) and lite (portable single binary)
+    ]]></description>
+    <releaseNotes>https://github.com/bit-torch/AdapterGit/releases/tag/v0.14.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\chocolateyInstall-full.ps1" target="tools\chocolateyInstall.ps1" />
+  </files>
+</package>

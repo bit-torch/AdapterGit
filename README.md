@@ -186,6 +186,12 @@ tar -xzf agit-full-macos-x86_64.tar.gz && sudo cp agit /usr/local/bin/
 # Windows
 Invoke-WebRequest -Uri https://github.com/bit-torch/AdapterGit/releases/latest/download/agit-full-windows-x86_64.zip -OutFile agit-full.zip
 Expand-Archive agit-full.zip
+
+# Windows — winget (coming soon)
+# winget install bit-torch.agit-full
+
+# Windows — Chocolatey (coming soon)
+# choco install agit-full
 ```
 
 ### Manual Installation (both editions)
