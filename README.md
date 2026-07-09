@@ -291,6 +291,20 @@ agit diff --json
 
 **Full and Lite share the same native Rust Git core — only the distribution format differs.**
 
+### Why Pure Rust (and not libgit2)?
+
+We explicitly chose to reimplement Git in pure Rust rather than wrap `libgit2` or shell out to the `git` binary. The core problem with both alternatives is that they were designed for an interactive developer at a terminal — not for long-running AI agents.
+
+**The FFI overhead and blocking issue.** `libgit2` is a battle-tested C library, but invoked through `libgit2-sys` it carries assumptions baked into its API: blocking I/O, single-threaded usage of internal buffers, and refresh hooks that expect an interactive TTY. For agents, this means a `rebase` mid-flight can hang waiting for input that will never arrive, and a long-running process that touches the same repo from multiple threads corrupts internal state. We need deterministic, non-blocking plumbing that an agent can `SIGKILL` without leaving a half-written index behind.
+
+**Shelling out is a security and portability liability.** `std::process::Command` to launch `git` inherits the calling process's environment, so `$GIT_DIR`, `SSH_AUTH_SOCK`, and credential helpers leak across concurrent agent threads running in the same sandbox. It also forces a real Git install: awkward in stripped-down `distroless` Docker images, and a non-starter in Windows school labs where installing Git is not an option. The `git` binary itself is ~40MB of C and shell scripts we cannot audit.
+
+**Performance via zero-copy.** Implementing the Git protocol and packfile format directly in Rust lets us parse into Rust structs without crossing the FFI boundary — no C-to-Rust translation per object, no refcounting on `git_object`, and O(1) OID lookups via borrowed slices over the packfile.
+
+**Positioning vs `gitoxide`.** Unlike `gitoxide`, which aims to be a complete, user-facing `git` replacement (porcelain), `agit` is narrower. It ignores interactive commands and complex rebase UIs to focus exclusively on the automation layer (plumbing) required by agents.
+
+**Static linking.** The Lite edition compiles to a true static binary of ~10MB with no `libssl.so` or `libz.so` dependency — drop it on any Linux box or Windows machine and run.
+
 ## Supported Commands
 
 ### Implemented
