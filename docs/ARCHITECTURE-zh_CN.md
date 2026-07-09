@@ -1,21 +1,21 @@
-# AdapterGit Architecture Design
+# AdapterGit 架构设计
 
-[中文文档](ARCHITECTURE-zh_CN.md)
+[English](ARCHITECTURE.md)
 
-## Overview
+## 概述
 
-AdapterGit (agit) is a Git tool implemented natively from the ground up, written entirely in Rust, without relying on any external Git library or the system Git command.
+AdapterGit (agit) 是一个从底层原生实现的 Git 工具，完全使用 Rust 语言编写，不依赖任何外部 Git 库或系统 Git 命令。
 
-Version: **v0.14.0**
+版本: **v0.14.0**
 
-## Design Goals
+## 设计目标
 
-1. **AI-First** - Zero TUI blocking, structured output
-2. **Native Implementation** - Implements Git core protocols and algorithms from the ground up
-3. **Portability** - Single-file statically compiled binary, no dependencies
-4. **Safety** - Safe invocation by AI Agents, with protection against dangerous operations
+1. **AI 优先** - 零 TUI 阻塞，结构化输出
+2. **原生实现** - 从底层实现 Git 核心协议和算法
+3. **便携性** - 单文件静态编译，无依赖
+4. **安全性** - AI Agent 安全调用，危险操作防护
 
-## Command Overview
+## 命令概览
 
 ```
 agit init             初始化仓库
@@ -56,9 +56,9 @@ agit mv <src> <dst>   移动或重命名文件
 agit config           读取/写入仓库或全局配置
 ```
 
-> Global flags: `--ai` `--json` `--yaml` `--no-color`
+> 全局参数: `--ai` `--json` `--yaml` `--no-color`
 
-## Directory Structure
+## 目录结构
 
 ```
 D:\AdapterGit\                   ← Cargo workspace root
@@ -98,9 +98,9 @@ D:\AdapterGit\                   ← Cargo workspace root
     └── tests/                  (集成测试)
 ```
 
-## Core Module Details
+## 核心模块详解
 
-### 1. Object System (core/objects)
+### 1. 对象系统 (core/objects)
 
 ```rust
 // Blob: 文件内容
@@ -120,11 +120,11 @@ pub struct Commit {
 }
 ```
 
-Each object's SHA-1 is computed via `hash_git_object(type, content)`: `SHA1("type size\0content")`
+每个对象通过 `hash_git_object(type, content)` 计算 SHA-1：`SHA1("type size\0content")`
 
-### 2. Storage System (core/storage)
+### 2. 存储系统 (core/storage)
 
-Loose objects are stored in `.git/objects/{sha1[0..2]}/{sha1[2..]}` and zlib-compressed before writing.
+Loose objects 存储在 `.git/objects/{sha1[0..2]}/{sha1[2..]}`，写入前 zlib 压缩。
 
 ```rust
 pub fn write_object(repo, obj_type, content) -> Result<()>
@@ -132,7 +132,7 @@ pub fn read_object(repo, sha1) -> Result<(type, content)>
 pub fn object_exists(repo, sha1) -> bool
 ```
 
-### 3. Reference System (core/refs)
+### 3. 引用系统 (core/refs)
 
 ```
 .git/HEAD              # 符号引用或 SHA-1
@@ -141,38 +141,38 @@ pub fn object_exists(repo, sha1) -> bool
 .git/refs/remotes/*    # 远程跟踪分支
 ```
 
-### 4. Index File (core/index)
+### 4. 索引文件 (core/index)
 
-DIRC v2 format: `"DIRC" + version + entry_count + entries[] + SHA1`
+DIRC v2 格式：`"DIRC" + version + entry_count + entries[] + SHA1`
 
-### 5. Transport Protocol (core/protocol)
+### 5. 传输协议 (core/protocol)
 
-| Component | Function |
+| 组件 | 功能 |
 |------|------|
-| pkt-line | 4-byte hex length-prefixed protocol |
+| pkt-line | 4 字节 hex 长度前缀协议 |
 | HttpTransport | HTTP Smart Protocol (GET/POST) |
-| TransportStream | Unified TCP + TLS abstraction |
-| parse_packfile | Packfile parsing, including delta decoding |
+| TransportStream | TCP + TLS 统一抽象 |
+| parse_packfile | Packfile 解析, 含 delta 解码 |
 
-Protocol flow:
+协议流程：
 ```
 discover_refs → clone_full / fetch_objects → parse_packfile → delta 重建
 push: collect_local_objects → generate_pack → push_pack
 ```
 
-### 6. Remote Utilities (core/remote_utils)
+### 6. 远程工具 (core/remote_utils)
 
-| Function | Purpose |
+| 函数 | 用途 |
 |------|------|
-| write_objects | Batch write loose objects |
-| apply_tree | Recursively check out directory tree |
-| get_remote_url | section-aware config parsing |
-| get_current_branch | HEAD resolution |
-| collect_recent_commits | Most recent N ancestors |
-| collect_local_objects_for_push | Full parent-chain traversal collection |
-| resolve_commit_to_tree | Extract tree SHA-1 |
+| write_objects | 批量写入 loose objects |
+| apply_tree | 递归检出目录树 |
+| get_remote_url | section-aware config 解析 |
+| get_current_branch | HEAD 解析 |
+| collect_recent_commits | 最近 N 个祖先 |
+| collect_local_objects_for_push | 全父链遍历收集 |
+| resolve_commit_to_tree | 提取 tree SHA-1 |
 
-## Network Command Flow
+## 网络命令流程
 
 ```
 clone:  discover_refs → clone_full → parse_packfile → write_objects → checkout
@@ -181,9 +181,9 @@ push:   discover_refs → collect_local_objects → generate_pack → push_pack
 pull:   fetch → find_common_ancestor → fast_forward 或 merge_changes
 ```
 
-Before merging, `pull` checks whether the working tree is clean; it aborts if there are uncommitted changes.
+`pull` 合并前检查工作树是否干净，如有未提交更改则中止。
 
-## Error Handling
+## 错误处理
 
 ```rust
 pub enum AgitError {
@@ -198,11 +198,11 @@ pub enum AgitError {
 }
 ```
 
-Network commands use `Box<dyn Error>`, while core modules can use `AgitError` independently.
+网络命令使用 `Box<dyn Error>`，核心模块可独立使用 `AgitError`。
 
-## Technology Stack
+## 技术栈
 
-### Crate Layering
+### Crate 分层
 
 ```
 agit-cli (bin)  →  agit-ai (lib)    AI 功能
@@ -211,30 +211,30 @@ agit-ai (lib)   →  reqwest           HTTP 客户端 (LLM API)
 agit-core (lib)  →  (pure Rust, no external Git dep)
 ```
 
-| Dependency | Purpose | Belongs to |
+| 依赖 | 用途 | 所属 |
 |------|------|------|
-| sha1 0.10 | SHA-1 hashing | agit-core |
-| flate2 1 | zlib compression | agit-core |
-| clap 4 | CLI parsing | agit-cli |
-| serde 1 + serde_json + serde_yaml | Structured output | agit-cli |
-| anyhow 1 | Error handling | agit-core / agit-cli |
-| url 2 | URL parsing | agit-core |
+| sha1 0.10 | SHA-1 哈希 | agit-core |
+| flate2 1 | zlib 压缩 | agit-core |
+| clap 4 | CLI 解析 | agit-cli |
+| serde 1 + serde_json + serde_yaml | 结构化输出 | agit-cli |
+| anyhow 1 | 错误处理 | agit-core / agit-cli |
+| url 2 | URL 解析 | agit-core |
 | native-tls 0.2 | TLS/HTTPS | agit-core |
-| reqwest 0.11 | HTTP client | agit-ai |
-| tokio 1 | Async runtime | agit-ai |
+| reqwest 0.11 | HTTP 客户端 | agit-ai |
+| tokio 1 | 异步运行时 | agit-ai |
 
-## Implementation Phases
+## 实现阶段
 
-| Version | Scope | Status |
+| 版本 | 范围 | 状态 |
 |------|------|------|
-| v0.1.0 | Phase 1-2: Project skeleton + core objects | ✅ |
-| v0.2.0 | Phase 3-4: Local commands + AI mode | ✅ |
-| v0.3.0 | Phase 5: Network features | ✅ |
-| v0.4.1 | Tag + config files + integration tests + branch switching cleanup | ✅ |
-| v0.14.0 | Workspace split (agit-core/agit-ai/agit-cli) + AI commit messages + 29 subcommands | ✅ Current |
+| v0.1.0 | Phase 1-2: 项目骨架 + 核心对象 | ✅ |
+| v0.2.0 | Phase 3-4: 本地命令 + AI 模式 | ✅ |
+| v0.3.0 | Phase 5: 网络功能 | ✅ |
+| v0.4.1 | Tag + 配置文件 + 集成测试 + 分支切换清理 | ✅ |
+| v0.14.0 | Workspace 拆分 (agit-core/agit-ai/agit-cli) + AI 提交信息 + 29 子命令 | ✅ 当前 |
 
-## References
+## 参考资料
 
-- [Git Internals](https://git-scm.com/book/zh/v2/Git-内部原理)
-- [Pro Git Book](https://git-scm.com/book/zh/v2)
+- [Git 内部原理](https://git-scm.com/book/zh/v2/Git-内部原理)
+- [Pro Git 书籍](https://git-scm.com/book/zh/v2)
 - [Git Pack Format](https://git-scm.com/docs/pack-format)

@@ -1,50 +1,52 @@
-# Phase 0 & 1 待办事项
+# Phase 0 & 1 To-Do
 
-> ✅ **全部完成 (v0.4.1)**
+[中文文档](PHASE_0_1_TODO-zh_CN.md)
+
+> ✅ **All completed (v0.4.1)**
 > 
-> Phase 0-1 的细化任务已在 v0.1.0–v0.4.1 开发过程中全部实现。
-> 当前项目版本: **v0.4.1**，详见 [TODO.md](../TODO.md) 和 [PLAN.md](PLAN.md)。
+> The detailed tasks of Phase 0-1 were all implemented during the v0.1.0–v0.4.1 development process.
+> Current project version: **v0.4.1**, see [TODO.md](../TODO.md) and [PLAN.md](PLAN.md) for details.
 
-## Phase 0: 项目初始化 ✅
+## Phase 0: Project Initialization ✅
 
-| # | 任务 | 状态 |
+| # | Task | Status |
 |---|------|------|
 | 0.1 | cargo init | ✅ |
-| 0.2 | Cargo.toml 依赖 | ✅ |
-| 0.3 | 目录结构 | ✅ |
+| 0.2 | Cargo.toml dependencies | ✅ |
+| 0.3 | Directory structure | ✅ |
 | 0.4 | main.rs | ✅ |
 | 0.5 | AgitError | ✅ |
-| 0.6 | 日志支持 | ✅ |
-| 0.7 | 编译验证 | ✅ |
+| 0.6 | Logging support | ✅ |
+| 0.7 | Compile verification | ✅ |
 
-| # | 任务 | 状态 |
+| # | Task | Status |
 |---|------|------|
-| 1.1 | CLI 全局参数 (--ai/--json/--yaml/--no-color) | ✅ |
-| 1.2 | 命令枚举 (15 个子命令) | ✅ |
-| 1.3 | 子命令参数 (commit -m/--ai) | ✅ |
-| 1.4 | 命令路由 (main.rs match dispatch) | ✅ |
-| 1.5 | 处理函数实现 | ✅ |
-| 1.6 | cargo check + clippy 通过 | ✅ |
+| 1.1 | CLI global flags (--ai/--json/--yaml/--no-color) | ✅ |
+| 1.2 | Command enum (15 subcommands) | ✅ |
+| 1.3 | Subcommand arguments (commit -m/--ai) | ✅ |
+| 1.4 | Command routing (main.rs match dispatch) | ✅ |
+| 1.5 | Handler function implementation | ✅ |
+| 1.6 | cargo check + clippy pass | ✅ |
 
-## Phase 1: 核心对象系统 ✅
+## Phase 1: Core Object System ✅
 
-| # | 子模块 | 状态 |
+| # | Submodule | Status |
 |---|--------|------|
-| 2 | SHA-1 哈希 | ✅ |
-| 3 | zlib 压缩 | ✅ |
-| 4 | Blob 对象 | ✅ |
-| 5 | Tree 对象 | ✅ |
-| 6 | Commit 对象 | ✅ |
-| 7 | 对象存储 | ✅ |
-| 8 | 引用系统 | ✅ |
-| 9 | 索引文件 | ✅ |
-| 10 | 集成验证 | ✅ |
+| 2 | SHA-1 hashing | ✅ |
+| 3 | zlib compression | ✅ |
+| 4 | Blob object | ✅ |
+| 5 | Tree object | ✅ |
+| 6 | Commit object | ✅ |
+| 7 | Object storage | ✅ |
+| 8 | Reference system | ✅ |
+| 9 | Index file | ✅ |
+| 10 | Integration verification | ✅ |
 
-## 状态说明
+## Status Legend
 
-- ⏳ 待开始
-- 🔨 进行中
-- ✅ 已完成
-- ❌ 已取消
+- ⏳ Not started
+- 🔨 In progress
+- ✅ Completed
+- ❌ Cancelled
 
-> 本文档为 Phase 0-1 的历史记录，当前开发计划见 [PLAN.md](PLAN.md) 和 [TODO.md](../TODO.md)。
+> This document is the historical record of Phase 0-1; for the current development plan, see [PLAN.md](PLAN.md) and [TODO.md](../TODO.md).

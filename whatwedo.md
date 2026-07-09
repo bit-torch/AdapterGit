@@ -1,171 +1,173 @@
-# agit 做了什么 — 用户视角全流程
+# What agit Does — Full Workflow from a User's Perspective
 
-> 白话梳理：打开终端，用 agit 从零到一把 Git 事儿全办了。
+[中文文档](whatwedo-zh_CN.md)
 
-## 1. 拿到手
+> Plain-language walkthrough: open a terminal and use agit to do all your Git work, end to end.
 
-- **Lite 版**：单文件，下载就能跑，不用安装。丢 U 盘、CI 容器、公用电脑都行。
-- **Full 版**：装完自动配 PATH，有 AI 写提交信息。
-- 也支持 `cargo install`，或者自己 `cargo build`（180 秒左右出二进制）。
+## 1. Getting it
 
-## 2. 开仓库
+- **Lite edition**: a single file — download and run, no install needed. Toss it on a USB stick, in a CI container, or on a shared machine.
+- **Full edition**: install auto-configures PATH; includes AI commit message generation.
+- Also supports `cargo install`, or build it yourself with `cargo build` (~180 seconds to a binary).
 
-```
-agit init                      # 当前目录变仓库
-agit init --path /tmp/project  # 指定目录
-agit init --pattern rust       # 顺手生成 .gitignore (rust/python/node/go/java)
-agit init --licence mit        # 顺手生成 LICENCE 文件
-```
-
-## 3. 日常提交
+## 2. Start a repository
 
 ```
-agit add .                     # 全加
-agit add src/main.rs           # 加单个
-      ↓ 自动尊重 .gitignore
-agit commit -m "fix: typo"     # 正常提交
-agit commit --ai "修登录"       # AI 帮你写 commit message
-      ↓ 自动打 [AI-committed] 标记，方便追溯
+agit init                      # Turn the current directory into a repo
+agit init --path /tmp/project  # Specify a directory
+agit init --pattern rust       # Also generate a .gitignore (rust/python/node/go/java)
+agit init --licence mit        # Also generate a LICENCE file
 ```
 
-**AI 写提交信息怎么玩？** 配置好 `AGIT_LLM_API_KEY`（OpenAI / DeepSeek / 月之暗面 / 智谱 / Ollama 都行），`agit commit --ai` 会自动把暂存区 diff 喂给 LLM，吐一条 Conventional Commits 格式的提交信息。
-
-## 4. 看状态
+## 3. Everyday commits
 
 ```
-agit status                    # 哪些改了、哪些暂存了
-agit log                       # 提交历史
-agit log --oneline -n 10       # 精简模式
-agit log --all                 # 所有分支
-agit diff                      # 改了什么
-agit diff --cached             # 暂存区改了什么
-agit diff --name-only          # 只看文件名
-agit diff <commit1> <commit2>  # 两次提交之间
-agit show HEAD                 # 最近一次提交的详情
+agit add .                     # Add everything
+agit add src/main.rs           # Add a single file
+      ↓ Automatically respects .gitignore
+agit commit -m "fix: typo"     # Normal commit
+agit commit --ai "修登录"       # AI writes the commit message for you
+      ↓ Auto-tags [AI-committed] for traceability
 ```
 
-## 5. 分支和跳转
+**How does AI commit message generation work?** Set up `AGIT_LLM_API_KEY` (OpenAI / DeepSeek / Moonshot / Zhipu / Ollama all work), and `agit commit --ai` will automatically feed the staged diff to an LLM and produce a Conventional Commits-formatted commit message.
+
+## 4. Check status
 
 ```
-agit branch                    # 列出本地分支
-agit branch -c feat/xxx        # 新建分支
-agit branch -d feat/xxx        # 删分支
-agit checkout feat/xxx          # 切换过去
-agit checkout --force feat/xxx  # 有未提交改动也切（自动 stash 再 pop）
+agit status                    # What changed, what's staged
+agit log                       # Commit history
+agit log --oneline -n 10       # Compact mode
+agit log --all                 # All branches
+agit diff                      # What changed
+agit diff --cached             # What's staged
+agit diff --name-only          # File names only
+agit diff <commit1> <commit2>  # Between two commits
+agit show HEAD                 # Details of the latest commit
 ```
 
-## 6. 和别人协作（远程）
+## 5. Branches and switching
 
 ```
-agit clone https://...         # 克隆（HTTP/HTTPS）
-agit clone git@github.com:...  # 克隆（SSH，走系统 ssh）
-agit fetch                     # 看看远程有什么更新
-agit pull                      # 拉下来并自动合并
-agit push origin main          # 推上去
-agit remote add upstream ...   # 加个远程
-agit remote list               # 看看有哪些远程
+agit branch                    # List local branches
+agit branch -c feat/xxx        # Create a branch
+agit branch -d feat/xxx        # Delete a branch
+agit checkout feat/xxx          # Switch to it
+agit checkout --force feat/xxx  # Switch even with uncommitted changes (auto stash then pop)
 ```
 
-## 7. 合并代码
+## 6. Collaborating with others (remotes)
 
 ```
-agit merge feat/xxx            # 把分支合进来
-      ↓ 能 fast-forward 就 fast-forward
-      ↓ 有冲突就写冲突标记，让你手动解决
+agit clone https://...         # Clone (HTTP/HTTPS)
+agit clone git@github.com:...  # Clone (SSH, via system ssh)
+agit fetch                     # See what updates the remote has
+agit pull                      # Pull down and auto-merge
+agit push origin main          # Push up
+agit remote add upstream ...   # Add a remote
+agit remote list               # List remotes
 ```
 
-## 8. 高级操作
+## 7. Merging code
 
-### 变基（rebase）
 ```
-agit rebase main               # 把当前分支"搬"到 main 上面
-agit rebase --onto main HEAD~3 # 选三笔搬过去
-agit rebase --continue         # 解决冲突后继续
-agit rebase --skip             # 跳过当前这笔
-agit rebase --abort            # 不玩了，回退
+agit merge feat/xxx            # Merge the branch in
+      ↓ Fast-forwards when possible
+      ↓ On conflict, writes conflict markers for you to resolve manually
 ```
 
-### 遴选（cherry-pick）
+## 8. Advanced operations
+
+### Rebase
 ```
-agit cherry-pick abc123        # 挑一笔提交过来
-agit cherry-pick abc123 def456 # 多笔一起
-agit cherry-pick --continue    # 解决冲突后继续
-agit cherry-pick --abort       # 不玩了
+agit rebase main               # "Move" the current branch on top of main
+agit rebase --onto main HEAD~3 # Move three commits over
+agit rebase --continue         # Continue after resolving conflicts
+agit rebase --skip             # Skip the current commit
+agit rebase --abort            # Give up and roll back
 ```
 
-### 储藏（stash）
+### Cherry-pick
 ```
-agit stash                     # 把改动暂存起来
-agit stash pop                 # 拿出来
-agit stash list                # 看看有哪些
-agit stash drop                # 丢掉
-```
-
-### 重置（reset）
-```
-agit reset --soft HEAD~1       # 撤销提交，改动回暂存区
-agit reset --mixed             # 默认：回暂存区
-agit reset --hard HEAD~1       # 彻底丢掉（慎用）
+agit cherry-pick abc123        # Pick a commit over
+agit cherry-pick abc123 def456 # Multiple at once
+agit cherry-pick --continue    # Continue after resolving conflicts
+agit cherry-pick --abort       # Give up
 ```
 
-### 二分查找（bisect）
+### Stash
+```
+agit stash                     # Stash your changes
+agit stash pop                 # Pop them back
+agit stash list                # List stashes
+agit stash drop                # Drop one
+```
+
+### Reset
+```
+agit reset --soft HEAD~1       # Undo the commit, changes go back to staging
+agit reset --mixed             # Default: back to staging
+agit reset --hard HEAD~1       # Discard entirely (use with care)
+```
+
+### Bisect
 ```
 agit bisect start --bad HEAD --good v0.1.0
-agit bisect good               # 这个版本没问题
-agit bisect bad                # 这个版本有 bug
-agit bisect run "cargo test"   # 自动跑脚本定位
+agit bisect good               # This version is fine
+agit bisect bad                # This version has the bug
+agit bisect run "cargo test"   # Auto-run a script to locate it
 ```
 
-### 追溯（blame）
+### Blame
 ```
-agit blame src/main.rs         # 每行代码谁写的
-agit blame --revision HEAD~5 src/main.rs  # 看历史版本
-```
-
-### 引用日志（reflog）
-```
-agit reflog                    # HEAD 的所有变动记录
-agit reflog main               # main 分支的变动记录
+agit blame src/main.rs         # Who wrote each line
+agit blame --revision HEAD~5 src/main.rs  # View a historical version
 ```
 
-## 9. 标签
-
+### Reflog
 ```
-agit tag                       # 列标签
-agit tag -c v1.0.0             # 打轻量标签
-agit tag -c v1.0.0 -m "发版"   # 打注释标签
-agit tag -d v1.0.0             # 删标签
+agit reflog                    # All changes to HEAD
+agit reflog main               # Changes to the main branch
 ```
 
-## 10. 文件操作
+## 9. Tags
 
 ```
-agit rm file.txt               # 删文件（同时从暂存区移除）
-agit rm --cached file.txt      # 只从暂存区移除，保留文件
-agit mv old.txt new.txt        # 改名/移动
+agit tag                       # List tags
+agit tag -c v1.0.0             # Create a lightweight tag
+agit tag -c v1.0.0 -m "发版"   # Create an annotated tag
+agit tag -d v1.0.0             # Delete a tag
 ```
 
-## 11. 查看内部对象
+## 10. File operations
 
 ```
-agit cat-file -p abc123        # 看对象内容
-agit cat-file -t abc123        # 看对象类型
-agit ls-tree abc123            # 看一棵树里有什么
+agit rm file.txt               # Delete a file (also removes from staging)
+agit rm --cached file.txt      # Remove from staging only, keep the file
+agit mv old.txt new.txt        # Rename/move
 ```
 
-## 12. 配置
+## 11. Inspect internal objects
 
 ```
-agit config user.name "Me"     # 设用户名
-agit config --global user.email "me@x.com"  # 全局配置
-agit config --list             # 看所有配置
-agit config --get user.name    # 查一项
-agit config --unset user.name  # 删一项
+agit cat-file -p abc123        # View object content
+agit cat-file -t abc123        # View object type
+agit ls-tree abc123            # See what's in a tree
 ```
 
-**配置优先级**：环境变量 > 仓库 `.agit/config.toml` > 全局 `~/.agitconfig.toml` > 默认值
+## 12. Configuration
 
-还支持命令别名：
+```
+agit config user.name "Me"     # Set username
+agit config --global user.email "me@x.com"  # Global config
+agit config --list             # Show all config
+agit config --get user.name    # Get one entry
+agit config --unset user.name  # Remove one entry
+```
+
+**Config precedence**: environment variables > repo `.agit/config.toml` > global `~/.agitconfig.toml` > defaults
+
+Command aliases are also supported:
 ```toml
 # ~/.agitconfig.toml
 [alias]
@@ -173,47 +175,47 @@ co = "commit"
 st = "status"
 ```
 
-## 13. 输出格式
+## 13. Output formats
 
 ```
-agit log --json                # JSON 输出（给脚本/AI 用）
-agit status --yaml             # YAML 输出
-agit --no-color log            # 不要颜色（管道用）
+agit log --json                # JSON output (for scripts/AI)
+agit status --yaml             # YAML output
+agit --no-color log            # No color (for piping)
 ```
 
-## 14. AI 模式
+## 14. AI mode
 
 ```
-agit --ai commit -m "fix"      # 开启 AI 模式
+agit --ai commit -m "fix"      # Enable AI mode
 ```
 
-AI 模式下会自动：
-- 提交信息加 `[AI-committed]` 前缀
-- 阻止危险命令：`push`、`stash drop`、`branch -D`、`rebase`、`cherry-pick`、`bisect`
+In AI mode, automatically:
+- Prefix commit messages with `[AI-committed]`
+- Block dangerous commands: `push`, `stash drop`, `branch -D`, `rebase`, `cherry-pick`, `bisect`
 
 ---
 
-## 一张图：从打开终端到推上 GitHub
+## One diagram: from opening a terminal to pushing to GitHub
 
 ```
 agit init
   → agit add .
     → agit commit -m "init"
-      → (改代码)
+      → (edit code)
         → agit add .
           → agit commit --ai "新功能"
             → agit push origin main
 ```
 
-## 还没做的（用户一眼就能看出缺什么）
+## What's not done yet (so users can see what's missing at a glance)
 
-| 功能 | 状态 | 说明 |
+| Feature | Status | Notes |
 |------|------|------|
-| 交互式 rebase (`-i`) | ❌ 不支持 | 需要 TUI，和"永不挂起"的设计理念冲突 |
-| 交互式 add (`-p`) | ❌ 不支持 | 同上 |
-| submodule | ❌ 不支持 | |
-| hooks | ❌ 不支持 | pre-commit / post-commit 等 |
-| grep | ❌ 不支持 | |
-| Git 协议 v2 | ❌ 不支持 | 目前走 v1 协议 |
-| Windows 安装包 (.msi) | ❌ 待做 | |
-| musl 静态编译 | ⏳ 待修复 | CI 缺 musl-gcc |
+| Interactive rebase (`-i`) | ❌ Not supported | Requires a TUI, conflicts with the "never hang" design philosophy |
+| Interactive add (`-p`) | ❌ Not supported | Same as above |
+| submodule | ❌ Not supported | |
+| hooks | ❌ Not supported | pre-commit / post-commit, etc. |
+| grep | ❌ Not supported | |
+| Git protocol v2 | ❌ Not supported | Currently uses the v1 protocol |
+| Windows installer (.msi) | ❌ To do | |
+| musl static build | ⏳ Pending fix | CI lacks musl-gcc |

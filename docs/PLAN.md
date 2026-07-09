@@ -1,161 +1,163 @@
-# AdapterGit 开发计划
+# AdapterGit Development Plan
 
-## 项目目标
+[中文文档](PLAN-zh_CN.md)
 
-AdapterGit (agit) 是一个专为 AI 时代设计的 Git 工具，完全从底层用 Rust 原生实现 Git 核心协议和算法。
+## Project Goals
 
-版本: **v0.4.1** | 总体进度: **77%**
+AdapterGit (agit) is a Git tool designed for the AI era, implementing Git core protocols and algorithms natively from the ground up in Rust.
 
-### 核心价值
+Version: **v0.4.1** | Overall progress: **77%**
 
-- 🤖 **AI 优先**: 零 TUI 阻塞，结构化输出，AI Agent 安全调用
-- 📦 **双版本分发**: Full 安装包 + Lite 单文件便携，同一套原生 Git 内核
-- 🔒 **安全防护**: 危险操作拦截，`[AI-committed]` 自动标记
-- ⚡ **永不卡死**: 自动跳过编辑器，非 TTY 环境友好
+### Core Values
 
-## 已完成 (v0.1.0 – v0.4.1)
+- 🤖 **AI-First**: Zero TUI blocking, structured output, safe AI Agent invocation
+- 📦 **Dual Distribution**: Full installer + Lite single-file portable, sharing the same native Git core
+- 🔒 **Safety Protection**: Dangerous operation interception, automatic `[AI-committed]` tagging
+- ⚡ **Never Hangs**: Automatically skips editors, friendly to non-TTY environments
 
-### Phase 1: 项目初始化 ✅
+## Completed (v0.1.0 – v0.4.1)
 
-| 任务 | 状态 |
+### Phase 1: Project Initialization ✅
+
+| Task | Status |
 |------|------|
-| Rust 项目初始化 | ✅ |
-| Cargo.toml 依赖 (sha1, flate2, clap, serde, anyhow, url, native-tls) | ✅ |
-| 目录结构 (core/cli/commands/ai/output/config/utils) | ✅ |
-| CLI 框架 (15 个子命令, clap derive) | ✅ |
-| 错误处理 (anyhow + AgitError) | ✅ |
+| Rust project initialization | ✅ |
+| Cargo.toml dependencies (sha1, flate2, clap, serde, anyhow, url, native-tls) | ✅ |
+| Directory structure (core/cli/commands/ai/output/config/utils) | ✅ |
+| CLI framework (15 subcommands, clap derive) | ✅ |
+| Error handling (anyhow + AgitError) | ✅ |
 
-### Phase 2: 核心对象系统 ✅ (8/9)
+### Phase 2: Core Object System ✅ (8/9)
 
-| 任务 | 状态 |
+| Task | Status |
 |------|------|
-| SHA-1 哈希 (hash_bytes + hash_git_object) | ✅ |
-| zlib 压缩/解压 (compress + decompress + decompress_stream) | ✅ |
-| Blob 对象 | ✅ |
-| Tree 对象 (支持子目录) | ✅ |
-| Commit 对象 (多 parent) | ✅ |
-| 对象存储 (loose objects) | ✅ |
-| 引用系统 (HEAD + refs CRUD) | ✅ |
-| 索引文件 (DIRC v2) | ✅ |
+| SHA-1 hashing (hash_bytes + hash_git_object) | ✅ |
+| zlib compression/decompression (compress + decompress + decompress_stream) | ✅ |
+| Blob object | ✅ |
+| Tree object (with subdirectory support) | ✅ |
+| Commit object (multiple parents) | ✅ |
+| Object storage (loose objects) | ✅ |
+| Reference system (HEAD + refs CRUD) | ✅ |
+| Index file (DIRC v2) | ✅ |
 
-### Phase 3: 基础命令 ✅
+### Phase 3: Basic Commands ✅
 
-| 命令 | 功能 | 状态 |
+| Command | Function | Status |
 |------|------|------|
-| init | 初始化仓库 (.git/ + config + HEAD) | ✅ |
-| add | 文件→暂存区 (递归目录, 模式检测) | ✅ |
-| commit | 提交 (tree → commit → update branch) | ✅ |
-| status | 区域状态 (staged/modified/deleted/untracked) | ✅ |
-| log | 提交历史遍历 | ✅ |
-| cat-file | 对象查看 (-t/-p) | ✅ |
-| ls-tree | 树内容列表 | ✅ |
-| diff | 差异比较 (LCS 算法) | ✅ |
-| show | 提交/对象详情 | ✅ |
+| init | Initialize repository (.git/ + config + HEAD) | ✅ |
+| add | Files → staging area (recursive directories, mode detection) | ✅ |
+| commit | Commit (tree → commit → update branch) | ✅ |
+| status | Area status (staged/modified/deleted/untracked) | ✅ |
+| log | Commit history traversal | ✅ |
+| cat-file | Object viewing (-t/-p) | ✅ |
+| ls-tree | Tree content listing | ✅ |
+| diff | Diff comparison (LCS algorithm) | ✅ |
+| show | Commit/object details | ✅ |
 
-### Phase 4: AI 模式和输出 ✅ (6/7)
+### Phase 4: AI Mode and Output ✅ (6/7)
 
-| 任务 | 状态 |
+| Task | Status |
 |------|------|
-| AI 模式 (`--ai` 参数) | ✅ |
-| `[AI-committed]` 自动标记 | ✅ |
-| JSON 输出 (`--json`) | ✅ |
-| YAML 输出 (`--yaml`) | ✅ |
-| 危险操作防护 (DANGEROUS_COMMANDS) | ✅ |
-| 颜色控制 (`--no-color`) | ✅ |
+| AI mode (`--ai` flag) | ✅ |
+| Automatic `[AI-committed]` tagging | ✅ |
+| JSON output (`--json`) | ✅ |
+| YAML output (`--yaml`) | ✅ |
+| Dangerous operation protection (DANGEROUS_COMMANDS) | ✅ |
+| Color control (`--no-color`) | ✅ |
 
-### Phase 5: 网络功能 ✅
+### Phase 5: Network Features ✅
 
-| 命令 | 功能 | 状态 |
+| Command | Function | Status |
 |------|------|------|
-| clone | 克隆仓库 (HTTP + TLS) | ✅ |
-| push | 推送 (packfile 生成) | ✅ |
+| clone | Clone repository (HTTP + TLS) | ✅ |
+| push | Push (packfile generation) | ✅ |
 | pull | fetch + merge/fast-forward | ✅ |
-| fetch | 获取 (want/have 协商) | ✅ |
-| remote add/list | 远程管理 | ✅ |
+| fetch | Fetch (want/have negotiation) | ✅ |
+| remote add/list | Remote management | ✅ |
 
-**协议层实现：**
-- pkt-line 编解码
+**Protocol layer implementation:**
+- pkt-line encoding/decoding
 - HTTP Smart Transport + TLS
-- Packfile 解析 + delta 解码 (ofs_delta + ref_delta)
+- Packfile parsing + delta decoding (ofs_delta + ref_delta)
 - Ref discovery
 
-### Phase 6: 配置 (部分) 🔨
+### Phase 6: Configuration (partial) 🔨
 
-| 任务 | 状态 |
+| Task | Status |
 |------|------|
-| 环境变量 (AGIT_USER_NAME/EMAIL, GIT_AUTHOR_*) | ✅ |
+| Environment variables (AGIT_USER_NAME/EMAIL, GIT_AUTHOR_*) | ✅ |
 
-## 待完成 (v0.4.1+)
+## To Do (v0.4.1+)
 
-### Phase 2 剩余
+### Phase 2 Remaining
 
-| 任务 | 优先级 |
+| Task | Priority |
 |------|--------|
-| Tag 对象 | P1 |
+| Tag object | P1 |
 
-### Phase 4 剩余
+### Phase 4 Remaining
 
-| 任务 | 优先级 |
+| Task | Priority |
 |------|--------|
-| 命令自动转换 | P2 |
+| Automatic command conversion | P2 |
 
-### Phase 6: 配置和扩展
+### Phase 6: Configuration and Extensions
 
-| 任务 | 优先级 |
+| Task | Priority |
 |------|--------|
-| 配置文件 (.toml) | P2 |
-| Git 别名 | P2 |
+| Config file (.toml) | P2 |
+| Git aliases | P2 |
 | Hooks | P3 |
 | Submodule | P3 |
 
-### Phase 7: 测试和发布
+### Phase 7: Testing and Release
 
-| 任务 | 优先级 | 状态 |
+| Task | Priority | Status |
 |------|--------|------|
-| 单元测试 | P0 | 🔨 (7/9 模块已覆盖) |
-| 集成测试 | P0 | ⏳ |
-| Git 一致性测试 | P1 | ⏳ |
-| 跨平台编译 | P1 | ⏳ |
-| 静态编译 (musl) | P1 | ⏳ |
-| Release 构建 | P0 | ⏳ |
+| Unit tests | P0 | 🔨 (7/9 modules covered) |
+| Integration tests | P0 | ⏳ |
+| Git consistency tests | P1 | ⏳ |
+| Cross-platform compilation | P1 | ⏳ |
+| Static compilation (musl) | P1 | ⏳ |
+| Release builds | P0 | ⏳ |
 
-### Phase 8: Full/Lite 双版本分发
+### Phase 8: Full/Lite Dual Distribution
 
-| 任务 | 优先级 |
+| Task | Priority |
 |------|--------|
-| Lite 单文件便携版 | P1 |
-| Full .deb 安装包 | P1 |
-| Full .rpm 安装包 | P2 |
-| Full .msi 安装包 | P2 |
-| Full .dmg 安装包 | P2 |
-| CI/CD 双版本流水线 | P1 |
-| GitHub Release 自动发布 | P1 |
+| Lite single-file portable version | P1 |
+| Full .deb installer | P1 |
+| Full .rpm installer | P2 |
+| Full .msi installer | P2 |
+| Full .dmg installer | P2 |
+| CI/CD dual-version pipeline | P1 |
+| GitHub Release auto-publishing | P1 |
 
-## 技术决策
+## Technical Decisions
 
-| 库 | 用途 | 决策 |
+| Library | Purpose | Decision |
 |----|------|------|
-| sha1 0.10 | SHA-1 哈希 | ✅ |
-| flate2 1 | zlib 压缩 | ✅ |
-| clap 4 | CLI 解析 | ✅ |
-| serde 1 + serde_json + serde_yaml | 结构化输出 | ✅ |
-| anyhow 1 | 错误处理 | ✅ |
-| url 2 | URL 解析 | ✅ |
+| sha1 0.10 | SHA-1 hashing | ✅ |
+| flate2 1 | zlib compression | ✅ |
+| clap 4 | CLI parsing | ✅ |
+| serde 1 + serde_json + serde_yaml | Structured output | ✅ |
+| anyhow 1 | Error handling | ✅ |
+| url 2 | URL parsing | ✅ |
 | native-tls 0.2 | TLS/HTTPS | ✅ |
-| gix / gitoxide | ❌ 不使用 (纯原生) | ❌ |
-| 系统 git 命令 | ❌ 不依赖 | ❌ |
+| gix / gitoxide | ❌ Not used (pure native) | ❌ |
+| System git command | ❌ No dependency | ❌ |
 
-## 里程碑
+## Milestones
 
-| 版本 | 内容 | 状态 | 日期 |
+| Version | Content | Status | Date |
 |------|------|------|------|
-| v0.1.0 | 项目骨架 + 核心对象系统 + 基础命令 | ✅ | 2025-07 |
-| v0.2.0 | AI 模式 + 结构化输出 + P2 命令 | ✅ | 2025-07 |
-| v0.3.0 | 网络功能 (clone/push/pull/fetch/remote) | ✅ | 2025-07 |
-| **v0.4.1** | Tag + 配置文件 + 集成测试 + 分支切换清理 | ✅ 当前 | TBD |
-| v1.0.0 | 完整 Git 子集 + 全平台安装包 + 文档 | 🎯 | TBD |
+| v0.1.0 | Project skeleton + core object system + basic commands | ✅ | 2025-07 |
+| v0.2.0 | AI mode + structured output + P2 commands | ✅ | 2025-07 |
+| v0.3.0 | Network features (clone/push/pull/fetch/remote) | ✅ | 2025-07 |
+| **v0.4.1** | Tag + config files + integration tests + branch switching cleanup | ✅ Current | TBD |
+| v1.0.0 | Complete Git subset + all-platform installers + documentation | 🎯 | TBD |
 
-## 相关文档
+## Related Documentation
 
-- [架构设计](docs/ARCHITECTURE.md)
-- [待办事项](../TODO.md)
+- [Architecture Design](docs/ARCHITECTURE.md)
+- [To-Do](../TODO.md)

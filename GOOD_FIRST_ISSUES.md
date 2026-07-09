@@ -1,151 +1,153 @@
-# Good First Issues - 新手任务
+# Good First Issues
 
-欢迎 contributing！以下是适合新手贡献者的任务列表。这些任务经过筛选，适合了解 Rust 但不熟悉项目的新人。
+[中文文档](GOOD_FIRST_ISSUES-zh_CN.md)
 
-## 如何选择任务
+Welcome and thanks for contributing! Below is a list of tasks suitable for new contributors. These tasks have been curated for newcomers who know Rust but are not yet familiar with the project.
 
-1. 查看任务列表，选择感兴趣的
-2. 在 issue 中留言领取
-3. Fork 项目并创建分支
-4. 完成开发后提交 PR
+## How to Choose a Task
+
+1. Browse the task list and pick one that interests you
+2. Leave a comment on the issue to claim it
+3. Fork the project and create a branch
+4. Submit a PR once development is complete
 
 ---
 
-## 🎯 入门任务 (Easy)
+## 🎯 Getting Started Tasks (Easy)
 
-### 1. 完善错误消息
-**优先级**: P2  
-**模块**: cli  
-**描述**: 改进错误消息，使用户更容易理解问题  
-**难度**: ⭐ (入门)  
-**要求**: Rust 基础  
+### 1. Improve Error Messages
+**Priority**: P2  
+**Module**: cli  
+**Description**: Improve error messages so users can more easily understand the problem  
+**Difficulty**: ⭐ (entry)  
+**Requirements**: Basic Rust  
 
-**示例改进**:
+**Example improvement**:
 ```rust
-// 之前
+// Before
 Err("Object not found")
 
-// 之后
+// After
 Err(format!("Object '{}' not found in repository", object_id))
 ```
 
-### 2. 添加更多帮助信息
-**优先级**: P2  
-**模块**: cli  
-**描述**: 为命令添加更详细的帮助信息和使用示例  
-**难度**: ⭐ (入门)  
-**要求**: 文档写作  
+### 2. Add More Help Information
+**Priority**: P2  
+**Module**: cli  
+**Description**: Add more detailed help information and usage examples for commands  
+**Difficulty**: ⭐ (entry)  
+**Requirements**: Documentation writing  
 
-**任务内容**:
-- 为每个命令添加 `--help` 示例
-- 添加常见用法示例
-- 添加故障排除指南
+**Task scope**:
+- Add `--help` examples for each command
+- Add common usage examples
+- Add a troubleshooting guide
 
-### 3. 改进代码注释
-**优先级**: P3  
-**模块**: 通用  
-**描述**: 在关键代码处添加或改进注释  
-**难度**: ⭐ (入门)  
-**要求**: 理解代码逻辑  
-
----
-
-## 📝 文档任务 (Documentation)
-
-### 4. 编写核心概念教程
-**优先级**: P1  
-**模块**: docs  
-**描述**: 编写 Git 内部原理的教程文档  
-**难度**: ⭐⭐ (简单)  
-**要求**: 了解 Git 基本概念  
-
-**内容建议**:
-- Git 对象模型介绍
-- SHA-1 哈希解释
-- .git 目录结构
-- Git 引用系统
-
-**相关文件**: `docs/ARCHITECTURE.md`
-
-### 5. 添加使用示例
-**优先级**: P2  
-**模块**: docs  
-**描述**: 为每个命令添加完整使用示例  
-**难度**: ⭐⭐ (简单)  
-**要求**: 基本写作能力  
-
-### 6. 创建故障排除指南
-**优先级**: P2  
-**模块**: docs  
-**描述**: 收集常见问题和解决方案  
-**难度**: ⭐⭐ (简单)  
-**要求**: 了解 Git 常见问题  
+### 3. Improve Code Comments
+**Priority**: P3  
+**Module**: general  
+**Description**: Add or improve comments at key points in the code  
+**Difficulty**: ⭐ (entry)  
+**Requirements**: Understanding of code logic  
 
 ---
 
-## 🔧 编码任务 (Coding)
+## 📝 Documentation Tasks
 
-### 7. 实现 `git rev-parse` 命令
-**优先级**: P1  
-**模块**: core/refs  
-**描述**: 实现 rev-parse 命令，用于解析引用  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**: 
-- Rust 基础
-- 理解 Git 引用系统
+### 4. Write a Core Concepts Tutorial
+**Priority**: P1  
+**Module**: docs  
+**Description**: Write tutorial documentation on Git internals  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**: Understanding of basic Git concepts  
 
-**功能**:
+**Suggested content**:
+- Introduction to the Git object model
+- SHA-1 hashing explained
+- The .git directory structure
+- The Git references system
+
+**Related file**: `docs/ARCHITECTURE.md`
+
+### 5. Add Usage Examples
+**Priority**: P2  
+**Module**: docs  
+**Description**: Add complete usage examples for each command  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**: Basic writing ability  
+
+### 6. Create a Troubleshooting Guide
+**Priority**: P2  
+**Module**: docs  
+**Description**: Collect common problems and their solutions  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**: Familiarity with common Git issues  
+
+---
+
+## 🔧 Coding Tasks
+
+### 7. Implement the `git rev-parse` command
+**Priority**: P1  
+**Module**: core/refs  
+**Description**: Implement the rev-parse command, used to resolve references  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**: 
+- Basic Rust
+- Understanding of the Git references system
+
+**Functionality**:
 ```bash
 ./agit rev-parse HEAD
 ./agit rev-parse --symbolic-full-name HEAD
 ./agit rev-parse --sqrq HEAD
 ```
 
-**学习资源**:
-- [Git 内部原理 - 引用](https://git-scm.com/book/zh/v2/Git-内部原理-Git-引用)
+**Learning resources**:
+- [Git Internals - References](https://git-scm.com/book/zh/v2/Git-内部原理-Git-引用)
 
-### 8. 实现 `git rev-list` 命令
-**优先级**: P1  
-**模块**: core/objects  
-**描述**: 实现 rev-list 命令，列出提交历史  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- 理解 Git 对象图
+### 8. Implement the `git rev-list` command
+**Priority**: P1  
+**Module**: core/objects  
+**Description**: Implement the rev-list command to list commit history  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Understanding of the Git object graph
 
-**功能**:
+**Functionality**:
 ```bash
 ./agit rev-list HEAD
 ./agit rev-list --count HEAD
 ./agit rev-list --max-count=5 HEAD
 ```
 
-### 9. 实现 `git branch -l` (列出分支)
-**优先级**: P1  
-**模块**: core/refs  
-**描述**: 实现基本的分支列表功能  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- 理解 Git refs
+### 9. Implement `git branch -l` (list branches)
+**Priority**: P1  
+**Module**: core/refs  
+**Description**: Implement basic branch listing functionality  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Understanding of Git refs
 
-**功能**:
+**Functionality**:
 ```bash
-./agit branch          # 列出本地分支
-./agit branch -a      # 列出所有分支
-./agit branch -v      # 显示详细信息
+./agit branch          # List local branches
+./agit branch -a      # List all branches
+./agit branch -v      # Show verbose information
 ```
 
-### 10. 添加配置文件解析
-**优先级**: P1  
-**模块**: config  
-**描述**: 实现 TOML 配置文件解析  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- TOML 格式了解
+### 10. Add Configuration File Parsing
+**Priority**: P1  
+**Module**: config  
+**Description**: Implement TOML configuration file parsing  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Familiarity with the TOML format
 
-**配置文件**:
+**Configuration file**:
 ```toml
 # ~/.config/agit/config.toml
 [ai]
@@ -157,31 +159,31 @@ format = "json"
 color = true
 ```
 
-### 11. 实现 JSON 输出格式化
-**优先级**: P1  
-**模块**: output  
-**描述**: 为 status、log 等命令添加 JSON 输出  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- serde 使用经验
+### 11. Implement JSON Output Formatting
+**Priority**: P1  
+**Module**: output  
+**Description**: Add JSON output for commands such as status and log  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Experience using serde
 
-**功能**:
+**Functionality**:
 ```bash
 ./agit status --json
 ./agit log --json
 ```
 
-### 12. 实现 `git diff --stat`
-**优先级**: P2  
-**模块**: core/diff  
-**描述**: 实现 diff 统计信息显示  
-**难度**: ⭐⭐⭐⭐ (较难)  
-**要求**:
-- Rust 基础
-- 理解 diff 算法
+### 12. Implement `git diff --stat`
+**Priority**: P2  
+**Module**: core/diff  
+**Description**: Implement diff statistics display  
+**Difficulty**: ⭐⭐⭐⭐ (hard)  
+**Requirements**:
+- Basic Rust
+- Understanding of diff algorithms
 
-**功能**:
+**Functionality**:
 ```bash
 ./agit diff --stat
 # example output:
@@ -192,118 +194,118 @@ color = true
 
 ---
 
-## 🧪 测试任务 (Testing)
+## 🧪 Testing Tasks
 
-### 13. 添加核心算法单元测试
-**优先级**: P1  
-**模块**: core  
-**描述**: 为 SHA-1、zlib 等核心算法添加测试  
-**难度**: ⭐⭐ (简单)  
-**要求**:
-- Rust 测试基础
-- 单元测试经验
+### 13. Add Unit Tests for Core Algorithms
+**Priority**: P1  
+**Module**: core  
+**Description**: Add tests for core algorithms such as SHA-1 and zlib  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**:
+- Basic Rust testing
+- Unit testing experience
 
-**测试内容**:
-- SHA-1 已知值测试
-- zlib 压缩/解压测试
-- 对象序列化测试
+**Test scope**:
+- SHA-1 known-value tests
+- zlib compression/decompression tests
+- Object serialization tests
 
-### 14. 添加命令集成测试
-**优先级**: P1  
-**模块**: cli  
-**描述**: 为每个命令添加集成测试  
-**难度**: ⭐⭐ (简单)  
-**要求**:
-- Rust 测试基础
-- 了解集成测试
+### 14. Add Command Integration Tests
+**Priority**: P1  
+**Module**: cli  
+**Description**: Add integration tests for each command  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**:
+- Basic Rust testing
+- Familiarity with integration testing
 
-**测试框架**: `assert_cmd`, `predicates`
+**Test framework**: `assert_cmd`, `predicates`
 
-### 15. 与原生 Git 输出对比测试
-**优先级**: P2  
-**模块**: tests  
-**描述**: 创建测试自动对比 agit 和 git 输出  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- 了解 Git 命令行
-
----
-
-## 🚀 优化任务 (Optimization)
-
-### 16. 添加性能基准测试
-**优先级**: P2  
-**模块**: tests  
-**描述**: 使用 criterion 创建性能基准测试  
-**难度**: ⭐⭐ (简单)  
-**要求**:
-- Rust 基础
-- criterion 使用经验
-
-### 17. 实现 LRU 缓存
-**优先级**: P2  
-**模块**: core/storage  
-**描述**: 为对象读取添加 LRU 缓存  
-**难度**: ⭐⭐⭐ (中等)  
-**要求**:
-- Rust 基础
-- LRU 算法了解
+### 15. Add Comparison Tests Against Native Git Output
+**Priority**: P2  
+**Module**: tests  
+**Description**: Create tests that automatically compare agit and git output  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Familiarity with the Git command line
 
 ---
 
-## 🎨 工具任务 (Tooling)
+## 🚀 Optimization Tasks
 
-### 18. 配置 GitHub Actions CI
-**优先级**: P1  
-**模块**: .github/workflows  
-**描述**: 配置自动化 CI/CD  
-**难度**: ⭐⭐ (简单)  
-**要求**:
-- GitHub Actions 了解
-- YAML 编写经验
+### 16. Add Performance Benchmarks
+**Priority**: P2  
+**Module**: tests  
+**Description**: Use criterion to create performance benchmarks  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**:
+- Basic Rust
+- Experience using criterion
 
-**功能**:
-- Rust 测试
-- 代码格式化检查
-- Clippy 检查
-- 多平台构建
-
-### 19. 创建 Cargo workspace 配置
-**优先级**: P3  
-**模块**: 根目录  
-**描述**: 配置 Cargo workspace 支持多 crate  
-**难度**: ⭐ (入门)  
-**要求**: Cargo 使用经验
+### 17. Implement an LRU Cache
+**Priority**: P2  
+**Module**: core/storage  
+**Description**: Add an LRU cache for object reads  
+**Difficulty**: ⭐⭐⭐ (medium)  
+**Requirements**:
+- Basic Rust
+- Familiarity with LRU algorithms
 
 ---
 
-## 📋 领取任务
+## 🎨 Tooling Tasks
 
-1. 在 Issue 中留言："I'd like to work on this"
-2. Fork 项目
-3. 创建新分支: `git checkout -b your-name/issue-name`
-4. 开发并测试
-5. 提交 PR
+### 18. Configure GitHub Actions CI
+**Priority**: P1  
+**Module**: .github/workflows  
+**Description**: Configure automated CI/CD  
+**Difficulty**: ⭐⭐ (easy)  
+**Requirements**:
+- Familiarity with GitHub Actions
+- YAML writing experience
 
-## 任务标签说明
+**Functionality**:
+- Rust testing
+- Code formatting checks
+- Clippy checks
+- Multi-platform builds
 
-| 标签 | 含义 |
+### 19. Create Cargo Workspace Configuration
+**Priority**: P3  
+**Module**: root directory  
+**Description**: Configure the Cargo workspace to support multiple crates  
+**Difficulty**: ⭐ (entry)  
+**Requirements**: Cargo usage experience
+
+---
+
+## 📋 Claiming a Task
+
+1. Leave a comment on the issue: "I'd like to work on this"
+2. Fork the project
+3. Create a new branch: `git checkout -b your-name/issue-name`
+4. Develop and test
+5. Submit a PR
+
+## Task Labels
+
+| Label | Meaning |
 |------|------|
-| `good first issue` | 适合新手的入门任务 |
-| `documentation` | 文档相关任务 |
-| `enhancement` | 功能增强 |
-| `bug` | Bug 修复 |
-| `help wanted` | 需要帮助的任务 |
+| `good first issue` | Entry-level tasks suitable for newcomers |
+| `documentation` | Documentation-related tasks |
+| `enhancement` | Feature enhancement |
+| `bug` | Bug fix |
+| `help wanted` | Tasks that need help |
 
-## 资源链接
+## Resource Links
 
-- [Rust 教程](https://doc.rust-lang.org/book/)
+- [Rust Book](https://doc.rust-lang.org/book/)
 - [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
-- [Pro Git 书籍](https://git-scm.com/book/zh/v2)
-- [项目架构](docs/ARCHITECTURE.md)
-- [开发计划](docs/PLAN.md)
+- [Pro Git Book](https://git-scm.com/book/en/v2)
+- [Project Architecture](docs/ARCHITECTURE.md)
+- [Development Plan](docs/PLAN.md)
 
 ---
 
-**有问题？** 欢迎在 [GitHub Discussions](https://github.com/bit-torch/AdapterGit/discussions) 提问！
+**Questions?** Feel free to ask in [GitHub Discussions](https://github.com/bit-torch/AdapterGit/discussions)!

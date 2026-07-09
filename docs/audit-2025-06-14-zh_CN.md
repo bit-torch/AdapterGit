@@ -1,0 +1,137 @@
+# 代码审计报告 — 2025-06-14（更新）
+
+[English](audit-2025-06-14.md)
+
+> 全量扫描 48 个源文件、119 个测试（87 单元 + 10 集成 + 22 P1），聚焦错误处理、安全性、架构一致性、依赖健康度。
+
+---
+
+## 📊 项目概览
+
+| 指标 | 值 |
+|------|-----|
+| Rust 源码行数 | 8,640 |
+| 源文件数 | 48 `.rs` |
+| 测试总数 | 119（全部通过 ✅） |
+| 直接依赖 | 10 |
+| Clippy 警告 | 0 ✅ |
+| rustfmt 差异 | 0 ✅ |
+| `unsafe` 代码 | 0 ✅ |
+| `cargo doc` | 通过 ✅ |
+
+---
+
+## 🔴 严重 (3) — 必须修复
+
+| # | 文件 | 行 | 描述 | 状态 |
+|---|------|-----|------|------|
+| **C1** | `src/main.rs` | 103-111 | **`#[cfg(feature = "tag")]` 守卫不完整** — `commands::tag::*` 调用未包裹 `#[cfg(feature = "tag")]`，导致 `cargo check --no-default-features` 编译失败（3 个错误）。违反 CLAUDE.md 规则 #10。 | 🆕 **新增** |
+| **C2** | `Cargo.toml` | 13 | **`serde_yaml = "0.9"` 已弃用** — crates.io 标记为 `deprecated`，应迁移至 `serde_yml`。唯一使用处在 `src/output/mod.rs:49`。 | 🆕 **新增** |
+| **C3** | `Cargo.toml` / `CLAUDE.md` | — | **版本不一致** — `Cargo.toml` 写 `0.6.0`，`CLAUDE.md` 写 `0.6.1`。 | 🆕 **新增** |
+
+---
+
+## 🟠 高 (3) — 错误处理缺陷
+
+| # | 文件 | 行 | 描述 | 状态 |
+|---|------|-----|------|------|
+| **H1** | `src/commands/config_cmd.rs` | 47, 73 | TOML 解析失败 → `unwrap_or_default()` → 静默回退空表。`config set` / `config unset` 时若原配置损坏，所有原有数据将丢失。 | ⚠️ 上期遗留 |
+| **H2** | `src/commands/diff.rs` | 62, 94, 207, 211, 250 | `read_blob_content` 失败 → `unwrap_or_default()` 静默回退空 `Vec`。diff 输出与实际仓库内容不一致，不告知用户。 | ⚠️ 上期遗留 |
+| **H3** | `src/core/protocol.rs` | 100-101, 112, 485-487 | **DEBUG `eprintln!` 泄漏** — 生产环境下 pkt-line 和 refs 数据打印到 stderr，可能暴露仓库内部信息。 | 🆕 **新增** |
+
+---
+
+## 🟡 中 (5) — 边界条件 / 代码健壮性
+
+| # | 文件 | 行 | 描述 | 状态 |
+|---|------|-----|------|------|
+| **M1** | `src/commands/stash.rs` | 130-161 | stash 链表遍历无循环检测 — 若链表中形成环（恶意或损坏），将无限循环。 | ⚠️ 上期遗留 |
+| **M2** | `src/commands/diff.rs` | 346-406 | unified diff hunk header 固定 `@@ -1,N +1,N @@`，不计算真实起始行号。对大型文件 diff 不准确。 | ⚠️ 上期遗留 |
+| **M3** | `src/core/protocol.rs` | 607-611 | chunked 编码检测基于 hex digit 启发式 — 不可靠，可能在边缘情况误判。 | ⚠️ 上期遗留 |
+| **M4** | `src/core/objects/tree.rs` / `src/core/index.rs` | 113 / 178 | `hex_to_bytes` 重复实现 — 两份完全相同的 hex 解码函数。 | ⚠️ 上期遗留 |
+| **M5** | `src/core/refs.rs` / `src/core/remote_utils.rs` | 65 / 120 | `get_current_branch` 重复实现 — 签名不同 (`Option<String>` vs `String`)，行为不一致。 | ⚠️ 上期遗留 |
+
+---
+
+## 🟢 低 — 代码质量改进 (4)
+
+| # | 文件 | 描述 | 状态 |
+|---|------|------|------|
+| **L1** | `src/utils/error.rs` | `AgitError` 枚举定义完整但 core 层几乎不使用（core 仍用 `Box<dyn Error>`）。 | ⚠️ 上期遗留 |
+| **L2** | `src/commands/diff.rs` | `collect_tree_recursive` (302 行) 函数体过长，缺乏模块化拆分。 | 🆕 **新增** |
+| **L3** | 多个命令文件 | `println!` / `eprintln!` 直接硬编码输出 — 不利于 JSON/YAML 模式统一。约 80+ 处硬编码 print。 | 🆕 **新增** |
+| **L4** | `Cargo.toml` | 缺少 `cargo-audit` 集成 — 无法自动检测依赖的已知漏洞（CVE）。 | 🆕 **新增** |
+
+---
+
+## ✅ 已修复（自上次审计）
+
+| # | 原描述 | 修复提交 |
+|---|--------|---------|
+| 1 | 🔴 `rm` 先删文件再检查索引 | `dfa0a3e` |
+| 2 | 🔴 `push` 忽略 remote name，始终推 origin | `d57b565` |
+| 3 | 🔴 `commit` HEAD 读取失败静默回退 | `391e680` |
+| 4 | 🟠 `remote_utils` `unwrap_or_default()` | `391e680` |
+| 5 | 🟠 `branch.rs` list 失败静默空列表 | `391e680` |
+| 6 | 🟠 `reset.rs` HEAD 读失败静默空字符串 | `391e680` |
+| 7 | 🟡 AI `DANGEROUS_COMMANDS` 死代码 | `83ba7a2` |
+| 8 | 🟡 `ai_commit_marker()` 死代码 | `83ba7a2` |
+| 9 | 🟢 `format_object_data` 三份重复 | 已合并至 `core/objects/mod.rs` |
+
+**上次审计 20 个问题中，9 个已修复，7 个遗留，4 个新增。**
+
+---
+
+## 🔍 专项审计
+
+### 安全性
+
+- ✅ 零 `unsafe` 代码
+- ✅ AI 模式危险命令守卫可用 (`push`, `stash drop`, `branch -D`, `reset`)
+- ✅ 网络传输支持 TLS (`native-tls`)
+- ⚠️ `DEBUG eprintln!` 可能在生产环境泄漏内部信息
+- ⚠️ 无 `cargo-audit` 集成 — 依赖漏洞未知
+
+### 架构 & 一致性
+
+- ✅ Config 层叠正确：env > repo > global > defaults
+- ✅ Feature gate 在核心模块中正确使用 (`tag`)
+- ❌ 顶层 `main.rs` 的 feature gate 不完整（见 C1）
+- ⚠️ 两个 `get_current_branch` 签名不一致（见 M5）
+- ⚠️ `hex_to_bytes` 重复（见 M4）
+
+### 测试
+
+- ✅ 87 单元测试全部通过
+- ✅ 10 集成测试全部通过
+- ✅ 22 P1 专项测试全部通过
+- ✅ 覆盖：objects, refs, index, compression, hash, ignore, config, protocol, diff, stash, tag, log, rm, mv
+- ⚠️ 网络相关测试依赖外部服务器，CI 中可能不稳定
+
+### 依赖健康度
+
+| 依赖 | 版本 | 状态 |
+|------|------|------|
+| clap | 4.6.1 | ✅ |
+| serde | 1.0.228 | ✅ |
+| serde_json | 1.0.149 | ✅ |
+| serde_yaml | 0.9.34 | ❌ **已弃用** → 迁移 serde_yml |
+| flate2 | 1.1.9 | ✅ |
+| sha1 | 0.10.6 | ✅ |
+| anyhow | 1.0.102 | ✅ |
+| url | 2.5.8 | ✅ |
+| native-tls | 0.2.18 | ✅ |
+| toml | 0.8.23 | ✅ |
+
+---
+
+## 📋 建议优先修复顺序
+
+1. **C1** — 修复 `#[cfg(feature = "tag")]` 在 main.rs 中的守卫（3 行改动）
+2. **C3** — 统一版本号
+3. **H3** — 移除或条件编译 `DEBUG eprintln!`
+4. **C2** — 迁移 `serde_yaml` → `serde_yml`
+5. **H1** — `config_cmd.rs` 的 `unwrap_or_default()` → proper error
+6. **H2** — `diff.rs` 的 `unwrap_or_default()` → proper error
+7. **M4/M5** — 消除重复代码
+8. **M1** — stash 链表循环检测

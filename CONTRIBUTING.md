@@ -1,72 +1,74 @@
-# 贡献指南
+# Contributing Guide
 
-感谢您对 AdapterGit 项目的兴趣！我们欢迎所有形式的贡献，无论是代码、文档还是问题反馈。
+[中文文档](CONTRIBUTING-zh_CN.md)
 
-## 如何参与
+Thank you for your interest in the AdapterGit project! We welcome contributions of all kinds, whether code, documentation, or issue reports.
 
-### 报告问题
+## How to Contribute
 
-发现 bug 或有新想法？请：
+### Reporting Issues
 
-1. 在 [GitHub Issues](https://github.com/bit-torch/AdapterGit/issues) 创建新 issue
-2. 选择合适的标签 (bug, feature, documentation 等)
-3. 提供详细的问题描述和复现步骤
+Found a bug or have a new idea? Please:
 
-### 贡献代码
+1. Open a new issue in [GitHub Issues](https://github.com/bit-torch/AdapterGit/issues)
+2. Choose an appropriate label (bug, feature, documentation, etc.)
+3. Provide a detailed description of the problem and reproduction steps
 
-#### 1. Fork 并克隆
+### Contributing Code
+
+#### 1. Fork and Clone
 
 ```bash
 git clone https://github.com/bit-torch/AdapterGit.git
 cd AdapterGit
 ```
 
-#### 2. 创建分支
+#### 2. Create a Branch
 
-使用清晰的分支命名：
+Use a clear branch naming convention:
 
 ```bash
-# 功能分支
+# Feature branch
 git checkout -b feat/add-clone-command
 
-# Bug 修复
+# Bug fix
 git checkout -b fix/status-command-error
 
-# 文档更新
+# Documentation update
 git checkout -b docs/update-readme
 ```
 
-#### 3. 开发环境
+#### 3. Development Environment
 
-**要求**:
+**Requirements**:
 - Rust 1.70+
-- Cargo (随 Rust 安装)
+- Cargo (installed with Rust)
 
-**安装 Rust**:
+**Install Rust**:
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-**构建项目**:
+**Build the project**:
 ```bash
-cargo build                       # Debug 构建
-cargo build --release             # Release 构建
-cargo build --release --all-features  # Full 版本（含 AI）
-cargo build --release --no-default-features -F tag  # Lite 版本
+cargo build                       # Debug build
+cargo build --release             # Release build
+cargo build --release --all-features  # Full version (with AI)
+cargo build --release --no-default-features -F tag  # Lite version
 ```
 
-#### 4. 运行测试
+#### 4. Run Tests
 
 ```bash
-cargo test            # 运行所有测试
-cargo test --doc      # 文档测试
-cargo clippy          # 代码检查
-cargo fmt            # 代码格式化
+cargo test            # Run all tests
+cargo test --doc      # Doc tests
+cargo clippy          # Lint checks
+cargo fmt            # Code formatting
 ```
 
-#### 5. 提交规范
+#### 5. Commit Conventions
 
-我们使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
 <type>(<scope>): <description>
@@ -76,16 +78,16 @@ cargo fmt            # 代码格式化
 [optional footer]
 ```
 
-**类型**:
-- `feat`: 新功能
-- `fix`: Bug 修复
-- `docs`: 文档更新
-- `style`: 代码格式（不影响功能）
-- `refactor`: 重构（不是新功能或修复）
-- `test`: 测试相关
-- `chore`: 构建或辅助工具
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `style`: Code formatting (no functional impact)
+- `refactor`: Refactoring (not a new feature or fix)
+- `test`: Test-related
+- `chore`: Build or auxiliary tooling
 
-**示例**:
+**Examples**:
 
 ```bash
 git commit -m "feat(core): add SHA-1 hash implementation"
@@ -93,84 +95,84 @@ git commit -m "fix(cli): resolve init command panic on empty directory"
 git commit -m "docs(readme): update installation instructions"
 ```
 
-#### 6. Push 并创建 PR
+#### 6. Push and Create a PR
 
 ```bash
 git push origin feat/add-clone-command
 ```
 
-在 GitHub 上创建 Pull Request，描述您的更改。
+Create a Pull Request on GitHub describing your changes.
 
-## 代码规范
+## Code Standards
 
-### Rust 编码规范
+### Rust Coding Standards
 
-- 遵循 [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
-- 使用 `cargo fmt` 格式化代码
-- 使用 `cargo clippy` 检查代码
-- 编写文档注释 (///)
-- 添加单元测试
+- Follow the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
+- Format code with `cargo fmt`
+- Lint code with `cargo clippy`
+- Write doc comments (///)
+- Add unit tests
 
-### 文档要求
+### Documentation Requirements
 
-- 所有公共 API 需要文档注释
-- 更新相关文档
-- 添加使用示例
+- All public APIs require doc comments
+- Update related documentation
+- Add usage examples
 
-### 测试要求
+### Testing Requirements
 
-- 核心功能必须有测试
-- 保持测试快速执行
-- 测试边界情况
+- Core functionality must have tests
+- Keep tests fast to run
+- Test edge cases
 
-## 项目结构
+## Project Structure
 
 ```
-agit/                         # Workspace 根目录
-├── Cargo.toml                # Workspace 定义
-├── agit-core/                # Rust 原生 Git 核心库
+agit/                         # Workspace root
+├── Cargo.toml                # Workspace definition
+├── agit-core/                # Rust native Git core library
 │   └── src/
 │       ├── objects/          # Blob, Tree, Commit, Tag
-│       ├── storage.rs        # Loose 对象读写
-│       ├── refs.rs           # 引用管理（HEAD, 分支, 标签）
-│       ├── index.rs          # DIRC v2 暂存区
-│       ├── protocol.rs       # Git smart-HTTP 协议
-│       ├── merge.rs          # 3 路合并
-│       └── checkout.rs       # 分支切换 / 树恢复
-├── agit-ai/                  # AI 模式（可选，feature 门控）
+│       ├── storage.rs        # Loose object read/write
+│       ├── refs.rs           # Reference management (HEAD, branches, tags)
+│       ├── index.rs          # DIRC v2 staging area
+│       ├── protocol.rs       # Git smart-HTTP protocol
+│       ├── merge.rs          # 3-way merge
+│       └── checkout.rs       # Branch switching / tree restoration
+├── agit-ai/                  # AI mode (optional, feature-gated)
 │   └── src/
-│       └── lib.rs            # AI 自动标记、安全防护
-├── agit-cli/                 # CLI 二进制入口
+│       └── lib.rs            # AI auto-tagging, safety guards
+├── agit-cli/                 # CLI binary entry point
 │   └── src/
-│       ├── main.rs           # 入口点
-│       ├── commands/         # 每个子命令一个文件
-│       └── output/           # JSON / YAML / 无颜色输出
-└── tests/                    # 集成测试
+│       ├── main.rs           # Entry point
+│       ├── commands/         # One file per subcommand
+│       └── output/           # JSON / YAML / no-color output
+└── tests/                    # Integration tests
 ```
 
-详见: [架构设计](ARCHITECTURE.md)
+See: [Architecture Design](ARCHITECTURE.md)
 
-## 开发阶段
+## Development Phases
 
-查看当前开发进度: [开发计划](docs/PLAN.md)
+View the current development progress: [Development Plan](docs/PLAN.md)
 
-### 当前优先级
+### Current Priorities
 
-1. **P0**: 核心对象系统 (SHA-1, zlib, 对象模型)
-2. **P0**: 基础命令 (init, add, commit)
-3. **P1**: AI 模式
-4. **P1**: 网络功能 (clone, push, pull)
+1. **P0**: Core object system (SHA-1, zlib, object model)
+2. **P0**: Basic commands (init, add, commit)
+3. **P1**: AI mode
+4. **P1**: Networking features (clone, push, pull)
 
-## 新手任务
+## Good First Issues
 
-想要开始贡献？查看 [新手任务](../GOOD_FIRST_ISSUES.md)
+Want to start contributing? Check out the [Good First Issues](../GOOD_FIRST_ISSUES.md)
 
-## 获取帮助
+## Getting Help
 
-- 📖 查看 [README](../README.md)
-- 💬 加入讨论: [GitHub Discussions](https://github.com/bit-torch/AdapterGit/discussions)
-- 🐛 报告问题: [GitHub Issues](https://github.com/bit-torch/AdapterGit/issues)
+- 📖 See the [README](../README.md)
+- 💬 Join the discussion: [GitHub Discussions](https://github.com/bit-torch/AdapterGit/discussions)
+- 🐛 Report issues: [GitHub Issues](https://github.com/bit-torch/AdapterGit/issues)
 
-## 许可证
+## License
 
-贡献即表示您同意您的代码遵循 Apache 2.0 许可证。
+By contributing, you agree that your code will be licensed under the Apache 2.0 license.
